@@ -45,7 +45,7 @@ lazy val scala2Perspective = project
     commonScala2Settings,
     publishSettings,
     name := "perspective",
-	moduleName := "perspective",
+    moduleName := "perspective",
     scalacOptions += "-Ymacro-annotations",
     libraryDependencies += "org.typelevel" %% "cats-core"  % "2.0.0",
     libraryDependencies += "org.typelevel" %% "simulacrum" % "1.0.0"
@@ -68,7 +68,8 @@ lazy val dottyPerspective = project
     commonDottySettings,
     publishSettings,
     name := "category",
-	moduleName := "perspectivedotty"
+    moduleName := "perspectivedotty",
+    libraryDependencies += ("org.typelevel" %% "cats-core"  % "2.0.0").withDottyCompat(scalaVersion.value),
   )
 
 lazy val perspectiveScala2 = project.in(file("scala2")).aggregate(scala2Perspective, scala2PerspectiveMacro)
