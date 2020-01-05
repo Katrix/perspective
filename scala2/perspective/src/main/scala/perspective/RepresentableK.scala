@@ -21,6 +21,6 @@ trait RepresentableK[F[_[_], _]] extends MonadK[F] with DistributiveK[F] {
   override def mapK[A[_], B[_], C](fa: F[A, C])(f: A ~>: B): F[B, C] =
     tabulateK(λ[RepresentationK ~>: B](r => f(indexK(fa)(r))))
 
-  override def map2K[A[_], B[_], ZT[_], C](fa: F[A, C], fb: F[B, C])(f: Tuple2K[A, B]#λ ~>: ZT): F[ZT, C] =
-    tabulateK(λ[RepresentationK ~>: ZT](r => f((indexK(fa)(r), indexK(fb)(r)))))
+  override def map2K[A[_], B[_], Z[_], C](fa: F[A, C], fb: F[B, C])(f: Tuple2K[A, B]#λ ~>: Z): F[Z, C] =
+    tabulateK(λ[RepresentationK ~>: Z](r => f((indexK(fa)(r), indexK(fb)(r)))))
 }
