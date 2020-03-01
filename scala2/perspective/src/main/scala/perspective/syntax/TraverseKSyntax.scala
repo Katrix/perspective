@@ -7,12 +7,12 @@ import scala.language.implicitConversions
 
 trait TraverseKSyntax extends TraverseK.ToTraverseKOps {
 
-  implicit def squealTraverseKCFAOps[F[_[_]]: TraverseKC, A[_]](
+  implicit def perspectiveTraverseKCFAOps[F[_[_]]: TraverseKC, A[_]](
       fa: F[A]
   ): TraverseKCFAOps[F, A] =
     new TraverseKCFAOps[F, A](fa)
 
-  implicit def squealTraverseKCFComposeGAOps[F[_[_]]: TraverseKC, G[_], A[_]](
+  implicit def perspectiveTraverseKCFComposeGAOps[F[_[_]]: TraverseKC, G[_], A[_]](
       fa: F[Compose2[G, A, *]]
   ): TraverseKCFComposeGAApplicativeOps[F, G, A] =
     new TraverseKCFComposeGAApplicativeOps[F, G, A](fa)

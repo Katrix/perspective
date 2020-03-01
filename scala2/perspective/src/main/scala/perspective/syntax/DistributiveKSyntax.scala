@@ -7,35 +7,35 @@ import scala.language.implicitConversions
 
 trait DistributiveKSyntax extends DistributiveK.ToDistributiveKOps {
 
-  implicit def squealDistributiveKGFunctorOps[G[_]: Functor, A](ga: G[A]): DistributiveKCGFunctorOps[G, A] =
+  implicit def perspectiveDistributiveKGFunctorOps[G[_]: Functor, A](ga: G[A]): DistributiveKCGFunctorOps[G, A] =
     new DistributiveKCGFunctorOps[G, A](ga)
 
-  implicit def squealDistributiveKGFAFunctorOps[G[_]: Functor, F[_[_], _]: DistributiveK, A[_], C](
+  implicit def perspectiveDistributiveKGFAFunctorOps[G[_]: Functor, F[_[_], _]: DistributiveK, A[_], C](
       gfa: G[F[A, C]]
   ): DistributiveKGFAFunctorOps[G, F, A, C] =
     new DistributiveKGFAFunctorOps[G, F, A, C](gfa)
 
-  implicit def squealDistributiveKGFGMonadOps[G[_]: Monad, F[_[_], _]: DistributiveK, C](
+  implicit def perspectiveDistributiveKGFGMonadOps[G[_]: Monad, F[_[_], _]: DistributiveK, C](
       gfa: G[F[G, C]]
   ): DistributiveKGFGMonadOps[G, F, C] =
     new DistributiveKGFGMonadOps[G, F, C](gfa)
 
-  implicit def squealDistributiveKGFFunctorOps[G[_]: Functor, F[_[_], _]: DistributiveK, C](
+  implicit def perspectiveDistributiveKGFFunctorOps[G[_]: Functor, F[_[_], _]: DistributiveK, C](
       gf: G[F[cats.Id, C]]
   ): DistributiveKGFFunctorOps[G, F, C] =
     new DistributiveKGFFunctorOps[G, F, C](gf)
 
-  implicit def squealDistributiveKCGFAFunctorOps[G[_]: Functor, F[_[_]]: DistributiveKC, A[_]](
+  implicit def perspectiveDistributiveKCGFAFunctorOps[G[_]: Functor, F[_[_]]: DistributiveKC, A[_]](
       gfa: G[F[A]]
   ): DistributiveKCGFAFunctorOps[G, F, A] =
     new DistributiveKCGFAFunctorOps[G, F, A](gfa)
 
-  implicit def squealDistributiveKCGFGMonadOps[G[_]: Monad, F[_[_]]: DistributiveKC](
+  implicit def perspectiveDistributiveKCGFGMonadOps[G[_]: Monad, F[_[_]]: DistributiveKC](
       gfa: G[F[G]]
   ): DistributiveKCGFGMonadOps[G, F] =
     new DistributiveKCGFGMonadOps[G, F](gfa)
 
-  implicit def squealDistributiveKCGFFunctorOps[G[_]: Functor, F[_[_]]: DistributiveKC](
+  implicit def perspectiveDistributiveKCGFFunctorOps[G[_]: Functor, F[_[_]]: DistributiveKC](
       gfa: G[F[cats.Id]]
   ): DistributiveKCGFFunctorOps[G, F] =
     new DistributiveKCGFFunctorOps[G, F](gfa)

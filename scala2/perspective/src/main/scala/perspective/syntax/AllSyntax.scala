@@ -7,4 +7,6 @@ trait AllSyntax
     with DistributiveKSyntax
     with FoldableKSyntax
     with FunctorKSyntax
+    with MonadKSyntax
+    with RepresentableKSyntax
     with TraverseKSyntax

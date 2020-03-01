@@ -10,8 +10,8 @@ import simulacrum.typeclass
   def foldLeftK[A[_], B, C](fa: F[A, C], b: B)(f: B => A ~>#: B): B
 
   def foldMapK[A[_], B, C](fa: F[A, C])(f: A ~>#: B)(implicit B: Monoid[B]): B =
-    foldLeftK(fa, B.empty)(b => λ[A ~>: Const[B]#λ](a => B.combine(b, f(a))))
+    foldLeftK(fa, B.empty)(b => λ[A ~>: Const[B, *]](a => B.combine(b, f(a))))
 
-  def toListK[A, C](fa: F[Const[A]#λ, C]): List[A] =
+  def toListK[A, C](fa: F[Const[A, *], C]): List[A] =
     foldMapK(fa)(FunctionK.liftConst(List(_)))
 }

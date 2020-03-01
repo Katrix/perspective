@@ -1,35 +1,22 @@
-import cats.{Applicative, Functor}
+package perspective
 
-package object perspective extends LowPriorityPackage1 {
+import cats.{Applicative, Apply, Functor}
 
-  type Const[A, B] = A
+package object parameterized extends LowPriorityPackage1 {
+
+  type Const[A, B] = Const.Const[A, B]
 
   type IgnoreC[F[_[_]]] = {
     type λ[A[_], _] = F[A]
   }
 
-  type Compose2[A[_], B[_], C]                   = A[B[C]]
-  type Compose3[A[_], B[_], C[_], Z]             = A[B[C[Z]]]
-  type Compose4[A[_], B[_], C[_], D[_], Z]       = A[B[C[D[Z]]]]
-  type Compose5[A[_], B[_], C[_], D[_], E[_], Z] = A[B[C[D[E[Z]]]]]
+  type Compose2[A[_], B[_], C] = cats.data.Nested[A, B, C]
+  val Compose2: cats.data.Nested.type = cats.data.Nested
 
-  type ~>:[-F[_], +G[_]] = FunctionK[F, G]
+  type ~>:[F[_], G[_]] = FunctionK[F, G]
 
-  type ~>#:[F[_], R] = F ~>: Const[R, *]
-  type #~>:[T, F[_]] = Const[T, *] ~>: F
-  type #~>#:[T, R]   = Const[T, *] ~>: Const[R, *]
-
-  type Tuple2K[F[_], G[_], A]                   = (F[A], G[A])
-  type Tuple3K[F[_], G[_], H[_], A]             = (F[A], G[A], H[A])
-  type Tuple4K[F[_], G[_], H[_], I[_], A]       = (F[A], G[A], H[A], I[A])
-  type Tuple5K[F[_], G[_], H[_], I[_], J[_], A] = (F[A], G[A], H[A], I[A], J[A])
-
-  // format: off
-  type Tuple2KK[F[_[_], _], G[_[_], _]]                                     = { type λ[A[_], C] = (F[A, C], G[A, C]) }
-  type Tuple3KK[F[_[_], _], G[_[_], _], H[_[_], _]]                         = { type λ[A[_], C] = (F[A, C], G[A, C], H[A, C]) }
-  type Tuple4KK[F[_[_], _], G[_[_], _], H[_[_], _], I[_[_], _]]             = {type λ[A[_], C] = (F[A, C], G[A, C], H[A, C], I[A, C])}
-  type Tuple5KK[F[_[_], _], G[_[_], _], H[_[_], _], I[_[_], _], J[_[_], _]] = {type λ[A[_], C] = (F[A, C], G[A, C], H[A, C], I[A, C], J[A, C])}
-  // format: on
+  type Tuple2K[F[_], G[_], A] = cats.data.Tuple2K[F, G, A]
+  val Tuple2K: cats.data.Tuple2K.type = cats.data.Tuple2K
 
   type IdFC[A] = { type λ[F0[_]]    = F0[A] }
   type IdF     = { type λ[F0[_], A] = F0[A] }
@@ -59,50 +46,40 @@ package object perspective extends LowPriorityPackage1 {
   type Tuple22F[A, B, C, D, E, F, G, H, I, J, K, L0, M, N, O, P, Q, R, S, T, U, V] = {type λ[F0[_]] = Tuple22[F0[A], F0[B], F0[C], F0[D], F0[E], F0[F], F0[G], F0[H], F0[I], F0[J], F0[K], F0[L0], F0[M], F0[N], F0[O], F0[P], F0[Q], F0[R], F0[S], F0[T], F0[U], F0[V]]}
   // format: on
 
-  type FunctorKC[F[_[_]]]       = FunctorK[IgnoreC[F]#λ]
-  type ApplyKC[F[_[_]]]         = ApplyK[IgnoreC[F]#λ]
-  type ApplicativeKC[F[_[_]]]   = ApplicativeK[IgnoreC[F]#λ]
-  type MonadKC[F[_[_]]]         = MonadK[IgnoreC[F]#λ]
-  type RepresentableKC[F[_[_]]] = RepresentableK[IgnoreC[F]#λ]
-  object RepresentableKC {
-    type Aux[F[_[_]], RepresentationK0[_]] = RepresentableK[IgnoreC[F]#λ] {
-      type RepresentationK[A] = RepresentationK0[A]
-    }
-  }
-  type FoldableKC[F[_[_]]]     = FoldableK[IgnoreC[F]#λ]
-  type TraverseKC[F[_[_]]]     = TraverseK[IgnoreC[F]#λ]
-  type DistributiveKC[F[_[_]]] = DistributiveK[IgnoreC[F]#λ]
+  type PFunctorKC[F[_[_]]]     = PFunctorK[IgnoreC[F]#λ]
+  type PApplyKC[F[_[_]]]       = PApplyK[IgnoreC[F]#λ]
+  type PApplicativeKC[F[_[_]]] = PApplicativeK[IgnoreC[F]#λ]
+  type PMonadKC[F[_[_]]]       = PMonadK[IgnoreC[F]#λ]
 
   type INothing <: Nothing
 
-  implicit val idInstance: ApplicativeK[IdF#λ] with TraverseK[IdF#λ] with DistributiveK[IdF#λ] = new ApplicativeK[IdF#λ]
-  with TraverseK[IdF#λ] with DistributiveK[IdF#λ] {
-    override def pureK[A[_], C](a: Unit #~>: A): A[C] = a(())
+  implicit val idInstance: PApplicativeK[IdF#λ] = new PApplicativeK[IdF#λ] {
+    override def pureK[A[_]: Applicative, C](a: Const[Unit, *] ~>: A): A[C] = a(Const.unit)
 
-    override def traverseK[G[_]: Applicative, A[_], B[_], C](fa: A[C])(f: A ~>: Compose2[G, B, *]): G[B[C]] = f(fa)
+    override def map2K[A[_]: Apply, B[_]: Apply, Z[_]: Apply, C](fa: A[C], fb: B[C])(f: Tuple2K[A, B, *] ~>: Z): Z[C] =
+      f(Tuple2K(fa, fb))
 
-    override def foldLeftK[A[_], B, C](fa: A[C], b: B)(f: B => A ~>#: B): B = f(b)(fa)
+    override def apK[A[_]: Apply, B[_]: Apply, C](ff: A[C] => B[C])(fa: A[C]): B[C] = ff(fa)
 
-    override def map2K[A[_], B[_], Z[_], C](fa: A[C], fb: B[C])(f: Tuple2K[A, B, *] ~>: Z): Z[C] = f(fa, fb)
-
-    override def cosequenceK[G[_]: Functor, A[_], C](gfa: G[A[C]]): Compose2[G, A, C] = gfa
+    override def mapK[A[_]: Functor, B[_]: Functor, C](fa: A[C])(f: A ~>: B): B[C] = f(fa)
   }
 }
 
-package perspective {
+package parameterized {
+  import cats.Functor
+
   trait LowPriorityPackage1 {
 
-    implicit def idInstanceC[T]: ApplicativeKC[IdFC[T]#λ] with TraverseKC[IdFC[T]#λ] with DistributiveKC[IdFC[T]#λ] =
-      new ApplicativeKC[IdFC[T]#λ] with TraverseKC[IdFC[T]#λ] with DistributiveKC[IdFC[T]#λ] {
-        override def pureK[A[_], C](a: Unit #~>: A): A[T] = a(())
+    implicit def idInstanceC[T]: PApplicativeKC[IdFC[T]#λ] = new PApplicativeKC[IdFC[T]#λ] {
+      override def pureK[A[_]: Applicative, C](a: Const[Unit, *] ~>: A): A[T] = a(Const.unit)
 
-        override def traverseK[G[_]: Applicative, A[_], B[_], C](fa: A[T])(f: A ~>: Compose2[G, B, *]): G[B[T]] = f(fa)
+      override def map2K[A[_]: Apply, B[_]: Apply, Z[_]: Apply, C](fa: A[T], fb: B[T])(
+          f: Tuple2K[A, B, *] ~>: Z
+      ): Z[T] = f(Tuple2K(fa, fb))
 
-        override def foldLeftK[A[_], B, C](fa: A[T], b: B)(f: B => A ~>#: B): B = f(b)(fa)
+      override def apK[A[_]: Apply, B[_]: Apply, C](ff: A[T] => B[T])(fa: A[T]): B[T] = ff(fa)
 
-        override def map2K[A[_], B[_], Z[_], C](fa: A[T], fb: B[T])(f: Tuple2K[A, B, *] ~>: Z): Z[T] = f(fa, fb)
-
-        override def cosequenceK[G[_]: Functor, A[_], C](gfa: G[A[T]]): Compose2[G, A, T] = gfa
-      }
+      override def mapK[A[_]: Functor, B[_]: Functor, C](fa: A[T])(f: A ~>: B): B[T] = f(fa)
+    }
   }
 }

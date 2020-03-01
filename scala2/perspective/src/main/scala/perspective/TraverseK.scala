@@ -20,21 +20,21 @@ import simulacrum.typeclass
   def sequenceIdK[A[_]: Applicative, C](fa: F[A, C]): A[F[cats.Id, C]] = sequenceK[A, cats.Id, C](fa)
 
   //Adapted from https://stackoverflow.com/questions/47911415/scala-cats-or-scalaz-typeclass-scanleft-like
-  def scanLeft[A, B[_], C](fa: F[Const[A]#λ, C])(zero: Unit #~>: B, f: Tuple2K[B, Const[A]#λ]#λ ~>: B): F[B, C] = {
-    val generate = new FunctionK[Const[A]#λ, Compose2[State[Unit #~>: B, *], B, *]] {
+  def scanLeft[A, B[_], C](fa: F[Const[A, *], C])(zero: Unit #~>: B, f: Tuple2K[B, Const[A, *], *] ~>: B): F[B, C] = {
+    val generate = new FunctionK[Const[A, *], Compose2[State[Unit #~>: B, *], B, *]] {
       override def apply[Z](fa: A): Compose2[State[Unit #~>: B, *], B, Z] =
         for {
           prevF <- State.get[Unit #~>: B]
-          nextF = Lambda[Const[Unit]#λ ~>: B](_ => f((prevF(()), fa)))
+          nextF = Lambda[Const[Unit, *] ~>: B](_ => f((prevF(()), fa)))
           _ <- State.set[Unit #~>: B](nextF)
         } yield nextF(())
     }
 
-    traverseK[State[Unit #~>: B, *], Const[A]#λ, B, C](fa)(generate).runA(zero).value
+    traverseK[State[Unit #~>: B, *], Const[A, *], B, C](fa)(generate).runA(zero).value
   }
 
-  def numbered[C](implicit F: ApplicativeK[F]): F[Const[Int]#λ, C] =
-    scanLeft[Unit, Const[Int]#λ, C](F.unitK[C])(
+  def numbered[C](implicit F: ApplicativeK[F]): F[Const[Int, *], C] =
+    scanLeft[Unit, Const[Int, *], C](F.unitK[C])(
       FunctionK.const(0),
       FunctionK.liftConst((t: (Int, Unit)) => t._1 + 1)
     )

@@ -29,7 +29,7 @@ lazy val publishSettings = Seq(
     )
   ),
   homepage := Some(url("https://github.com/Katrix/perspective")),
-  developers := List(Developer("Katrix", "Kat", "katrix97@hotmail.com", url("http://katsstuff.net/"))),
+  developers := List(Developer("Katrix", "Kathryn", "katrix97@hotmail.com", url("http://katsstuff.net/"))),
   pomIncludeRepository := (_ => false),
   autoAPIMappings := true,
   publishTo := {
@@ -38,6 +38,8 @@ lazy val publishSettings = Seq(
     else Some("releases".at(nexus + "service/local/staging/deploy/maven2"))
   }
 )
+
+lazy val noPublishSettings = Seq(publish := {}, publishLocal := {}, publishArtifact := false)
 
 lazy val scala2Perspective = project
   .in(file("scala2/perspective"))
@@ -51,13 +53,42 @@ lazy val scala2Perspective = project
     libraryDependencies += "org.typelevel" %% "simulacrum" % "1.0.0"
   )
 
-lazy val scala2PerspectiveMacro = project
-  .in(file("scala2/perspectiveMacro"))
+lazy val scala2PerspectiveParameterized = project
+  .in(file("scala2/parameterized"))
   .dependsOn(scala2Perspective)
   .settings(
     commonScala2Settings,
     publishSettings,
-    name := "perspective-macro",
+    name := "parameterized",
+    scalacOptions += "-Ymacro-annotations"
+  )
+
+lazy val scala2PerspectiveDerivation = project
+  .in(file("scala2/derivation"))
+  .dependsOn(scala2Perspective)
+  .settings(
+    commonScala2Settings,
+    publishSettings,
+    name := "derivation",
+    libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.3"
+  )
+
+lazy val scala2PerspectiveExamples = project
+  .in(file("scala2/examples"))
+  .dependsOn(scala2PerspectiveDerivation)
+  .settings(
+    commonScala2Settings,
+    noPublishSettings,
+    name := "examples"
+  )
+
+lazy val scala2PerspectiveMacros = project
+  .in(file("scala2/macros"))
+  .dependsOn(scala2Perspective)
+  .settings(
+    commonScala2Settings,
+    publishSettings,
+    name := "macro",
     libraryDependencies += "org.scala-lang" % "scala-reflect"        % scalaVersion.value % Provided,
     libraryDependencies += "org.typelevel"  %% "cats-tagless-macros" % "0.10"
   )
@@ -69,11 +100,11 @@ lazy val dottyPerspective = project
     publishSettings,
     name := "category",
     moduleName := "perspectivedotty",
-    libraryDependencies += ("org.typelevel" %% "cats-core"  % "2.0.0").withDottyCompat(scalaVersion.value),
+    libraryDependencies += ("org.typelevel" %% "cats-core" % "2.0.0").withDottyCompat(scalaVersion.value)
   )
 
-lazy val perspectiveScala2 = project.in(file("scala2")).aggregate(scala2Perspective, scala2PerspectiveMacro)
+lazy val perspectiveScala2 = project.in(file("scala2")).aggregate(scala2Perspective, scala2PerspectiveMacros)
 lazy val perspectiveDotty  = project.in(file("dotty")).aggregate(dottyPerspective)
 
 lazy val PerspectiveRoot =
-  project.in(file(".")).aggregate(scala2Perspective, scala2PerspectiveMacro, dottyPerspective)
+  project.in(file(".")).aggregate(scala2Perspective, scala2PerspectiveMacros, dottyPerspective)
