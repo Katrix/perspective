@@ -5,7 +5,7 @@ import cats.syntax.all._
 
 import scala.language.implicitConversions
 
-trait DistributiveK[F[_[_], _]] extends FunctorK[F]
+trait DistributiveK[F[_[_], _]] extends FunctorK[F]:
   def [G[_]: Functor, A[_], B[_], C](gfa: G[F[A, C]]) distributeK(f: Compose2[G, A] ~>: B): F[B, C] =
     gfa.cosequenceK.mapK(f)
   

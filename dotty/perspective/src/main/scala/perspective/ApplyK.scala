@@ -1,6 +1,6 @@
 package perspective
 
-trait ApplyK[F[_[_], _]] extends FunctorK[F]
+trait ApplyK[F[_[_], _]] extends FunctorK[F]:
   def [A[_], B[_], C](ff: F[[D] =>> A[D] => B[D], C]) ap(fa: F[A, C]): F[B, C] =
     ff.map2K(fa)([Z] => (t: Tuple2K[[D] =>> A[D] => B[D], A][Z]) => t._1(t._2))
 

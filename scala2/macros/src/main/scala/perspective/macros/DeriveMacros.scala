@@ -93,7 +93,7 @@ private[macros] class DeriveMacros(override val c: blackbox.Context) extends Cat
 
   //def map2K[A[_], B[_], Z[_], C](fa: F[A, C], fb: F[B, C])(f: Tuple2K[A, B]#λ ~>: Z): F[Z, C]
   def map2K(algebra: Type): (String, Type => Tree) = {
-    val Tuple2K = symbolOf[Tuple2K[Any, Any]#λ[Any]]
+    val Tuple2K = symbolOf[Tuple2K[Any, Any, Any]]
     "map2K" -> {
       case PolyType(List(a, b, z, c), MethodType(List(fa, fb), MethodType(List(f), _))) =>
         val A   = a.asType.toTypeConstructor
@@ -390,7 +390,7 @@ private[macros] class DeriveMacros(override val c: blackbox.Context) extends Cat
   )(
       step: Seq[Param] => (Tree, Tree)
   ): Tree = {
-    val Tuple2K      = symbolOf[Tuple2K[Any, Any]]
+    val Tuple2K      = symbolOf[Tuple2K[Any, Any, Any]]
     val tupleApplied = appliedType(Tuple2K, tuple1Type, tuple2Type)
     val tupleRef     = typeRef(tupleApplied, tupleApplied.decls.head, Nil).typeConstructor.etaExpand.dealias
 
@@ -408,65 +408,9 @@ private[macros] class DeriveMacros(override val c: blackbox.Context) extends Cat
     c.inferImplicitValue(last.tpe).orElse(abort(s"could not find implicit value of type ${last.tpe}"))
   }
 
-  def sumImplicitsStep(params: Seq[Param]): Tree = {
-    val last = params.last
-    val tpe  = last.tpe
-
-    if (tpe.typeSymbol.isAbstract && tpe.typeSymbol.isClass && tpe.typeSymbol.asClass.isSealed) {
-      val subclasses = last.tpe.typeSymbol.asClass.knownDirectSubclasses
-      val tuples = subclasses.map { symb =>
-        val F = productImplicitsStep(params)
-        q"(${symb.asType.name.encodedName.toString}, $F)"
-      }
-      q"_root_.scala.collection.immutable.Map(..$tuples)"
-    } else {
-      val F = productImplicitsStep(params)
-      q"_root_.scala.collection.immutable.Map((${tpe.typeSymbol.name.encodedName.toString}, $F))"
-    }
-  }
-
-  def adtImplicitsStep(params: Seq[Param]): Tree = {
-    val last = params.last
-    val tpe  = last.tpe
-
-    if (tpe.typeSymbol.isAbstract && tpe.typeSymbol.isClass && tpe.typeSymbol.asClass.isSealed) {
-      val subclasses = last.tpe.typeSymbol.asClass.knownDirectSubclasses
-      val tuples = subclasses.map { symb =>
-        val F = productImplicitsStep(params)
-        q"(${symb.asType.name.encodedName.toString}, $F)"
-      }
-      q"_root_.scala.util.Right(_root_.scala.collection.immutable.Map(..$tuples))"
-    } else {
-      val F = productImplicitsStep(params)
-      q"_root_.scala.util.Left($F)"
-    }
-  }
-
   def namesType: Type = {
     val Const = c.typecheck(tq"({ type L[A] = _root_.scala.List[_root_.java.lang.String]})", c.TYPEmode).tpe
     typeRef(Const, Const.decls.head, Nil).typeConstructor.dealias.etaExpand
-  }
-
-  def sumType(typeClass: Type): Type = {
-    val tSym = typeClass.typeSymbol
-    val Sum = c
-      .typecheck(
-        tq"({ type L[A] = _root_.scala.collection.immutable.Map[_root_.java.lang.String, $tSym[A]]})",
-        c.TYPEmode
-      )
-      .tpe
-    typeRef(Sum, Sum.decls.head, Nil).typeConstructor.dealias.etaExpand
-  }
-
-  def adtType(typeClass: Type): Type = {
-    val tSym = typeClass.typeSymbol
-    val Adt = c
-      .typecheck(
-        tq"({ type L[A] = _root_.scala.util.Either[$tSym[A], _root_.scala.collection.immutable.Map[_root_.java.lang.String, $tSym[A]]]})",
-        c.TYPEmode
-      )
-      .tpe
-    typeRef(Adt, Adt.decls.head, Nil).typeConstructor.dealias.etaExpand
   }
 
   def names[F[_[_], _]](implicit tag: WeakTypeTag[F[Any, Any]]): Tree = {
@@ -500,44 +444,6 @@ private[macros] class DeriveMacros(override val c: blackbox.Context) extends Cat
     instantiateHKD(tag.tpe, Nil)(aType)(appliedType(_, aType))(productImplicitsStep)
   }
 
-  def withSumImplicits[F[_[_], _], A[_], C](
-      implicit tag: WeakTypeTag[F[Any, Any]],
-      aTag: WeakTypeTag[A[Any]],
-      cTag: WeakTypeTag[C]
-  ): Tree = {
-    checkConcreteClass(tag)
-    val aType = aTag.tpe.typeConstructor
-    val cType = cTag.tpe
-
-    instantiateHKD(tag.tpe, Nil)(sumType(aType), cType)(appliedType(_, aType, cType))(sumImplicitsStep)
-  }
-
-  def withSumImplicitsC[F[_[_]], A[_]](implicit tag: WeakTypeTag[F[Any]], aTag: WeakTypeTag[A[Any]]): Tree = {
-    checkConcreteClass(tag)
-    val aType = aTag.tpe.typeConstructor
-
-    instantiateHKD(tag.tpe, Nil)(sumType(aType))(appliedType(_, aType))(sumImplicitsStep)
-  }
-
-  def withADTImplicits[F[_[_], _], A[_], C](
-      implicit tag: WeakTypeTag[F[Any, Any]],
-      aTag: WeakTypeTag[A[Any]],
-      cTag: WeakTypeTag[C]
-  ): Tree = {
-    checkConcreteClass(tag)
-    val aType = aTag.tpe.typeConstructor
-    val cType = cTag.tpe
-
-    instantiateHKD(tag.tpe, Nil)(adtType(aType), cType)(appliedType(_, aType, cType))(adtImplicitsStep)
-  }
-
-  def withADTImplicitsC[F[_[_]], A[_]](implicit tag: WeakTypeTag[F[Any]], aTag: WeakTypeTag[A[Any]]): Tree = {
-    checkConcreteClass(tag)
-    val aType = aTag.tpe.typeConstructor
-
-    instantiateHKD(tag.tpe, Nil)(adtType(aType))(appliedType(_, aType))(adtImplicitsStep)
-  }
-
   def namesWithProductImplicits[F[_[_], _], A[_], C](
       implicit tag: WeakTypeTag[F[Any, Any]],
       aTag: WeakTypeTag[A[Any]],
@@ -556,48 +462,6 @@ private[macros] class DeriveMacros(override val c: blackbox.Context) extends Cat
     val aType = aTag.tpe
     instantiateHKDTuple(tag.tpe)(namesType, aType)(appliedType(_, aType)) { params =>
       (namesStep(params), productImplicitsStep(params))
-    }
-  }
-
-  def namesWithSumImplicits[F[_[_], _], A[_], C](
-      implicit tag: WeakTypeTag[F[Any, Any]],
-      aTag: WeakTypeTag[A[Any]],
-      cTag: WeakTypeTag[C]
-  ): Tree = {
-    checkConcreteClass(tag)
-    val aType = aTag.tpe
-    val cType = cTag.tpe
-    instantiateHKDTuple(tag.tpe)(namesType, sumType(aType), cType)(appliedType(_, aType, cType)) { params =>
-      (namesStep(params), sumImplicitsStep(params))
-    }
-  }
-
-  def namesWithSumImplicitsC[F[_[_]], A[_]](implicit tag: WeakTypeTag[F[Any]], aTag: WeakTypeTag[A[Any]]): Tree = {
-    checkConcreteClass(tag)
-    val aType = aTag.tpe
-    instantiateHKDTuple(tag.tpe)(namesType, sumType(aType))(appliedType(_, aType)) { params =>
-      (namesStep(params), sumImplicitsStep(params))
-    }
-  }
-
-  def namesWithADTImplicits[F[_[_], _], A[_], C](
-      implicit tag: WeakTypeTag[F[Any, Any]],
-      aTag: WeakTypeTag[A[Any]],
-      cTag: WeakTypeTag[C]
-  ): Tree = {
-    checkConcreteClass(tag)
-    val aType = aTag.tpe
-    val cType = cTag.tpe
-    instantiateHKDTuple(tag.tpe)(namesType, adtType(aType), cType)(appliedType(_, aType, cType)) { params =>
-      (namesStep(params), adtImplicitsStep(params))
-    }
-  }
-
-  def namesWithADTImplicitsC[F[_[_]], A[_]](implicit tag: WeakTypeTag[F[Any]], aTag: WeakTypeTag[A[Any]]): Tree = {
-    checkConcreteClass(tag)
-    val aType = aTag.tpe
-    instantiateHKDTuple(tag.tpe)(namesType, adtType(aType))(appliedType(_, aType)) { params =>
-      (namesStep(params), adtImplicitsStep(params))
     }
   }
 }

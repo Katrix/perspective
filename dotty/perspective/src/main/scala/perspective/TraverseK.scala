@@ -3,7 +3,7 @@ package perspective
 import cats._
 import cats.syntax.all._
 
-trait TraverseK[F[_[_], _]] extends FunctorK[F], FoldableK[F]
+trait TraverseK[F[_[_], _]] extends FunctorK[F], FoldableK[F]:
   def [G[_]: Applicative, A[_], B[_], C](fa: F[A, C]) traverseK(f: A ~>: Compose2[G, B]): G[F[B, C]]
 
   def [G[_]: Applicative, A[_], C](fga: F[Compose2[G, A], C]) sequenceK: G[F[A, C]] =

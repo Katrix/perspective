@@ -11,7 +11,7 @@ lazy val commonScala2Settings = commonSettings ++ Seq(
 )
 
 lazy val commonDottySettings = commonSettings ++ Seq(
-  scalaVersion := "0.20.0-RC1",
+  scalaVersion := "0.24.0-RC1",
   moduleName := s"perspectivedotty-${moduleName.value}",
   scalacOptions += "-Ykind-projector",
   libraryDependencies += "ch.epfl.lamp" %% "dotty-staging" % scalaVersion.value
@@ -70,7 +70,8 @@ lazy val scala2PerspectiveDerivation = project
     commonScala2Settings,
     publishSettings,
     name := "derivation",
-    libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.3"
+    libraryDependencies += "com.chuusai"    %% "shapeless"    % "2.3.3",
+    libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided
   )
 
 lazy val scala2PerspectiveExamples = project

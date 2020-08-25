@@ -18,19 +18,19 @@ trait HKDProductGeneric[A] { self =>
   def representable: RepresentableKC[Gen]
   def traverse: TraverseKC[Gen]
 
-  object implicits extends ProductImplicitsLowPriority[A, Gen] {
-    implicit def representable: RepresentableKC[Gen] = self.representable
-
-    override private[derivation] def productInstance: HKDProductGeneric.Aux[A, Gen] = self
-  }
+  val implicits: ProductImplicits[A, Gen] = new ProductImplicits[A, Gen](this)
 }
-private[derivation] trait ProductImplicitsLowPriority[A, Gen[_[_]]] {
-  private[derivation] def productInstance: HKDProductGeneric.Aux[A, Gen]
+private[derivation] class ProductImplicits[A, Gen[_[_]]](gen: HKDProductGeneric.Aux[A, Gen])
+    extends ProductImplicitsLowPriority(gen) {
 
-  implicit def traverse: TraverseKC[Gen] = productInstance.traverse
+  implicit def representable: RepresentableKC[Gen] = gen.representable
+}
+abstract private[derivation] class ProductImplicitsLowPriority[A, Gen[_[_]]](gen: HKDProductGeneric.Aux[A, Gen]) {
+
+  implicit def traverse: TraverseKC[Gen] = gen.traverse
 }
 
-object HKDProductGeneric extends HKDProductGenericInstances {
+object HKDProductGeneric extends HKDProductGenericMacros {
   def apply[A](implicit gen: HKDProductGeneric[A]): HKDProductGeneric.Aux[A, gen.Gen] = gen
 
   type Aux[A, Gen0[_[_]]] = HKDProductGeneric[A] {

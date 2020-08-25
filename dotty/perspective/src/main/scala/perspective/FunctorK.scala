@@ -4,7 +4,7 @@ import scala.deriving._
 import scala.compiletime._
 import scala.quoted._
 
-trait FunctorK[F[_[_], _]]
+trait FunctorK[F[_[_], _]]:
   type Curried[A[_]] = [C] =>> F[A, C]
 
   def [A[_], B[_], C](fa: F[A, C]) mapK (f: A ~>: B): F[B, C]

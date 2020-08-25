@@ -14,8 +14,17 @@ trait Decoder[A] {
   def decode(cursor: ACursor): Either[String, A]
 }
 object Decoder {
-  implicit val decodeInt: Decoder[Int]       = ???
-  implicit val decodeString: Decoder[String] = ???
+  implicit val decodeInt: Decoder[Int]                   = ???
+  implicit val decodeLong: Decoder[Long]                 = ???
+  implicit val decodeDouble: Decoder[Double]             = ???
+  implicit val decodeString: Decoder[String]             = ???
+  implicit val decodeBoolean: Decoder[Boolean]           = ???
+  implicit val decodeJsonMap: Decoder[Map[String, Json]] = ???
+
+
+
+  implicit def decodeOption[A: Decoder]: Decoder[Option[A]] = ???
+  implicit def decodeSeq[A: Decoder]: Decoder[Seq[A]]       = ???
 
   implicit def productDecoder[A, Gen[_[_]]](
       implicit gen: HKDProductGeneric.Aux[A, Gen],
@@ -31,6 +40,15 @@ object Decoder {
         .sequenceIdKC
         .map(gen.from)
     }
+  }
+
+  def deriver[A] = new DecoderDeriver[A]
+
+  class DecoderDeriver[A] {
+    def derive[Gen[_[_]]](
+        implicit gen: HKDProductGeneric.Aux[A, Gen],
+        decoders: Gen[Decoder]
+    ): Decoder[A] = productDecoder
   }
 
   implicit def sumDecoder[A, Gen[_[_]]](
@@ -58,7 +76,13 @@ trait Encoder[A] {
 object Encoder {
   implicit val encodeInt: Encoder[Int]                   = ???
   implicit val encodeString: Encoder[String]             = ???
+  implicit val encodeDouble: Encoder[Double]             = ???
+  implicit val encodeLong: Encoder[Long]                 = ???
+  implicit val encodeBoolean: Encoder[Boolean]           = ???
   implicit val encodeJsonMap: Encoder[Map[String, Json]] = ???
+
+  implicit def encodeOption[A: Encoder]: Encoder[Option[A]] = ???
+  implicit def encodeSeq[A: Encoder]: Encoder[Seq[A]]       = ???
 
   implicit def productEncoder[A, Gen[_[_]]](
       implicit gen: HKDProductGeneric.Aux[A, Gen],
@@ -80,6 +104,15 @@ object Encoder {
     }
   }
 
+  def deriver[A] = new EncoderDeriver[A]
+
+  class EncoderDeriver[A] {
+    def derive[Gen[_[_]]](
+        implicit gen: HKDProductGeneric.Aux[A, Gen],
+        encoders: Gen[Encoder]
+    ): Encoder[A] = productEncoder
+  }
+
   implicit def sumEncoder[A, Gen[_[_]]](
       implicit gen: HKDSumGeneric.Aux[A, Gen],
       encoders: Gen[Encoder]
@@ -95,6 +128,25 @@ object Encoder {
 
       encodings.indexKC(gen.indexOf(a)).get
     }
+  }
+}
+trait Codec[A] extends Encoder[A] with Decoder[A]
+object Codec {
+
+  implicit def createCodec[A](implicit encoder: Encoder[A], decoder: Decoder[A]): Codec[A] = new Codec[A] {
+    override def decode(cursor: ACursor): Either[String, A] = decoder.decode(cursor)
+
+    override def encode(a: A): Json = encoder.encode(a)
+  }
+
+  def deriver[A] = new CodecDeriver[A]
+
+  class CodecDeriver[A] {
+    def derive[Gen[_[_]]](
+        implicit gen: HKDProductGeneric.Aux[A, Gen],
+        encoders: Gen[Encoder],
+        deceoders: Gen[Decoder]
+    ): Codec[A] = createCodec(Encoder.productEncoder, Decoder.productDecoder)
   }
 }
 
@@ -124,9 +176,10 @@ case class Bar(
     i1_22: Int
 )
 object Foo {
+  //implicitly[Decoder[Foo]]
+  //implicitly[Encoder[Foo]]
 
-  implicitly[Decoder[Foo]]
-  implicitly[Encoder[Foo]]
+  //implicitly[Encoder[(String, Int)]]
 
   //implicitly[Decoder[Bar]]
   //HKDProductGeneric[Bar]

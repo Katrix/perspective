@@ -1,6 +1,6 @@
 package perspective
 
-trait ApplicativeK[F[_[_], _]] extends ApplyK[F]
+trait ApplicativeK[F[_[_], _]] extends ApplyK[F]:
   def [A[_], C](a: ValueK[A]) pure: F[A, C]
 
   def unitK[C]: F[Const[Unit], C] = ValueK.const(()).pure
