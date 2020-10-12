@@ -21,8 +21,6 @@ object Decoder {
   implicit val decodeBoolean: Decoder[Boolean]           = ???
   implicit val decodeJsonMap: Decoder[Map[String, Json]] = ???
 
-
-
   implicit def decodeOption[A: Decoder]: Decoder[Option[A]] = ???
   implicit def decodeSeq[A: Decoder]: Decoder[Seq[A]]       = ???
 

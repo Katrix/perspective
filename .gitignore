@@ -34,3 +34,6 @@ project/target
 #travis
 /travis-deploy-key
 /travis-deploy-key.pub
+
+.dotty-ide-artifact
+.dotty-ide.json

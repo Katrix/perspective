@@ -28,7 +28,7 @@ object Derive {
 
   type Names[A]           = Const[List[String], A]
   type Implicits[A[_], Z] = A[Z]
-  
+
   def names[F[_[_], _]]: F[Names, _] = macro DeriveMacros.names[F]
   def namesC[F[_[_]]]: F[Names] = macro DeriveMacros.namesC[F]
 

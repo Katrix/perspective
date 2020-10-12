@@ -18,7 +18,7 @@ package object parameterized extends LowPriorityPackage1 {
   type Tuple2K[F[_], G[_], A] = cats.data.Tuple2K[F, G, A]
   val Tuple2K: cats.data.Tuple2K.type = cats.data.Tuple2K
 
-  type IdFC[A] = { type λ[F0[_]]    = F0[A] }
+  type IdFC[A] = { type λ[F0[_]] = F0[A] }
   type IdF     = { type λ[F0[_], A] = F0[A] }
 
   // format: off

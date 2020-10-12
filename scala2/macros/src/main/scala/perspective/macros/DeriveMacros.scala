@@ -174,9 +174,7 @@ private[macros] class DeriveMacros(override val c: blackbox.Context) extends Cat
             val tupleNameSimple = TypeName(s"Tuple$tupleSize")
             val tupleName       = tq"_root_.scala.$tupleNameSimple"
 
-            val subsitutedTupleTypes = params.map { p =>
-              tq"${p.tpe.substituteSymbols(List(a), List(b))}"
-            }
+            val subsitutedTupleTypes = params.map(p => tq"${p.tpe.substituteSymbols(List(a), List(b))}")
 
             val tupleParamType = tq"$tupleName[..$subsitutedTupleTypes]"
 
@@ -308,12 +306,14 @@ private[macros] class DeriveMacros(override val c: blackbox.Context) extends Cat
     val impl    = rhs.map(_.apply(algebra)).toMap
 
     val declaration @ ClassDef(_, _, _, Template(parents, self, members)) = declare(Ta)
-    val implementations = for (member <- members) yield member match {
-      case dd: DefDef =>
-        val method = member.symbol.asMethod
-        impl.get(method.name.toString).fold(dd)(f => defDef(method, f(method.typeSignatureIn(Ta))))
-      case other => other
-    }
+    val implementations =
+      for (member <- members)
+        yield member match {
+          case dd: DefDef =>
+            val method = member.symbol.asMethod
+            impl.get(method.name.toString).fold(dd)(f => defDef(method, f(method.typeSignatureIn(Ta))))
+          case other => other
+        }
 
     val definition = classDef(declaration.symbol, Template(parents, self, implementations))
     typeCheckWithFreshTypeParams(q"{ $definition; new ${declaration.symbol} }")

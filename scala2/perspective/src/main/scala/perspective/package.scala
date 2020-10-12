@@ -31,7 +31,7 @@ package object perspective extends LowPriorityPackage1 {
   type Tuple5KK[F[_[_], _], G[_[_], _], H[_[_], _], I[_[_], _], J[_[_], _]] = {type λ[A[_], C] = (F[A, C], G[A, C], H[A, C], I[A, C], J[A, C])}
   // format: on
 
-  type IdFC[A] = { type λ[F0[_]]    = F0[A] }
+  type IdFC[A] = { type λ[F0[_]] = F0[A] }
   type IdF     = { type λ[F0[_], A] = F0[A] }
 
   // format: off
@@ -75,18 +75,18 @@ package object perspective extends LowPriorityPackage1 {
 
   type INothing <: Nothing
 
-  implicit val idInstance: ApplicativeK[IdF#λ] with TraverseK[IdF#λ] with DistributiveK[IdF#λ] = new ApplicativeK[IdF#λ]
-  with TraverseK[IdF#λ] with DistributiveK[IdF#λ] {
-    override def pureK[A[_], C](a: Unit #~>: A): A[C] = a(())
+  implicit val idInstance: ApplicativeK[IdF#λ] with TraverseK[IdF#λ] with DistributiveK[IdF#λ] =
+    new ApplicativeK[IdF#λ] with TraverseK[IdF#λ] with DistributiveK[IdF#λ] {
+      override def pureK[A[_], C](a: Unit #~>: A): A[C] = a(())
 
-    override def traverseK[G[_]: Applicative, A[_], B[_], C](fa: A[C])(f: A ~>: Compose2[G, B, *]): G[B[C]] = f(fa)
+      override def traverseK[G[_]: Applicative, A[_], B[_], C](fa: A[C])(f: A ~>: Compose2[G, B, *]): G[B[C]] = f(fa)
 
-    override def foldLeftK[A[_], B, C](fa: A[C], b: B)(f: B => A ~>#: B): B = f(b)(fa)
+      override def foldLeftK[A[_], B, C](fa: A[C], b: B)(f: B => A ~>#: B): B = f(b)(fa)
 
-    override def map2K[A[_], B[_], Z[_], C](fa: A[C], fb: B[C])(f: Tuple2K[A, B, *] ~>: Z): Z[C] = f(fa, fb)
+      override def map2K[A[_], B[_], Z[_], C](fa: A[C], fb: B[C])(f: Tuple2K[A, B, *] ~>: Z): Z[C] = f(fa, fb)
 
-    override def cosequenceK[G[_]: Functor, A[_], C](gfa: G[A[C]]): Compose2[G, A, C] = gfa
-  }
+      override def cosequenceK[G[_]: Functor, A[_], C](gfa: G[A[C]]): Compose2[G, A, C] = gfa
+    }
 }
 
 package perspective {

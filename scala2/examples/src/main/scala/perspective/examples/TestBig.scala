@@ -259,7 +259,8 @@ object TestBig {
 
   case class ReceivedEmbedProvider(name: Option[String], url: Option[String])
 
-  implicit lazy val receivedEmbedProviderCodec: Codec[ReceivedEmbedProvider] = Codec.deriver[ReceivedEmbedProvider].derive
+  implicit lazy val receivedEmbedProviderCodec: Codec[ReceivedEmbedProvider] =
+    Codec.deriver[ReceivedEmbedProvider].derive
 
   case class ReceivedEmbedAuthor(
       name: Option[String],
@@ -302,7 +303,8 @@ object TestBig {
 
   case class OutgoingEmbedThumbnail(url: String)
 
-  implicit lazy val outgoingEmbedThumbnailCodec: Codec[OutgoingEmbedThumbnail] = Codec.deriver[OutgoingEmbedThumbnail].derive
+  implicit lazy val outgoingEmbedThumbnailCodec: Codec[OutgoingEmbedThumbnail] =
+    Codec.deriver[OutgoingEmbedThumbnail].derive
 
   case class OutgoingEmbedAuthor(name: String, url: Option[String] = None, iconUrl: Option[String] = None)
 
@@ -355,7 +357,8 @@ object TestBig {
       mute: Boolean
   )
 
-  implicit lazy val partialRawGuildMemberCodec: Codec[PartialRawGuildMember] = Codec.deriver[PartialRawGuildMember].derive
+  implicit lazy val partialRawGuildMemberCodec: Codec[PartialRawGuildMember] =
+    Codec.deriver[PartialRawGuildMember].derive
 
   case class ChannelMention(
       id: TextChannelId,

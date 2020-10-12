@@ -21,16 +21,16 @@ class HKDProductGenericMacrosImpl(val c: whitebox.Context) {
     }
 
     val classTpeSym = tpeSym.asClass
-    val paramss = classTpeSym.primaryConstructor.asMethod.paramLists
-    val flatParams = paramss.flatten
-    val n = flatParams.length
+    val paramss     = classTpeSym.primaryConstructor.asMethod.paramLists
+    val flatParams  = paramss.flatten
+    val n           = flatParams.length
 
-    if(n > 22) {
+    if (n > 22) {
       c.abort(c.enclosingPosition, "Case classes of size bigger than 22 not yet supported")
     }
 
     for {
-      param  <- flatParams
+      param <- flatParams
     } {
       val field = tpe.decl(param.name)
 
@@ -47,14 +47,17 @@ class HKDProductGenericMacrosImpl(val c: whitebox.Context) {
     val types = flatParams.map(p => tpe.decl(p.name).typeSignatureIn(tpe).finalResultType)
 
     val toValues = flatParams.map(p => q"a.${p.name.toTermName}")
-    val fromValues = paramss.foldLeft((1, Nil: List[List[Tree]])) {
-      case ((n, acc), params) =>
-        val (n2, acc2) = params.foldLeft((n, Nil: List[Tree])) {
-          case ((n, acc), _) => (n + 1) -> (q"a.${TermName(s"p$n")}" :: acc)
-        }
+    val fromValues = paramss
+      .foldLeft((1, Nil: List[List[Tree]])) {
+        case ((n, acc), params) =>
+          val (n2, acc2) = params.foldLeft((n, Nil: List[Tree])) {
+            case ((n, acc), _) => (n + 1) -> (q"a.${TermName(s"p$n")}" :: acc)
+          }
 
-        n2 -> (acc2.reverse :: acc)
-    }._2.reverse
+          n2 -> (acc2.reverse :: acc)
+      }
+      ._2
+      .reverse
 
     val string = typeOf[String]
 

@@ -29,7 +29,7 @@ trait HKDSumGeneric[A] { self =>
     override private[derivation] def sumInstance: HKDSumGeneric.Aux[A, Gen] = self
   }
 }
-private[derivation] abstract class SumImplicitsLowPriority[A, Gen[_[_]]] {
+abstract private[derivation] class SumImplicitsLowPriority[A, Gen[_[_]]] {
   private[derivation] def sumInstance: HKDSumGeneric.Aux[A, Gen]
 
   implicit def traverse: TraverseKC[Gen] = sumInstance.traverse
