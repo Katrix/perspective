@@ -11,7 +11,7 @@ lazy val commonScala2Settings = commonSettings ++ Seq(
 )
 
 lazy val commonDottySettings = commonSettings ++ Seq(
-  scalaVersion := "0.26.0-RC1",
+  scalaVersion := "0.27.0-RC1",
   moduleName := s"perspectivedotty-${moduleName.value}",
   scalacOptions += "-Ykind-projector",
   libraryDependencies += "ch.epfl.lamp" %% "dotty-staging" % scalaVersion.value
