@@ -10,25 +10,7 @@ case class ArrayProductK[F[_], N <: Int with Singleton](arr: ArraySeq[F[_]])
 object ArrayProductK {
   case class Foo(a: Int, b: String)
 
-  new HKDProductGeneric[Foo] {
-    trait Base
-    trait Tag extends Any
-    type G[F[_], T1, T2] <: Base with Tag
-    private def makeG[F[_]](product: ArrayProductK[F, 2]): Gen[F] = product.asInstanceOf[Gen[F]]
-    private def fromG[F[_]](product: Gen[F]): ArrayProductK[F, 2] = product.asInstanceOf[ArrayProductK[F, 2]]
-    private val instance                                          = ArrayProductK.instance[2]
-
-    override type Gen[F[_]] = G[F, Int, String]
-    override def names: G[Const[String, *], Int, String] = makeG(ArrayProductK[Const[String, *], 2](ArraySeq("a", "b")))
-    override def to(a: Foo): G[Id, Int, String]          = makeG(ArrayProductK[Id, 2](ArraySeq(a.a, a.b)))
-    override def from(gen: G[Id, Int, String]): Foo = {
-      val prod = fromG[Id](gen).arr
-      Foo(prod(1).asInstanceOf[Int], prod(2).asInstanceOf[String])
-    }
-
-    override def representable: RepresentableKC[Gen] = instance.asInstanceOf[RepresentableKC[Gen]]
-    override def traverse: TraverseKC[Gen]           = instance.asInstanceOf[TraverseKC[Gen]]
-  }
+  object NewTypes extends ArrayProductKNewtypes
 
   def instance[N <: Int with Singleton](
       implicit n: ValueOf[N]

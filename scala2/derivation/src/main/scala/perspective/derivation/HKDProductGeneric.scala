@@ -1,11 +1,9 @@
 package perspective.derivation
 
 import cats.Id
-
-import shapeless.{Const => _, _}
 import perspective._
 
-trait HKDProductGeneric[A] { self =>
+trait HKDProductGeneric[A] {
   type Gen[_[_]]
 
   def typeName: String = ???

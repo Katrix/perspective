@@ -4,7 +4,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val commonScala2Settings = commonSettings ++ Seq(
-  scalaVersion := "2.13.1",
+  scalaVersion := "2.13.3",
   moduleName := s"perspective-${moduleName.value}",
   addCompilerPlugin(("org.typelevel" %% "kind-projector" % "0.11.0").cross(CrossVersion.full)),
   scalacOptions += "-explaintypes"
@@ -76,11 +76,12 @@ lazy val scala2PerspectiveDerivation = project
 
 lazy val scala2PerspectiveExamples = project
   .in(file("scala2/examples"))
-  .dependsOn(scala2PerspectiveDerivation)
+  .dependsOn(scala2PerspectiveDerivation, scala2PerspectiveMacros)
   .settings(
     commonScala2Settings,
     noPublishSettings,
-    name := "examples"
+    name := "examples",
+    scalacOptions += "-Ymacro-annotations"
   )
 
 lazy val scala2PerspectiveMacros = project
@@ -90,6 +91,7 @@ lazy val scala2PerspectiveMacros = project
     commonScala2Settings,
     publishSettings,
     name := "macro",
+    scalacOptions += "-Ymacro-annotations",
     libraryDependencies += "org.scala-lang" % "scala-reflect"       % scalaVersion.value % Provided,
     libraryDependencies += "org.typelevel" %% "cats-tagless-macros" % "0.10"
   )
@@ -120,7 +122,7 @@ lazy val dottyPerspectiveExamples = project
   .settings(
     commonDottySettings,
     noPublishSettings,
-    name := "examples",
+    name := "examples"
     //scalacOptions ++= Seq("-Xprint:typer")
   )
 
@@ -145,5 +147,7 @@ lazy val PerspectiveRoot =
       scala2PerspectiveDerivation,
       scala2PerspectiveExamples,
       scala2PerspectiveMacros,
-      dottyPerspective, dottyPerspectiveDerivation, dottyPerspectiveExamples
+      dottyPerspective,
+      dottyPerspectiveDerivation,
+      dottyPerspectiveExamples
     )

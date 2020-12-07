@@ -3,9 +3,10 @@ package perspective.macros
 import cats.tagless.{DeriveMacros => CatsDeriveMacros}
 import perspective._
 
-import scala.reflect.macros.blackbox
+import scala.annotation.tailrec
+import scala.reflect.macros.whitebox
 
-private[macros] class DeriveMacros(override val c: blackbox.Context) extends CatsDeriveMacros(c) {
+private[macros] class DeriveMacros(override val c: whitebox.Context) extends CatsDeriveMacros(c) {
   import c.internal._
   import c.universe._
 
@@ -52,6 +53,14 @@ private[macros] class DeriveMacros(override val c: blackbox.Context) extends Cat
 
     paramLists
   }
+
+  def hkdParamSize(algebra: Type): List[List[Int]] = createParameters(q"$NoSymbol", algebra).map(_.map {
+    case p if isMaybeHKD(p.tpe) => hkdSize(p.tpe)
+    case _                      => 1
+  })
+
+  def hkdSize(algebra: Type): Int =
+    hkdParamSize(algebra).flatten.sum
 
   def createParameters(from: Tree, algebra: Type): List[List[Param]] = {
     allParams(algebra).map(_.map { param =>
@@ -247,6 +256,97 @@ private[macros] class DeriveMacros(override val c: blackbox.Context) extends Cat
       )(parameters)
   }
 
+  def newFunctionK(tpe: Type, body: Method => Tree) = {
+    val members = overridableMembersOf(tpe).filter(_.isAbstract)
+    val stubs = delegateMethods(tpe, members, NoSymbol) {
+      case m => m.copy(body = body(m))
+    }
+    val apply = stubs.head
+
+    q"""new $tpe { $apply }"""
+  }
+
+  //def indexK[A[_], C](fa: F[A, C]): RepresentationK ~>: A
+  def indexK(algebra: Type): (String, Type => Tree) = "indexK" -> {
+    case PolyType(List(at, c), MethodType(List(fa), functionK @ TypeRef(_, _, List(from, to)))) =>
+      val Fa = singleType(NoPrefix, fa)
+
+      def cases(returnType: Type) =
+        createParameters(q"$fa", Fa).flatten
+          .zip(hkdParamSize(algebra).flatten)
+          .foldLeft((0, List.empty[Tree])) {
+            case ((n, acc), (param, size)) =>
+              if (size == 1) {
+                (n + 1, cq"$n => ${param.body}.asInstanceOf[$returnType]" :: acc)
+              } else {
+                val fullType =
+                  tq"_root_.perspective.RepresentableK[${polyType(at :: c :: Nil, param.tpe)}] { type RepresentationK[_] = _root_.perspective.Finite[$size]}"
+                val F = this.c
+                  .inferImplicitValue(this.c.typecheck(fullType, mode = this.c.TYPEmode).tpe)
+                  .orElse(abort(s"could not find implicit value of type $fullType"))
+
+                (
+                  n + size,
+                  cq"i if i >= $n && i < $n + $size => $F.indexK(${param.body})(_root_.perspective.Finite($size, i - $n))" :: acc
+                )
+              }
+          }
+          ._2
+          .reverse
+
+      newFunctionK(functionK, m => q"fa.value match { case ..${cases(m.returnType)} }")
+  }
+
+  //def tabulateK[A[_], C](f: RepresentationK ~>: A): F[A, C]
+  def tabulateK(algebra: Type): (String, Type => Tree) = "tabulateK" -> {
+    case PolyType(List(at, c), MethodType(List(functionK), fa)) =>
+      val Fa = fa
+
+      val n = hkdSize(algebra)
+
+      //Can't do occursIn because we don't have a value to insert if the type isn't A[B] for some B
+      val parameters = createParameters(q"$NoSymbol", Fa)
+        .zip(hkdParamSize(algebra))
+        .foldLeft((0, List.empty[List[Tree]])) {
+          case ((topI, topAcc), (params, sizes)) =>
+            val (newI, paramBlock) = params.zip(sizes).foldLeft((topI, List.empty[Tree])) {
+              case ((i, acc), (param, size)) =>
+                if (size == 1) {
+                  (i + 1, q"$functionK(_root_.perspective.Finite($n, $i))" :: acc)
+                } else {
+                  val finiteSize = tq"_root_.perspective.Finite[$size]"
+                  val fullType =
+                    tq"_root_.perspective.RepresentableK[${polyType(at :: c :: Nil, param.tpe)}] { type RepresentationK[_] = $finiteSize}"
+                  val F = this.c
+                    .inferImplicitValue(this.c.typecheck(fullType, mode = this.c.TYPEmode).tpe)
+                    .orElse(abort(s"could not find implicit value of type $fullType"))
+
+                  val newFunctionKTpe = this.c
+                    .typecheck(
+                      tq"_root_.perspective.FunctionK[({type L[Z] = $finiteSize})#L, $at]",
+                      mode = this.c.TYPEmode
+                    )
+                    .tpe
+                  
+                  val createdFunctionK = newFunctionK(
+                    newFunctionKTpe,
+                    m => q"$functionK(_root_.perspective.Finite($n, $i + ${m.paramLists.flatten.head.name}.value))"
+                  )
+
+                  (
+                    i + size, q"$F.tabulateK($createdFunctionK)" :: acc
+                  )
+                }
+            }
+
+            (newI, paramBlock.reverse :: topAcc)
+        }
+        ._2
+        .reverse
+
+      newClass(algebra)(typeParamsForAlgebraFromSymbols(algebra)(at, c): _*)(parameters)
+  }
+
   def checkConcreteClass(tag: WeakTypeTag[_]): Unit = {
     val tpeSymbol = tag.tpe.typeSymbol
     if (!tpeSymbol.isClass) {
@@ -288,35 +388,100 @@ private[macros] class DeriveMacros(override val c: blackbox.Context) extends Cat
     instantiate[DistributiveK[F]](tag)(perspectiveMapK, cosequenceK)
   }
 
+  def addRepresentationKToType(tag: WeakTypeTag[_])(Ta: Type): Type = {
+    val algebra = tag.tpe.typeConstructor.dealias.etaExpand
+    val n       = hkdSize(algebra)
+    c.typecheck(tq"$Ta { type RepresentationK[A] = _root_.perspective.Finite[$n] }").tpe
+  }
+
+  def representationKInitialDecl(tag: WeakTypeTag[_])(Ta: Type): List[(Symbol, Tree)] = {
+    val algebra         = tag.tpe.typeConstructor.dealias.etaExpand
+    val n               = hkdSize(algebra)
+    val representationK = Ta.member(TypeName("RepresentationK"))
+    List((representationK, q"type RepresentationK[A] = _root_.perspective.Finite[$n]"))
+  }
+
+  def representableK[F[_[_], _]](implicit tag: WeakTypeTag[F[Any, Any]]): Tree = {
+    checkConcreteClass(tag)
+
+    instantiate2(
+      tag,
+      symbolOf[RepresentableK[F]],
+      addRepresentationKToType(tag),
+      representationKInitialDecl(tag)
+    )(indexK, tabulateK)
+  }
+
   def allK[F[_[_], _]](implicit tag: WeakTypeTag[F[Any, Any]]): Tree = {
     checkConcreteClass(tag)
-    instantiate2(tag, symbolOf[All[F]])(
-      pureK,
-      map2K,
+    instantiate2(tag, symbolOf[All[F]], addRepresentationKToType(tag), representationKInitialDecl(tag))(
+      indexK,
+      tabulateK,
       foldLeftK,
-      traverseKFunc,
-      cosequenceK
+      traverseKFunc
     )
   }
 
   //Same as instantiate but takes the symbol explicitly as it sometimes doesn't work otherwise
-  def instantiate2(tag: WeakTypeTag[_], symbol: TypeSymbol)(rhs: (Type => (String, Type => Tree))*): Tree = {
+  //Also runs the implementation logic multiple times if for some reason Scalac changes it's mind
+  def instantiate2(
+      tag: WeakTypeTag[_],
+      symbol: TypeSymbol,
+      transformType: Type => Type = identity,
+      extraInitialDeclarations: Type => List[(Symbol, Tree)] = _ => Nil
+  )(
+      rhs: (Type => (String, Type => Tree))*
+  ): Tree = {
     val algebra = tag.tpe.typeConstructor.dealias.etaExpand
-    val Ta      = appliedType(symbol, algebra)
+    val Ta      = transformType(appliedType(symbol, algebra))
     val impl    = rhs.map(_.apply(algebra)).toMap
 
-    val declaration @ ClassDef(_, _, _, Template(parents, self, members)) = declare(Ta)
+    val extraDeclarations                                                 = extraInitialDeclarations(Ta)
+    val extraDeclarationsSet                                              = extraDeclarations.map(_._1).toSet
+    val declaration @ ClassDef(_, _, _, Template(parents, self, members)) = declareWithTypes(Ta, extraDeclarations)
+
     val implementations =
       for (member <- members)
         yield member match {
-          case dd: DefDef =>
+          case dd: DefDef if !extraDeclarationsSet(member.symbol) =>
             val method = member.symbol.asMethod
-            impl.get(method.name.toString).fold(dd)(f => defDef(method, f(method.typeSignatureIn(Ta))))
+            impl
+              .get(method.name.toString)
+              .fold(dd)(f => defDef(method, f(method.typeSignatureIn(Ta))))
+
+          case td: TypeDef if !extraDeclarationsSet(member.symbol) =>
+            val tpe = member.symbol.asType
+            impl
+              .get(tpe.name.toString)
+              .fold(td)(f => typeDef(tpe, f(tpe.typeSignatureIn(Ta))))
+
           case other => other
         }
 
-    val definition = classDef(declaration.symbol, Template(parents, self, implementations))
-    typeCheckWithFreshTypeParams(q"{ $definition; new ${declaration.symbol} }")
+    val definition =
+      classDef(declaration.symbol, Template(parents, self, implementations))
+    typeCheckWithFreshTypeParams(q"{ $definition; new ${declaration.symbol}: $Ta }"): Tree
+  }
+
+  def declareWithTypes(instance: Type, extraMembers: List[(Symbol, Tree)] = Nil): Tree = {
+    val extraSymbols = extraMembers.map(_._1).toSet
+
+    val classType = instance match {
+      case RefinedType(List(tpe), _) => tpe
+      case _                         => instance
+    }
+
+    val members = overridableMembersOf(instance).filter(m => m.isAbstract && !extraSymbols(m)).toSeq
+    val methodStubs = delegateMethods(instance, members, NoSymbol) {
+      case m => m.copy(body = q"_root_.scala.Predef.???")
+    }
+    val typeStubs = delegateTypes(instance, members)((tpe, args) => typeOf[Nothing]).map {
+      case td: TypeDef =>
+        TypeDef(Modifiers(td.mods.flags | Flag.OVERRIDE), td.name, td.tparams, td.rhs)
+    }
+    val stubs                       = typeStubs ++ methodStubs ++ extraMembers.map(_._2)
+    val Block(List(declaration), _) = typeCheckWithFreshTypeParams(q"new $classType { ..$stubs }")
+    declaration
   }
 
   def perspectiveFunctorKC[F[_[_]]](implicit tag: WeakTypeTag[F[Any]]): Tree = {
@@ -349,23 +514,32 @@ private[macros] class DeriveMacros(override val c: blackbox.Context) extends Cat
     instantiate2(tag, symbolOf[DistributiveKC[F]])(perspectiveMapK, cosequenceK)
   }
 
+  def representableKC[F[_[_]]](implicit tag: WeakTypeTag[F[Any]]): Tree = {
+    checkConcreteClass(tag)
+    instantiate2(tag, symbolOf[RepresentableKC[F]], addRepresentationKToType(tag), representationKInitialDecl(tag))(
+      indexK,
+      tabulateK
+    )
+  }
+
   type AllC[F[_[_]]] = All[IgnoreC[F]#λ]
 
   def allKC[F[_[_]]](implicit tag: WeakTypeTag[F[Any]]): Tree = {
     checkConcreteClass(tag)
     instantiate2(
       tag,
-      symbolOf[AllC[F]]
+      symbolOf[AllC[F]],
+      addRepresentationKToType(tag),
+      representationKInitialDecl(tag)
     )(
-      pureK,
-      map2K,
+      indexK,
+      tabulateK,
       foldLeftK,
-      traverseKFunc,
-      cosequenceK
+      traverseKFunc
     )
   }
 
-  def isHKD(tpe: Type): Boolean = {
+  def isMaybeHKD(tpe: Type): Boolean = {
     val expanded = tpe.typeConstructor.dealias.etaExpand
     expanded.typeParams.headOption.exists(_.asType.toType.typeArgs.nonEmpty)
   }
@@ -376,7 +550,7 @@ private[macros] class DeriveMacros(override val c: blackbox.Context) extends Cat
     val algebra = typeStep(tpe.typeConstructor.dealias.etaExpand)
 
     val params = createParameters(EmptyTree, algebra).map(_.map { param =>
-      if (isHKD(param.tpe))
+      if (isMaybeHKD(param.tpe))
         instantiateHKD(param.tpe, parents :+ param)(constructTypes: _*)(typeStep)(step)
       else
         step(parents :+ param)

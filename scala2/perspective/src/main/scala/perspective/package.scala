@@ -75,34 +75,38 @@ package object perspective extends LowPriorityPackage1 {
 
   type INothing <: Nothing
 
-  implicit val idInstance: ApplicativeK[IdF#λ] with TraverseK[IdF#λ] with DistributiveK[IdF#λ] =
-    new ApplicativeK[IdF#λ] with TraverseK[IdF#λ] with DistributiveK[IdF#λ] {
-      override def pureK[A[_], C](a: Unit #~>: A): A[C] = a(())
-
+  implicit val idInstance: TraverseK[IdF#λ] with RepresentableK[IdF#λ] { type RepresentationK[_] = Finite[1] } =
+    new TraverseK[IdF#λ] with RepresentableK[IdF#λ] {
       override def traverseK[G[_]: Applicative, A[_], B[_], C](fa: A[C])(f: A ~>: Compose2[G, B, *]): G[B[C]] = f(fa)
 
       override def foldLeftK[A[_], B, C](fa: A[C], b: B)(f: B => A ~>#: B): B = f(b)(fa)
 
-      override def map2K[A[_], B[_], Z[_], C](fa: A[C], fb: B[C])(f: Tuple2K[A, B, *] ~>: Z): Z[C] = f(fa, fb)
+      override type RepresentationK[_] = Finite[1]
 
-      override def cosequenceK[G[_]: Functor, A[_], C](gfa: G[A[C]]): Compose2[G, A, C] = gfa
+      override def indexK[A[_], C](fa: A[C]): Finite[1] #~>: A = new (Finite[1] #~>: A) {
+        override def apply[Z](i: Finite[1]): A[Z] = fa.asInstanceOf[A[Z]]
+      }
+
+      override def tabulateK[A[_], C](f: Finite[1] #~>: A): A[C] = f(Finite(1, 1))
     }
 }
 
 package perspective {
   trait LowPriorityPackage1 {
 
-    implicit def idInstanceC[T]: ApplicativeKC[IdFC[T]#λ] with TraverseKC[IdFC[T]#λ] with DistributiveKC[IdFC[T]#λ] =
-      new ApplicativeKC[IdFC[T]#λ] with TraverseKC[IdFC[T]#λ] with DistributiveKC[IdFC[T]#λ] {
-        override def pureK[A[_], C](a: Unit #~>: A): A[T] = a(())
-
+    implicit def idInstanceC[T]: TraverseKC[IdFC[T]#λ] with RepresentableKC[IdFC[T]#λ] { type RepresentationK[_] = Finite[1] } =
+      new TraverseKC[IdFC[T]#λ] with RepresentableKC[IdFC[T]#λ] {
         override def traverseK[G[_]: Applicative, A[_], B[_], C](fa: A[T])(f: A ~>: Compose2[G, B, *]): G[B[T]] = f(fa)
 
         override def foldLeftK[A[_], B, C](fa: A[T], b: B)(f: B => A ~>#: B): B = f(b)(fa)
 
-        override def map2K[A[_], B[_], Z[_], C](fa: A[T], fb: B[T])(f: Tuple2K[A, B, *] ~>: Z): Z[T] = f(fa, fb)
+        override type RepresentationK[_] = Finite[1]
 
-        override def cosequenceK[G[_]: Functor, A[_], C](gfa: G[A[T]]): Compose2[G, A, T] = gfa
+        override def indexK[A[_], C](fa: A[T]): Finite[1] #~>: A = new (Finite[1] #~>: A) {
+          override def apply[Z](i: Finite[1]): A[Z] = fa.asInstanceOf[A[Z]]
+        }
+
+        override def tabulateK[A[_], C](f: Finite[1] #~>: A): A[T] = f(Finite(1, 1))
       }
   }
 }

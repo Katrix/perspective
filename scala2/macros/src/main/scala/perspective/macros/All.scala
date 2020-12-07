@@ -1,5 +1,5 @@
 package perspective.macros
 
-import perspective.{ApplicativeK, DistributiveK, TraverseK}
+import perspective.{RepresentableK, TraverseK}
 
-private[macros] trait All[F[_[_], _]] extends ApplicativeK[F] with TraverseK[F] with DistributiveK[F]
+private[macros] trait All[F[_[_], _]] extends TraverseK[F] with RepresentableK[F]
