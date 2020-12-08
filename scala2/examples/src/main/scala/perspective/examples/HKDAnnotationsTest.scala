@@ -1,6 +1,5 @@
 package perspective.examples
 
-import perspective.{ApplicativeKC, Const, Finite, RepresentableKC, TraverseKC}
 import perspective.macros.{Derive, hkd}
 
 @hkd case class HKDAnnotationsTest[F[_]](
@@ -15,3 +14,14 @@ import perspective.macros.{Derive, hkd}
 ) {
   println("Foo5")
 }
+
+/*
+object MyObj {
+  @hkd case class HKDAnnotationsTest3[F[_]](
+      c: F[Double],
+      d: F[Char]
+  ) {
+    println("Foo3")
+  }
+}
+ */
