@@ -522,7 +522,7 @@ object TestBig {
       integrations: Seq[PartialIntegration]
   )
 
-  implicit lazy val auditLogDecoder: Decoder[AuditLog] = Decoder.deriver[AuditLog].derive
+  implicit lazy val auditLogDecoder: Decoder[AuditLog] = Decoder.deriver[AuditLog].deriveProduct
 
   case class AuditLogEntry(
       targetId: Option[RawSnowflake],
@@ -534,7 +534,7 @@ object TestBig {
       reason: Option[String]
   )
 
-  implicit lazy val auditLogEntryDecoder: Decoder[AuditLogEntry] = Decoder.deriver[AuditLogEntry].derive
+  implicit lazy val auditLogEntryDecoder: Decoder[AuditLogEntry] = Decoder.deriver[AuditLogEntry].deriveProduct
 
   case class OptionalAuditLogInfo(
       deleteMemberDays: Option[String],

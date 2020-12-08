@@ -1,6 +1,5 @@
 package perspective.derivation
 
-import scala.annotation.tailrec
 import scala.language.experimental.macros
 import scala.reflect.macros.whitebox
 
@@ -112,22 +111,23 @@ class HKDProductGenericMacrosImpl(val c: whitebox.Context) {
       def constructGen(hkType: Tree, params: List[Tree]): Tree =
         q"$productKTermName[$hkType, ..$types](..$params)"
 
-      q"""new _root_.perspective.derivation.HKDProductGeneric[$tpe] {
-         override type Gen[A[_]] = _root_.perspective.derivation.${TypeName("Product" + n + "K")}[A, ..$types]
+      q"""
+        new _root_.perspective.derivation.HKDProductGeneric[$tpe] {
+          override type Gen[A[_]] = _root_.perspective.derivation.${TypeName("Product" + n + "K")}[A, ..$types]
          
-         override def typeName: $string = ${tpeSym.name.decodedName.toString}
+          override def typeName: $string = ${tpeSym.name.decodedName.toString}
 
-         override def names: Gen[({type L[A] = $string})#L] =
-          ${constructGen(tq"({type L[A] = $string})#L", names)}
+          override def names: Gen[({type L[A] = $string})#L] =
+            ${constructGen(tq"({type L[A] = $string})#L", names)}
          
-         override def to(a: $tpe): Gen[_root_.cats.Id] = ${constructGen(tq"({type L[A] = A})#L", toValues)}
-         override def from(a: Gen[_root_.cats.Id]): $tpe = ${constructObj(fromValues)}
+          override def to(a: $tpe): Gen[_root_.cats.Id] = ${constructGen(tq"({type L[A] = A})#L", toValues)}
+          override def from(a: Gen[_root_.cats.Id]): $tpe = ${constructObj(fromValues)}
 
-         override def representable: _root_.perspective.RepresentableKC[Gen] =
-           $productKTermName.${TermName(s"product${n}KRepresentableTraverseInstance")}
-         override def traverse: _root_.perspective.TraverseKC[Gen] =
-           $productKTermName.${TermName(s"product${n}KRepresentableTraverseInstance")}
-       }"""
+          override val representable: _root_.perspective.RepresentableKC[Gen] =
+            $productKTermName.${TermName(s"product${n}KRepresentableTraverseInstance")}
+          override val traverse: _root_.perspective.TraverseKC[Gen] =
+            $productKTermName.${TermName(s"product${n}KRepresentableTraverseInstance")}
+        }"""
     }
   }
 }

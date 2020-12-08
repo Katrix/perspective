@@ -16,7 +16,7 @@ object ArrayProductK {
       implicit n: ValueOf[N]
   ): RepresentableKC.Aux[ArrayProductK[*[_], N], Const[Finite[N], *]] with TraverseKC[ArrayProductK[*[_], N]] =
     new RepresentableKC[ArrayProductK[*[_], N]] with TraverseKC[ArrayProductK[*[_], N]] {
-      override type RepresentationK[A] = Const[Finite[N], A]
+      override type RepresentationK[A] = Finite[N]
 
       override def indexK[A[_], C](fa: ArrayProductK[A, N]): RepresentationK ~>: A =
         new (RepresentationK ~>: A) {

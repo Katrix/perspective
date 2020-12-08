@@ -10,6 +10,9 @@ import simulacrum.typeclass
   def indexK[A[_], C](fa: F[A, C]): RepresentationK ~>: A
 
   def tabulateK[A[_], C](f: RepresentationK ~>: A): F[A, C]
+  
+  def indices[C]: F[RepresentationK, C] =
+    tabulateK(FunctionK.identity)
 
   override def pureK[A[_], C](a: Unit #~>: A): F[A, C] = tabulateK(λ[RepresentationK ~>: A](_ => a(())))
 

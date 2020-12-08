@@ -13,7 +13,7 @@ trait ACursor {
 trait Decoder[A] {
   def decode(cursor: ACursor): Either[String, A]
 }
-object Decoder {
+object Decoder extends LowPriorityDecoder {
   implicit val decodeInt: Decoder[Int]                   = ???
   implicit val decodeLong: Decoder[Long]                 = ???
   implicit val decodeDouble: Decoder[Double]             = ???
@@ -23,6 +23,8 @@ object Decoder {
 
   implicit def decodeOption[A: Decoder]: Decoder[Option[A]] = ???
   implicit def decodeSeq[A: Decoder]: Decoder[Seq[A]]       = ???
+}
+sealed trait LowPriorityDecoder {
 
   implicit def productDecoder[A, Gen[_[_]]](
       implicit gen: HKDProductGeneric.Aux[A, Gen],
@@ -43,7 +45,7 @@ object Decoder {
   def deriver[A] = new DecoderDeriver[A]
 
   class DecoderDeriver[A] {
-    def derive[Gen[_[_]]](
+    def deriveProduct[Gen[_[_]]](
         implicit gen: HKDProductGeneric.Aux[A, Gen],
         decoders: Gen[Decoder]
     ): Decoder[A] = productDecoder
@@ -71,7 +73,7 @@ trait Json
 trait Encoder[A] {
   def encode(a: A): Json
 }
-object Encoder {
+object Encoder extends LowPriorityEncoder {
   implicit val encodeInt: Encoder[Int]                   = ???
   implicit val encodeString: Encoder[String]             = ???
   implicit val encodeDouble: Encoder[Double]             = ???
@@ -81,6 +83,8 @@ object Encoder {
 
   implicit def encodeOption[A: Encoder]: Encoder[Option[A]] = ???
   implicit def encodeSeq[A: Encoder]: Encoder[Seq[A]]       = ???
+}
+sealed trait LowPriorityEncoder {
 
   implicit def productEncoder[A, Gen[_[_]]](
       implicit gen: HKDProductGeneric.Aux[A, Gen],
@@ -105,7 +109,7 @@ object Encoder {
   def deriver[A] = new EncoderDeriver[A]
 
   class EncoderDeriver[A] {
-    def derive[Gen[_[_]]](
+    def deriveProduct[Gen[_[_]]](
         implicit gen: HKDProductGeneric.Aux[A, Gen],
         encoders: Gen[Encoder]
     ): Encoder[A] = productEncoder
@@ -128,6 +132,7 @@ object Encoder {
     }
   }
 }
+
 trait Codec[A] extends Encoder[A] with Decoder[A]
 object Codec {
 
@@ -185,4 +190,41 @@ object Foo {
   //HKDProductGeneric[Bar]
   //HKDProductGeneric[Bar]
   //HKDProductGeneric[Bar]
+}
+
+sealed trait SumTest
+object SumTest {
+  case class Foo(a: String, b: Int)    extends SumTest
+  case class Bar(c: Double, b: String) extends SumTest
+
+  HKDSumGeneric.materializeHKDSum[SumTest]
+}
+
+sealed trait Sum23Test
+object Sum23Test {
+  case class S1(a: String)  extends Sum23Test
+  case class S2(a: String)  extends Sum23Test
+  case class S3(a: String)  extends Sum23Test
+  case class S4(a: String)  extends Sum23Test
+  case class S5(a: String)  extends Sum23Test
+  case class S6(a: String)  extends Sum23Test
+  case class S7(a: String)  extends Sum23Test
+  case class S8(a: String)  extends Sum23Test
+  case class S9(a: String)  extends Sum23Test
+  case class S10(a: String) extends Sum23Test
+  case class S11(a: String) extends Sum23Test
+  case class S12(a: String) extends Sum23Test
+  case class S13(a: String) extends Sum23Test
+  case class S14(a: String) extends Sum23Test
+  case class S15(a: String) extends Sum23Test
+  case class S16(a: String) extends Sum23Test
+  case class S17(a: String) extends Sum23Test
+  case class S18(a: String) extends Sum23Test
+  case class S19(a: String) extends Sum23Test
+  case class S20(a: String) extends Sum23Test
+  case class S21(a: String) extends Sum23Test
+  case class S22(a: String) extends Sum23Test
+  case class S23(a: String) extends Sum23Test
+
+  HKDSumGeneric.materializeHKDSum[Sum23Test]
 }
