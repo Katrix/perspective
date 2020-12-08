@@ -1,12 +1,12 @@
 lazy val commonSettings = Seq(
-  version := "0.0.2",
+  version := "0.0.3",
   organization := "net.katsstuff"
 )
 
 lazy val commonScala2Settings = commonSettings ++ Seq(
   scalaVersion := "2.13.3",
   moduleName := s"perspective-${moduleName.value}",
-  addCompilerPlugin(("org.typelevel" %% "kind-projector" % "0.11.0").cross(CrossVersion.full)),
+  addCompilerPlugin(("org.typelevel" %% "kind-projector" % "0.11.2").cross(CrossVersion.full)),
   scalacOptions += "-explaintypes"
 )
 
@@ -49,8 +49,8 @@ lazy val scala2Perspective = project
     name := "perspective",
     moduleName := "perspective",
     scalacOptions += "-Ymacro-annotations",
-    libraryDependencies += "org.typelevel" %% "cats-core"  % "2.0.0",
-    libraryDependencies += "org.typelevel" %% "simulacrum" % "1.0.0"
+    libraryDependencies += "org.typelevel" %% "cats-core"  % "2.3.0",
+    libraryDependencies += "org.typelevel" %% "simulacrum" % "1.0.1"
   )
 
 lazy val scala2PerspectiveParameterized = project
@@ -93,7 +93,7 @@ lazy val scala2PerspectiveMacros = project
     name := "macro",
     scalacOptions += "-Ymacro-annotations",
     libraryDependencies += "org.scala-lang" % "scala-reflect"       % scalaVersion.value % Provided,
-    libraryDependencies += "org.typelevel" %% "cats-tagless-macros" % "0.10"
+    libraryDependencies += "org.typelevel" %% "cats-tagless-macros" % "0.12"
   )
 
 lazy val dottyPerspective = project
@@ -103,7 +103,7 @@ lazy val dottyPerspective = project
     publishSettings,
     name := "perspective",
     moduleName := "perspectivedotty",
-    libraryDependencies += ("org.typelevel" %% "cats-core" % "2.0.0").withDottyCompat(scalaVersion.value)
+    libraryDependencies += ("org.typelevel" %% "cats-core" % "2.3.0").withDottyCompat(scalaVersion.value)
   )
 
 lazy val dottyPerspectiveDerivation = project

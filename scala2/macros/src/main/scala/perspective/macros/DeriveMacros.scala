@@ -10,6 +10,11 @@ private[macros] class DeriveMacros(override val c: whitebox.Context) extends Cat
   import c.internal._
   import c.universe._
 
+  def summon[A: TypeTag](typeArgs: Type*): Tree = {
+    val tpe = appliedType(typeOf[A].typeConstructor, typeArgs: _*)
+    c.inferImplicitValue(tpe).orElse(abort(s"could not find implicit value of type $tpe"))
+  }
+
   case class Param(
       name: TermName,
       tpe: Type,
