@@ -28,7 +28,7 @@ private[macros] class DeriveMacros(override val c: whitebox.Context) extends Cat
         body = body.applyOrElse(q"$instance.$name", identity[Tree])
       )
     }
-    
+
     def accessor(to: Tree): Tree = q"$to.$name"
   }
 
@@ -281,7 +281,7 @@ private[macros] class DeriveMacros(override val c: whitebox.Context) extends Cat
           .zip(hkdParamSize(algebra).flatten)
           .foldLeft((0, List.empty[Tree])) {
             case ((n, acc), (param, size)) =>
-              if(isMaybeHKD(param.tpe)) {
+              if (isMaybeHKD(param.tpe)) {
                 val fullType =
                   tq"_root_.perspective.RepresentableK[${polyType(at :: c :: Nil, param.tpe)}] { type RepresentationK[_] = _root_.perspective.Finite[$size]}"
                 val F = this.c
@@ -292,8 +292,7 @@ private[macros] class DeriveMacros(override val c: whitebox.Context) extends Cat
                   n + size,
                   cq"i if i >= $n && i < $n + $size => $F.indexK(${param.body})(_root_.perspective.Finite($size, i - $n))" :: acc
                 )
-              }
-              else {
+              } else {
                 (n + 1, cq"$n => ${param.body}.asInstanceOf[$returnType]" :: acc)
               }
           }
@@ -317,7 +316,7 @@ private[macros] class DeriveMacros(override val c: whitebox.Context) extends Cat
           case ((topI, topAcc), (params, sizes)) =>
             val (newI, paramBlock) = params.zip(sizes).foldLeft((topI, List.empty[Tree])) {
               case ((i, acc), (param, size)) =>
-                if(isMaybeHKD(param.tpe)) {
+                if (isMaybeHKD(param.tpe)) {
                   val finiteSize = tq"_root_.perspective.Finite[$size]"
                   val fullType =
                     tq"_root_.perspective.RepresentableK[${polyType(at :: c :: Nil, param.tpe)}] { type RepresentationK[_] = $finiteSize}"
@@ -338,10 +337,10 @@ private[macros] class DeriveMacros(override val c: whitebox.Context) extends Cat
                   )
 
                   (
-                    i + size, q"$F.tabulateK($createdFunctionK)" :: acc
+                    i + size,
+                    q"$F.tabulateK($createdFunctionK)" :: acc
                   )
-                }
-                else {
+                } else {
                   (i + 1, q"$functionK(_root_.perspective.Finite($n, $i))" :: acc)
                 }
             }
@@ -571,8 +570,10 @@ private[macros] class DeriveMacros(override val c: whitebox.Context) extends Cat
   )(
       step: Seq[Param] => (Tree, Tree)
   ): Tree = {
-    val tupleType = c.typecheck(tq"({ type L[A] = ($tuple1Type[A], $tuple2Type[A]) })", mode = c.TYPEmode).tpe
-    instantiateHKD(tpe, Nil)(tupleType +: constructTypes: _*)(typeStep) { params =>
+    val Tuple2K = symbolOf[Tuple2K[Any, Any, Any]]
+    val tupleApplied = appliedType(Tuple2K, tuple1Type, tuple2Type, Tuple2K.typeParams.last.asType.toType)
+    val tupleK       = polyType(List(Tuple2K.typeParams.last), tupleApplied).typeConstructor.etaExpand.dealias
+    instantiateHKD(tpe, Nil)(tupleK +: constructTypes: _*)(typeStep) { params =>
       val (fst, snd) = step(params)
       q"($fst, $snd)"
     }
