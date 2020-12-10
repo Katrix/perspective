@@ -53,18 +53,31 @@ object HKDProductGeneric:
   }
 
   transparent inline given derived[A](using m: Mirror.ProductOf[A])(
+    using ValueOf[Tuple.Size[m.MirroredElemTypes]],
+    Finite.NotZero[Tuple.Size[m.MirroredElemTypes]] =:= true
+  ) as HKDProductGeneric[A] = derivedImpl(
+    constValue[m.MirroredLabel],
+    constValueTuple[m.MirroredElemLabels].asInstanceOf[Tuple.Map[m.MirroredElemTypes, Const[String]]]
+  )
+
+  def derivedImpl[A, ElemTypes <: Tuple](label: String, namesTuple: Tuple.Map[ElemTypes, Const[String]])(
+    using m: Mirror.ProductOf[A] { type MirroredElemTypes = ElemTypes }
+  )(
     using ValueOf[Tuple.Size[m.MirroredElemTypes]], 
     Finite.NotZero[Tuple.Size[m.MirroredElemTypes]] =:= true
-  ) as HKDProductGeneric[A] =
+  ): HKDProductGeneric[A] {
+    type Gen[F[_]] = ProductK[F, m.MirroredElemTypes]
+    type Index[_] = Finite[Tuple.Size[m.MirroredElemTypes]]
+    type TupleRep = m.MirroredElemTypes
+  } =
     new HKDProductGeneric[A]:
       type Gen[F[_]] = ProductK[F, m.MirroredElemTypes]
       type Index[_] = Finite[Tuple.Size[m.MirroredElemTypes]]
       type TupleRep = m.MirroredElemTypes
 
-      override def typeName: String = constValue[m.MirroredLabel]
+      override def typeName: String = label
 
       override def names: Gen[Const[String]] = 
-        val namesTuple = constValueTuple[m.MirroredElemLabels].asInstanceOf[Tuple.Map[m.MirroredElemTypes, Const[String]]]
         ProductK.of[Const[String], m.MirroredElemTypes](namesTuple)
 
       override def genToTuple[F[_]](gen: Gen[F]): Tuple.Map[TupleRep, F] = gen.tuple
@@ -120,16 +133,30 @@ object HKDSumGeneric:
   transparent inline given derived[A](using m: Mirror.SumOf[A])(
     using ValueOf[Tuple.Size[m.MirroredElemTypes]],
     Finite.NotZero[Tuple.Size[m.MirroredElemTypes]] =:= true
-  ) as HKDSumGeneric[A] = 
+  ) as HKDSumGeneric[A] = derivedImpl(
+    constValue[m.MirroredLabel],
+    constValueTuple[m.MirroredElemLabels].asInstanceOf[Tuple.Map[m.MirroredElemTypes, Const[String]]],
+    constValue[Tuple.Size[m.MirroredElemTypes]]
+  )
+
+  def derivedImpl[A, ElemTypes <: Tuple](label: String, namesTuple: Tuple.Map[ElemTypes, Const[String]], size: Tuple.Size[ElemTypes])(
+    using m: Mirror.SumOf[A] { type MirroredElemTypes = ElemTypes }
+  )(
+    using ValueOf[Tuple.Size[m.MirroredElemTypes]],
+    Finite.NotZero[Tuple.Size[m.MirroredElemTypes]] =:= true
+  ): HKDSumGeneric[A] {
+    type Gen[F[_]] = ProductK[F, m.MirroredElemTypes]
+    type Index[_] = Finite[Tuple.Size[m.MirroredElemTypes]]
+    type TupleRep = m.MirroredElemTypes
+  } = 
     new HKDSumGeneric[A]:
       type Gen[F[_]] = ProductK[F, m.MirroredElemTypes]
       type Index[_] = Finite[Tuple.Size[m.MirroredElemTypes]]
       type TupleRep = m.MirroredElemTypes
     
-      override def typeName: String = constValue[m.MirroredLabel]
+      override def typeName: String = label
     
       override def names: Gen[Const[String]] =
-        val namesTuple = constValueTuple[m.MirroredElemLabels].asInstanceOf[Tuple.Map[m.MirroredElemTypes, Const[String]]]
         ProductK.of[Const[String], m.MirroredElemTypes](namesTuple)
         
       override def genToTuple[F[_]](gen: Gen[F]): Tuple.Map[TupleRep, F] = gen.tuple
@@ -150,4 +177,4 @@ object HKDSumGeneric:
         nameToIndexMap.map(_.swap)
   
       def indexOf[X <: A](x: X): Index[X] = 
-        Finite(constValue[Tuple.Size[m.MirroredElemTypes]], m.ordinal(x))
+        Finite(size, m.ordinal(x))
