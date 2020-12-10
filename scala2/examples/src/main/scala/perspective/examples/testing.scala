@@ -14,6 +14,7 @@ trait Decoder[A] {
   def decode(cursor: ACursor): Either[String, A]
 }
 object Decoder extends LowPriorityDecoder {
+  implicit val decodeJson: Decoder[Json]                 = ???
   implicit val decodeInt: Decoder[Int]                   = ???
   implicit val decodeLong: Decoder[Long]                 = ???
   implicit val decodeDouble: Decoder[Double]             = ???
@@ -60,15 +61,18 @@ sealed trait LowPriorityDecoder {
 
       for {
         typeName <- cursor.get[String]("$type")
-        index    <- gen.indexNameMap.get(typeName).toRight(s"$typeName is not a valid ${gen.typeName}")
+        index    <- gen.nameToIndexMap.get(typeName).toRight(s"$typeName is not a valid ${gen.typeName}")
         decoder = decoders.indexKC(index)
-        res <- decoder.decode(cursor)
+        res <- decoder.decode(cursor.get[Json]("$value").fold(_ => cursor, _.cursor))
       } yield res
     }
   }
 }
 
-trait Json
+trait Json {
+  def fields: Option[Map[String, Json]]
+  def cursor: ACursor
+}
 
 trait Encoder[A] {
   def encode(a: A): Json
@@ -97,12 +101,10 @@ sealed trait LowPriorityEncoder {
         gen
           .to(a)
           .map2KC(encoders)(Lambda[Tuple2K[Id, Encoder, *] ~>: Const[Json, *]](t => t._2.encode(t._1)))
-          .map2KC(gen.names)(
-            Lambda[Tuple2K[Const[Json, *], Const[String, *], *] ~>: Const[(String, Json), *]](_.swap)
-          )
+          .map2KC(gen.names)(FunctionK.liftConst((t: (Json, String)) => t.swap))
           .toListKC
 
-      implicitly[Encoder[Map[String, Json]]].encode(list.toMap)
+      Encoder.encodeJsonMap.encode(list.toMap)
     }
   }
 
@@ -122,13 +124,21 @@ sealed trait LowPriorityEncoder {
     override def encode(a: A): Json = {
       import gen.implicits._
 
+      val typeName = gen.nameToIndexMap.map(_.swap)(gen.indexOf(a))
+
       val encodings = gen
         .to(a)
         .map2KC(encoders)(
           λ[Tuple2K[Option, Encoder, *] ~>: Compose2[Option, Const[Json, *], *]](t => t._1.map(x => t._2.encode(x)))
         )
 
-      encodings.indexKC(gen.indexOf(a)).get
+      val json = encodings.indexKC(gen.indexOf(a)).get
+      json.fields match {
+        case Some(fields) =>
+          Encoder.encodeJsonMap.encode(fields.updated("$type", Encoder.encodeString.encode(typeName)))
+        case None =>
+          Encoder.encodeJsonMap.encode(Map("$type" -> Encoder.encodeString.encode(typeName), "$value" -> json))
+      }
     }
   }
 }

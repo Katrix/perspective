@@ -14,7 +14,9 @@ trait HKDSumGeneric[A] { self =>
   def upcastIndexed[X](idx: Index[X], x: X): A  = x.asInstanceOf[A]
   def upcastIndex[X](idx: Index[X]): Index[_ <: A] = idx.asInstanceOf[Index[_ <: A]]
 
-  def indexNameMap: Map[String, Index[_ <: A]]
+  def nameToIndexMap: Map[String, Index[_ <: A]]
+  def indexToNameMap: Map[Index[_ <: A], String]
+  
   def indexOf[X <: A](x: X): Index[X]
 
   def to(a: A): Gen[Option] = {

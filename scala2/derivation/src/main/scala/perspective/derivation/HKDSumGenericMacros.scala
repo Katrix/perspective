@@ -62,8 +62,11 @@ class HKDSumGenericMacrosImpl(val c: whitebox.Context) {
           override def names: Gen[({type L[A] = $string})#L] =
             makeG[({type L[A] = $string})#L](ArrayProductK[({type L[A] = $string})#L, $n](ArraySeq(..$names)))
           
-          override def indexNameMap: _root_.scala.Predef.Map[String, Index[_ <: $tpe]] =
+          override def nameToIndexMap: _root_.scala.Predef.Map[String, Index[_ <: $tpe]] =
             _root_.scala.Predef.Map(..$indexMapValues)
+            
+          override def indexToNameMap: _root_.scala.Predef.Map[Index[_ <: $tpe], String] =
+            nameToIndexMap.map(_.swap)
           
           override def indexOf[X <: $tpe](x: X): Index[X] = x match {
             case ..${types.zipWithIndex.map { case (tpe, i) => cq"_: $tpe => makeI[X](_root_.perspective.Finite($i))" }}
@@ -98,8 +101,11 @@ class HKDSumGenericMacrosImpl(val c: whitebox.Context) {
           override def names: Gen[({type L[A] = $string})#L] =
             ${constructGen(tq"({type L[A] = $string})#L", names)}
           
-          override def indexNameMap: _root_.scala.Predef.Map[String, Index[_ <: $tpe]] =
+          override def nameToIndexMap: _root_.scala.Predef.Map[String, Index[_ <: $tpe]] =
             _root_.scala.Predef.Map(..$indexMapValues)
+            
+          override def indexToNameMap: _root_.scala.Predef.Map[Index[_ <: $tpe], String] =
+            nameToIndexMap.map(_.swap)
           
           override def indexOf[X <: $tpe](x: X): Index[X] = x match {
             case ..${types.zipWithIndex.map { case (tpe, i) => cq"_: $tpe => makeI[X](_root_.perspective.Finite($i))" }}

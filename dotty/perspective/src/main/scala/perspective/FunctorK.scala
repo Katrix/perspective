@@ -5,11 +5,9 @@ import scala.compiletime._
 import scala.quoted._
 
 trait FunctorK[F[_[_], _]]:
-  type Curried[A[_]] = [C] =>> F[A, C]
-
   extension[A[_], B[_], C](fa: F[A, C]) def mapK (f: A ~>: B): F[B, C]
 
-  extension [A[_], B[_]](f: A ~>: B) def liftK: Curried[A] ~>: Curried[B] = [C] => (fa: F[A, C]) => fa.mapK(f)
+  extension [A[_], B[_]](f: A ~>: B) def liftK: F[A, *] ~>: F[B, *] = [C] => (fa: F[A, C]) => fa.mapK(f)
 
   extension [A[_], C](fa: F[A, C]) def voidK: F[Const[Unit], C] = fa.asK(ValueK.const(()))
 

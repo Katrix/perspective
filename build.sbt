@@ -5,16 +5,16 @@ lazy val commonSettings = Seq(
 
 lazy val commonScala2Settings = commonSettings ++ Seq(
   scalaVersion := "2.13.3",
-  moduleName := s"perspective-${moduleName.value}",
+  moduleName := s"perspectivescal2-${moduleName.value}",
   addCompilerPlugin(("org.typelevel" %% "kind-projector" % "0.11.2").cross(CrossVersion.full)),
   scalacOptions += "-explaintypes"
 )
 
 lazy val commonDottySettings = commonSettings ++ Seq(
-  scalaVersion := "0.27.0-RC1",
-  moduleName := s"perspectivedotty-${moduleName.value}",
+  scalaVersion := "3.0.0-M2",
+  moduleName := s"perspective-${moduleName.value}",
   scalacOptions += "-Ykind-projector",
-  libraryDependencies += "ch.epfl.lamp" %% "dotty-staging" % scalaVersion.value
+  //libraryDependencies += "ch.epfl.lamp" %% "dotty-staging" % scalaVersion.value
 )
 
 lazy val publishSettings = Seq(
@@ -103,7 +103,7 @@ lazy val dottyPerspective = project
     publishSettings,
     name := "perspective",
     moduleName := "perspectivedotty",
-    libraryDependencies += ("org.typelevel" %% "cats-core" % "2.3.0").withDottyCompat(scalaVersion.value)
+    libraryDependencies += "org.typelevel" %% "cats-core" % "2.3.0"
   )
 
 lazy val dottyPerspectiveDerivation = project

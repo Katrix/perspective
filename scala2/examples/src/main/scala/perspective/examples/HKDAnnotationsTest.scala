@@ -1,6 +1,6 @@
 package perspective.examples
 
-import perspective.macros.{Derive, hkd}
+import perspective.macros.hkd
 
 @hkd case class HKDAnnotationsTest[F[_]](
     a: F[Int],
