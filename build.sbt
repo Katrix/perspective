@@ -63,6 +63,8 @@ lazy val scala2PerspectiveParameterized = project
     scalacOptions += "-Ymacro-annotations"
   )
 
+lazy val circeVersion = "0.12.3"
+
 lazy val scala2PerspectiveDerivation = project
   .in(file("scala2/derivation"))
   .dependsOn(scala2Perspective)
@@ -71,7 +73,12 @@ lazy val scala2PerspectiveDerivation = project
     publishSettings,
     name := "derivation",
     libraryDependencies += "com.chuusai"   %% "shapeless"     % "2.3.3",
-    libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided
+    libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-core",
+      "io.circe" %% "circe-parser"
+    ).map(_ % circeVersion % Test),
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.2" % Test
   )
 
 lazy val scala2PerspectiveExamples = project
@@ -81,7 +88,11 @@ lazy val scala2PerspectiveExamples = project
     commonScala2Settings,
     noPublishSettings,
     name := "examples",
-    scalacOptions += "-Ymacro-annotations"
+    scalacOptions += "-Ymacro-annotations",
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-core",
+      "io.circe" %% "circe-parser"
+    ).map(_ % circeVersion)
   )
 
 lazy val scala2PerspectiveMacros = project

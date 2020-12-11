@@ -87,7 +87,7 @@ class HKDProductGenericMacrosImpl(val c: whitebox.Context) {
           
           override type Gen[A[_]] = ArrayProductK.NewTypes.${TypeName(s"G$n")}[A, ..$types]
           
-          override def typeName: $string = ${tpeSym.name.decodedName.toString}
+          override def typeName: $string = ${tpeSym.fullName}
           
           override def names: Gen[({type L[A] = $string})#L] =
             makeG[({type L[A] = $string})#L](ArrayProductK[({type L[A] = $string})#L, $n](ArraySeq(..$names)))
@@ -115,7 +115,7 @@ class HKDProductGenericMacrosImpl(val c: whitebox.Context) {
         new _root_.perspective.derivation.HKDProductGeneric[$tpe] {
           override type Gen[A[_]] = _root_.perspective.derivation.${TypeName("Product" + n + "K")}[A, ..$types]
          
-          override def typeName: $string = ${tpeSym.name.decodedName.toString}
+          override def typeName: $string = ${tpeSym.fullName}
 
           override def names: Gen[({type L[A] = $string})#L] =
             ${constructGen(tq"({type L[A] = $string})#L", names)}

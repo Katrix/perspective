@@ -26,5 +26,5 @@ case class Test23(
     a23: Int
 )
 object Test23 {
-  Codec.deriver[Test23].derive
+  CodecDeriver.deriver[Test23].derive
 }

@@ -27,13 +27,13 @@ class HKDSumGenericMacrosImpl(val c: whitebox.Context) {
       c.abort(c.enclosingPosition, s"Not subclasses found for $tpe")
     }
 
-    val names = subclasses.map(c => q"${c.name.decodedName.toString}").toList
+    val names = subclasses.map(c => q"${c.fullName}").toList
     val types = subclasses.map(_.asType.toType)
 
     val string = typeOf[String]
     
     val indexMapValues = names.zipWithIndex.map { case (name, idx) =>
-      q"($name, makeI(_root_.perspective.Finite($idx)))"
+      q"($name, _root_.perspective.Finite($idx))"
     }
 
     if (n > 99) {
@@ -49,15 +49,9 @@ class HKDSumGenericMacrosImpl(val c: whitebox.Context) {
           
           override type Gen[A[_]] = ArrayProductK.NewTypes.${TypeName(s"G$n")}[A, ..$types]
           
-          trait Tag extends Any
-          trait Base
-          type I[X] <: Base with Tag
-          private def makeI[X](idx: Finite[$n]): I[X] = idx.asInstanceOf[I[X]]
-          private def fromI[X](idx: I[X]): Finite[$n] = idx.asInstanceOf[Finite[$n]]
+          type Index[X] = _root_.perspective.Finite[$n]
           
-          type Index[X] = I[X]
-          
-          override def typeName: $string = ${tpeSym.name.decodedName.toString}
+          override def typeName: $string = ${tpeSym.fullName}
           
           override def names: Gen[({type L[A] = $string})#L] =
             makeG[({type L[A] = $string})#L](ArrayProductK[({type L[A] = $string})#L, $n](ArraySeq(..$names)))
@@ -69,7 +63,7 @@ class HKDSumGenericMacrosImpl(val c: whitebox.Context) {
             nameToIndexMap.map(_.swap)
           
           override def indexOf[X <: $tpe](x: X): Index[X] = x match {
-            case ..${types.zipWithIndex.map { case (tpe, i) => cq"_: $tpe => makeI[X](_root_.perspective.Finite($i))" }}
+            case ..${types.zipWithIndex.map { case (tpe, i) => cq"_: $tpe => _root_.perspective.Finite($i)" }}
           }
           
           private val instance: _root_.perspective.RepresentableKC.Aux[Gen, Index] with _root_.perspective.TraverseKC[Gen] =
@@ -88,15 +82,9 @@ class HKDSumGenericMacrosImpl(val c: whitebox.Context) {
         new _root_.perspective.derivation.HKDSumGeneric[$tpe] {
           override type Gen[A[_]] = _root_.perspective.derivation.${TypeName("Product" + n + "K")}[A, ..$types]
           
-          trait Tag extends Any
-          trait Base
-          type I[X] <: Base with Tag
-          private def makeI[X](idx: Finite[$n]): I[X] = idx.asInstanceOf[I[X]]
-          private def fromI[X](idx: I[X]): Finite[$n] = idx.asInstanceOf[Finite[$n]]
+          type Index[X] = _root_.perspective.Finite[$n]
           
-          type Index[X] = I[X]
-          
-          override def typeName: $string = ${tpeSym.name.decodedName.toString}
+          override def typeName: $string = ${tpeSym.fullName}
           
           override def names: Gen[({type L[A] = $string})#L] =
             ${constructGen(tq"({type L[A] = $string})#L", names)}
@@ -108,7 +96,7 @@ class HKDSumGenericMacrosImpl(val c: whitebox.Context) {
             nameToIndexMap.map(_.swap)
           
           override def indexOf[X <: $tpe](x: X): Index[X] = x match {
-            case ..${types.zipWithIndex.map { case (tpe, i) => cq"_: $tpe => makeI[X](_root_.perspective.Finite($i))" }}
+            case ..${types.zipWithIndex.map { case (tpe, i) => cq"_: $tpe => _root_.perspective.Finite($i)" }}
           }
           
           //Need cast to hide the index type

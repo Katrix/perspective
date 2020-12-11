@@ -1,6 +1,7 @@
 package perspective.examples
 
 import java.time.{Instant, OffsetDateTime}
+import io.circe._
 
 object TestBig {
   type RawSnowflake         = String
@@ -57,7 +58,7 @@ object TestBig {
       parentId: Option[RawSnowflake],
       lastPinTimestamp: Option[OffsetDateTime]
   )
-  implicit lazy val rawChannelCodec: Codec[RawChannel] = Codec.deriver[RawChannel].derive
+  implicit lazy val rawChannelCodec: Codec[RawChannel] = CodecDeriver.deriver[RawChannel].derive
 
   case class RawEmoji(
       id: EmojiId,
@@ -70,7 +71,7 @@ object TestBig {
       available: Option[Boolean]
   )
 
-  implicit lazy val rawEmojiCodec: Codec[RawEmoji] = Codec.deriver[RawEmoji].derive
+  implicit lazy val rawEmojiCodec: Codec[RawEmoji] = CodecDeriver.deriver[RawEmoji].derive
 
   case class GuildPreview(
       id: GuildId,
@@ -85,7 +86,7 @@ object TestBig {
       description: Option[String]
   )
 
-  implicit lazy val guildPreviewCodec: Codec[GuildPreview] = Codec.deriver[GuildPreview].derive
+  implicit lazy val guildPreviewCodec: Codec[GuildPreview] = CodecDeriver.deriver[GuildPreview].derive
 
   case class PartialUser(
       id: UserId,
@@ -102,7 +103,7 @@ object TestBig {
       premiumType: Option[PremiumType]
   )
 
-  implicit lazy val partialUserCodec: Codec[PartialUser] = Codec.deriver[PartialUser].derive
+  implicit lazy val partialUserCodec: Codec[PartialUser] = CodecDeriver.deriver[PartialUser].derive
 
   case class RawActivity(
       name: String,
@@ -118,11 +119,11 @@ object TestBig {
       assets: Option[ActivityAsset]
   )
 
-  implicit lazy val rawActivityCodec: Codec[RawActivity] = Codec.deriver[RawActivity].derive
+  implicit lazy val rawActivityCodec: Codec[RawActivity] = CodecDeriver.deriver[RawActivity].derive
 
   case class ActivityTimestamps(start: Option[Instant], end: Option[Instant])
 
-  implicit lazy val activityTimestampsCodec: Codec[ActivityTimestamps] = Codec.deriver[ActivityTimestamps].derive
+  implicit lazy val activityTimestampsCodec: Codec[ActivityTimestamps] = CodecDeriver.deriver[ActivityTimestamps].derive
 
   case class ActivityAsset(
       largeImage: Option[String],
@@ -131,11 +132,11 @@ object TestBig {
       smallText: Option[String]
   )
 
-  implicit lazy val activityAssetCodec: Codec[ActivityAsset] = Codec.deriver[ActivityAsset].derive
+  implicit lazy val activityAssetCodec: Codec[ActivityAsset] = CodecDeriver.deriver[ActivityAsset].derive
 
   case class RawActivityParty(id: Option[String], size: Option[Seq[Int]])
 
-  implicit lazy val rawActivityPartyCodec: Codec[RawActivityParty] = Codec.deriver[RawActivityParty].derive
+  implicit lazy val rawActivityPartyCodec: Codec[RawActivityParty] = CodecDeriver.deriver[RawActivityParty].derive
 
   case class ActivityEmoji(
       name: String,
@@ -143,20 +144,20 @@ object TestBig {
       animated: Option[Boolean]
   )
 
-  implicit lazy val activityEmojiCodec: Codec[ActivityEmoji] = Codec.deriver[ActivityEmoji].derive
+  implicit lazy val activityEmojiCodec: Codec[ActivityEmoji] = CodecDeriver.deriver[ActivityEmoji].derive
 
   case class RawPresence(user: PartialUser, game: Option[RawActivity], status: Option[PresenceStatus])
 
-  implicit lazy val rawPresenceCodec: Codec[RawPresence] = Codec.deriver[RawPresence].derive
+  implicit lazy val rawPresenceCodec: Codec[RawPresence] = CodecDeriver.deriver[RawPresence].derive
 
   case class UnavailableGuild(id: GuildId, unavailable: Boolean)
 
-  implicit lazy val unavailableGuildCodec: Codec[UnavailableGuild] = Codec.deriver[UnavailableGuild].derive
+  implicit lazy val unavailableGuildCodec: Codec[UnavailableGuild] = CodecDeriver.deriver[UnavailableGuild].derive
 
   case class PermissionOverwrite(id: UserOrRoleId, `type`: PermissionOverwriteType, allow: Permission, deny: Permission)
 
   implicit lazy val permissionOverwriteCodec: Codec[PermissionOverwrite] =
-    Codec.deriver[PermissionOverwrite].derive
+    CodecDeriver.deriver[PermissionOverwrite].derive
 
   case class User(
       id: UserId,
@@ -173,11 +174,11 @@ object TestBig {
       premiumType: Option[PremiumType]
   )
 
-  implicit lazy val userCodec: Codec[User] = Codec.deriver[User].derive
+  implicit lazy val userCodec: Codec[User] = CodecDeriver.deriver[User].derive
 
   case class WebhookAuthor(id: SnowflakeType[Webhook], username: String, avatar: String)
 
-  implicit lazy val webhookAuthorCodec: Codec[WebhookAuthor] = Codec.deriver[WebhookAuthor].derive
+  implicit lazy val webhookAuthorCodec: Codec[WebhookAuthor] = CodecDeriver.deriver[WebhookAuthor].derive
 
   case class Role(
       id: RoleId,
@@ -191,7 +192,7 @@ object TestBig {
       mentionable: Boolean
   )
 
-  implicit lazy val roleCodec: Codec[Role] = Codec.deriver[Role].derive
+  implicit lazy val roleCodec: Codec[Role] = CodecDeriver.deriver[Role].derive
 
   case class RawRole(
       id: RoleId,
@@ -204,7 +205,7 @@ object TestBig {
       mentionable: Boolean
   )
 
-  implicit lazy val rawRoleCodec: Codec[RawRole] = Codec.deriver[RawRole].derive
+  implicit lazy val rawRoleCodec: Codec[RawRole] = CodecDeriver.deriver[RawRole].derive
 
   case class RawGuildMember(
       user: User,
@@ -216,7 +217,7 @@ object TestBig {
       mute: Boolean
   )
 
-  implicit lazy val rawGuildMemberCodec: Codec[RawGuildMember] = Codec.deriver[RawGuildMember].derive
+  implicit lazy val rawGuildMemberCodec: Codec[RawGuildMember] = CodecDeriver.deriver[RawGuildMember].derive
 
   case class Attachment(
       id: SnowflakeType[Attachment],
@@ -228,20 +229,20 @@ object TestBig {
       width: Option[Int]
   )
 
-  implicit lazy val attachementCodec: Codec[Attachment] = Codec.deriver[Attachment].derive
+  implicit lazy val attachementCodec: Codec[Attachment] = CodecDeriver.deriver[Attachment].derive
 
   case class EmbedField(name: String, value: String, `inline`: Option[Boolean] = None)
 
-  implicit lazy val embedFieldCodec: Codec[EmbedField] = Codec.deriver[EmbedField].derive
+  implicit lazy val embedFieldCodec: Codec[EmbedField] = CodecDeriver.deriver[EmbedField].derive
 
   case class ReceivedEmbedFooter(text: String, iconUrl: Option[String], proxyIconUrl: Option[String])
 
   implicit lazy val receivedEmbedFooterCodec: Codec[ReceivedEmbedFooter] =
-    Codec.deriver[ReceivedEmbedFooter].derive
+    CodecDeriver.deriver[ReceivedEmbedFooter].derive
 
   case class ReceivedEmbedImage(url: Option[String], proxyUrl: Option[String], height: Option[Int], width: Option[Int])
 
-  implicit lazy val receivedEmbedImageCodec: Codec[ReceivedEmbedImage] = Codec.deriver[ReceivedEmbedImage].derive
+  implicit lazy val receivedEmbedImageCodec: Codec[ReceivedEmbedImage] = CodecDeriver.deriver[ReceivedEmbedImage].derive
 
   case class ReceivedEmbedThumbnail(
       url: Option[String],
@@ -251,16 +252,16 @@ object TestBig {
   )
 
   implicit lazy val receivedEmbedThumbnailCodec: Codec[ReceivedEmbedThumbnail] =
-    Codec.deriver[ReceivedEmbedThumbnail].derive
+    CodecDeriver.deriver[ReceivedEmbedThumbnail].derive
 
   case class ReceivedEmbedVideo(url: Option[String], height: Option[Int], width: Option[Int])
 
-  implicit lazy val receivedEmbedVideoCodec: Codec[ReceivedEmbedVideo] = Codec.deriver[ReceivedEmbedVideo].derive
+  implicit lazy val receivedEmbedVideoCodec: Codec[ReceivedEmbedVideo] = CodecDeriver.deriver[ReceivedEmbedVideo].derive
 
   case class ReceivedEmbedProvider(name: Option[String], url: Option[String])
 
   implicit lazy val receivedEmbedProviderCodec: Codec[ReceivedEmbedProvider] =
-    Codec.deriver[ReceivedEmbedProvider].derive
+    CodecDeriver.deriver[ReceivedEmbedProvider].derive
 
   case class ReceivedEmbedAuthor(
       name: Option[String],
@@ -269,7 +270,7 @@ object TestBig {
       proxyIconUrl: Option[String]
   )
 
-  implicit lazy val receivedEmbedAuthorCodec: Codec[ReceivedEmbedAuthor] = Codec.deriver[ReceivedEmbedAuthor].derive
+  implicit lazy val receivedEmbedAuthorCodec: Codec[ReceivedEmbedAuthor] = CodecDeriver.deriver[ReceivedEmbedAuthor].derive
 
   case class ReceivedEmbed(
       title: Option[String],
@@ -287,28 +288,28 @@ object TestBig {
       fields: Option[Seq[EmbedField]]
   )
 
-  implicit lazy val receivedEmbedCodec: Codec[ReceivedEmbed] = Codec.deriver[ReceivedEmbed].derive
+  implicit lazy val receivedEmbedCodec: Codec[ReceivedEmbed] = CodecDeriver.deriver[ReceivedEmbed].derive
 
   case class OutgoingEmbedFooter(text: String, iconUrl: Option[String] = None)
 
-  implicit lazy val outgoingEmbedFooterCodec: Codec[OutgoingEmbedFooter] = Codec.deriver[OutgoingEmbedFooter].derive
+  implicit lazy val outgoingEmbedFooterCodec: Codec[OutgoingEmbedFooter] = CodecDeriver.deriver[OutgoingEmbedFooter].derive
 
   case class OutgoingEmbedImage(url: String)
 
-  implicit lazy val outgoingEmbedImageCodec: Codec[OutgoingEmbedImage] = Codec.deriver[OutgoingEmbedImage].derive
+  implicit lazy val outgoingEmbedImageCodec: Codec[OutgoingEmbedImage] = CodecDeriver.deriver[OutgoingEmbedImage].derive
 
   case class OutgoingEmbedVideo(url: String)
 
-  implicit lazy val outgoingEmbedVideoCodec: Codec[OutgoingEmbedVideo] = Codec.deriver[OutgoingEmbedVideo].derive
+  implicit lazy val outgoingEmbedVideoCodec: Codec[OutgoingEmbedVideo] = CodecDeriver.deriver[OutgoingEmbedVideo].derive
 
   case class OutgoingEmbedThumbnail(url: String)
 
   implicit lazy val outgoingEmbedThumbnailCodec: Codec[OutgoingEmbedThumbnail] =
-    Codec.deriver[OutgoingEmbedThumbnail].derive
+    CodecDeriver.deriver[OutgoingEmbedThumbnail].derive
 
   case class OutgoingEmbedAuthor(name: String, url: Option[String] = None, iconUrl: Option[String] = None)
 
-  implicit lazy val outgoingEmbedAuthorCodec: Codec[OutgoingEmbedAuthor] = Codec.deriver[OutgoingEmbedAuthor].derive
+  implicit lazy val outgoingEmbedAuthorCodec: Codec[OutgoingEmbedAuthor] = CodecDeriver.deriver[OutgoingEmbedAuthor].derive
 
   case class OutgoingEmbed(
       title: Option[String] = None,
@@ -324,19 +325,19 @@ object TestBig {
       fields: Seq[EmbedField] = Seq.empty
   )
 
-  implicit lazy val outgoingEmbedCodec: Codec[OutgoingEmbed] = Codec.deriver[OutgoingEmbed].derive
+  implicit lazy val outgoingEmbedCodec: Codec[OutgoingEmbed] = CodecDeriver.deriver[OutgoingEmbed].derive
 
   case class PartialEmoji(id: Option[EmojiId], name: Option[String])
 
-  implicit lazy val partialEmojiCodec: Codec[PartialEmoji] = Codec.deriver[PartialEmoji].derive
+  implicit lazy val partialEmojiCodec: Codec[PartialEmoji] = CodecDeriver.deriver[PartialEmoji].derive
 
   case class Reaction(count: Int, me: Boolean, emoji: PartialEmoji)
 
-  implicit lazy val reactionCodec: Codec[Reaction] = Codec.deriver[Reaction].derive
+  implicit lazy val reactionCodec: Codec[Reaction] = CodecDeriver.deriver[Reaction].derive
 
   case class RawMessageActivity(`type`: MessageActivityType, partyId: Option[String])
 
-  implicit lazy val rawMessageActivityCodec: Codec[RawMessageActivity] = Codec.deriver[RawMessageActivity].derive
+  implicit lazy val rawMessageActivityCodec: Codec[RawMessageActivity] = CodecDeriver.deriver[RawMessageActivity].derive
 
   case class MessageApplication(
       id: RawSnowflake,
@@ -346,7 +347,7 @@ object TestBig {
       name: String
   )
 
-  implicit lazy val messageApplicationCodec: Codec[MessageApplication] = Codec.deriver[MessageApplication].derive
+  implicit lazy val messageApplicationCodec: Codec[MessageApplication] = CodecDeriver.deriver[MessageApplication].derive
 
   case class PartialRawGuildMember(
       nick: Option[String],
@@ -358,7 +359,7 @@ object TestBig {
   )
 
   implicit lazy val partialRawGuildMemberCodec: Codec[PartialRawGuildMember] =
-    Codec.deriver[PartialRawGuildMember].derive
+    CodecDeriver.deriver[PartialRawGuildMember].derive
 
   case class ChannelMention(
       id: TextChannelId,
@@ -367,7 +368,7 @@ object TestBig {
       name: String
   )
 
-  implicit lazy val channelMentionCodec: Codec[ChannelMention] = Codec.deriver[ChannelMention].derive
+  implicit lazy val channelMentionCodec: Codec[ChannelMention] = CodecDeriver.deriver[ChannelMention].derive
 
   case class MessageReference(
       messageId: Option[MessageId],
@@ -375,7 +376,7 @@ object TestBig {
       guildId: Option[GuildId]
   )
 
-  implicit lazy val messageReferenceCodec: Codec[MessageReference] = Codec.deriver[MessageReference].derive
+  implicit lazy val messageReferenceCodec: Codec[MessageReference] = CodecDeriver.deriver[MessageReference].derive
 
   case class VoiceState(
       guildId: Option[GuildId],
@@ -391,15 +392,15 @@ object TestBig {
       suppress: Boolean
   )
 
-  implicit lazy val voiceStateCodec: Codec[VoiceState] = Codec.deriver[VoiceState].derive
+  implicit lazy val voiceStateCodec: Codec[VoiceState] = CodecDeriver.deriver[VoiceState].derive
 
   case class InviteGuild(id: GuildId, name: String, splash: Option[String], icon: Option[String])
 
-  implicit lazy val inviteGuildCodec: Codec[InviteGuild] = Codec.deriver[InviteGuild].derive
+  implicit lazy val inviteGuildCodec: Codec[InviteGuild] = CodecDeriver.deriver[InviteGuild].derive
 
   case class InviteChannel(id: GuildChannelId, name: String, `type`: ChannelType)
 
-  implicit lazy val inviteChannelCodec: Codec[InviteChannel] = Codec.deriver[InviteChannel].derive
+  implicit lazy val inviteChannelCodec: Codec[InviteChannel] = CodecDeriver.deriver[InviteChannel].derive
 
   case class InviteTargetUser(
       id: UserId,
@@ -408,7 +409,7 @@ object TestBig {
       discriminator: String
   )
 
-  implicit lazy val inviteTargetUserCodec: Codec[InviteTargetUser] = Codec.deriver[InviteTargetUser].derive
+  implicit lazy val inviteTargetUserCodec: Codec[InviteTargetUser] = CodecDeriver.deriver[InviteTargetUser].derive
 
   case class Invite(
       code: String,
@@ -421,7 +422,7 @@ object TestBig {
       approximateMemberCount: Option[Int]
   )
 
-  implicit lazy val inviteCodec: Codec[Invite] = Codec.deriver[Invite].derive
+  implicit lazy val inviteCodec: Codec[Invite] = CodecDeriver.deriver[Invite].derive
 
   case class InviteWithMetadata(
       code: String,
@@ -439,15 +440,15 @@ object TestBig {
       createdAt: OffsetDateTime
   )
 
-  implicit lazy val inviteWithMetadataCodec: Codec[InviteWithMetadata] = Codec.deriver[InviteWithMetadata].derive
+  implicit lazy val inviteWithMetadataCodec: Codec[InviteWithMetadata] = CodecDeriver.deriver[InviteWithMetadata].derive
 
   case class GuildEmbed(enabled: Boolean, channelId: Option[GuildChannelId])
 
-  implicit lazy val guildEmbedCodec: Codec[GuildEmbed] = Codec.deriver[GuildEmbed].derive
+  implicit lazy val guildEmbedCodec: Codec[GuildEmbed] = CodecDeriver.deriver[GuildEmbed].derive
 
   case class IntegrationAccount(id: String, name: String)
 
-  implicit lazy val integrationAccountCodec: Codec[IntegrationAccount] = Codec.deriver[IntegrationAccount].derive
+  implicit lazy val integrationAccountCodec: Codec[IntegrationAccount] = CodecDeriver.deriver[IntegrationAccount].derive
 
   case class PartialIntegration(
       id: IntegrationId,
@@ -456,7 +457,7 @@ object TestBig {
       account: IntegrationAccount
   )
 
-  implicit lazy val partialIntegrationCodec: Codec[PartialIntegration] = Codec.deriver[PartialIntegration].derive
+  implicit lazy val partialIntegrationCodec: Codec[PartialIntegration] = CodecDeriver.deriver[PartialIntegration].derive
 
   case class Integration(
       id: IntegrationId,
@@ -473,7 +474,7 @@ object TestBig {
       syncedAt: OffsetDateTime
   )
 
-  implicit lazy val integrationCodec: Codec[Integration] = Codec.deriver[Integration].derive
+  implicit lazy val integrationCodec: Codec[Integration] = CodecDeriver.deriver[Integration].derive
 
   case class VoiceRegion(
       id: String,
@@ -486,7 +487,7 @@ object TestBig {
       custom: Boolean
   )
 
-  implicit lazy val voiceRegionCodec: Codec[VoiceRegion] = Codec.deriver[VoiceRegion].derive
+  implicit lazy val voiceRegionCodec: Codec[VoiceRegion] = CodecDeriver.deriver[VoiceRegion].derive
 
   case class Connection(
       id: String,
@@ -500,7 +501,7 @@ object TestBig {
       visibility: ConnectionVisibility
   )
 
-  implicit lazy val connectionCodec: Codec[Connection] = Codec.deriver[Connection].derive
+  implicit lazy val connectionCodec: Codec[Connection] = CodecDeriver.deriver[Connection].derive
 
   case class Webhook(
       id: SnowflakeType[Webhook],
@@ -513,7 +514,7 @@ object TestBig {
       token: Option[String]
   )
 
-  implicit lazy val webhookCodec: Codec[Webhook] = Codec.deriver[Webhook].derive
+  implicit lazy val webhookCodec: Codec[Webhook] = CodecDeriver.deriver[Webhook].derive
 
   case class AuditLog(
       webhooks: Seq[Webhook],
@@ -522,7 +523,7 @@ object TestBig {
       integrations: Seq[PartialIntegration]
   )
 
-  implicit lazy val auditLogDecoder: Decoder[AuditLog] = Decoder.deriver[AuditLog].deriveProduct
+  implicit lazy val auditLogDecoder: Decoder[AuditLog] = DecoderDerive.deriver[AuditLog].deriveProduct
 
   case class AuditLogEntry(
       targetId: Option[RawSnowflake],
@@ -534,7 +535,7 @@ object TestBig {
       reason: Option[String]
   )
 
-  implicit lazy val auditLogEntryDecoder: Decoder[AuditLogEntry] = Decoder.deriver[AuditLogEntry].deriveProduct
+  implicit lazy val auditLogEntryDecoder: Decoder[AuditLogEntry] = DecoderDerive.deriver[AuditLogEntry].deriveProduct
 
   case class OptionalAuditLogInfo(
       deleteMemberDays: Option[String],
@@ -547,14 +548,14 @@ object TestBig {
       roleName: Option[String]
   )
 
-  implicit lazy val optionalAuditLogInfoCodec: Codec[OptionalAuditLogInfo] = Codec.deriver[OptionalAuditLogInfo].derive
+  implicit lazy val optionalAuditLogInfoCodec: Codec[OptionalAuditLogInfo] = CodecDeriver.deriver[OptionalAuditLogInfo].derive
 
   case class PartialRole(
       name: String,
       id: RoleId
   )
 
-  implicit lazy val partialRoleCodec: Codec[PartialRole] = Codec.deriver[PartialRole].derive
+  implicit lazy val partialRoleCodec: Codec[PartialRole] = CodecDeriver.deriver[PartialRole].derive
 
   sealed trait AuditLogChange[A] {
 
@@ -680,7 +681,7 @@ object TestBig {
 
   implicit val auditLogChangeDecoder: Decoder[AuditLogChange[_]] = (c: ACursor) => {
 
-    def mkChange[A: Decoder, B](create: (A, A) => B): Either[String, B] =
+    def mkChange[A: Decoder, B](create: (A, A) => B): Decoder.Result[B] =
       for {
         oldVal <- c.get[A]("old_value")
         newVal <- c.get[A]("new_value")
@@ -739,7 +740,7 @@ object TestBig {
 
   case class RawBan(reason: Option[String], user: User)
 
-  implicit lazy val rawBanCodec: Codec[RawBan] = Codec.deriver[RawBan].derive
+  implicit lazy val rawBanCodec: Codec[RawBan] = CodecDeriver.deriver[RawBan].derive
 
   case class ClientStatus(
       desktop: Option[PresenceStatus],
@@ -747,7 +748,7 @@ object TestBig {
       web: Option[PresenceStatus]
   )
 
-  implicit lazy val clientStatusCodec: Codec[ClientStatus] = Codec.deriver[ClientStatus].derive
+  implicit lazy val clientStatusCodec: Codec[ClientStatus] = CodecDeriver.deriver[ClientStatus].derive
 
   case class Team(
       icon: Option[String],
@@ -756,7 +757,7 @@ object TestBig {
       ownerUserId: UserId
   )
 
-  implicit lazy val teamCodec: Codec[Team] = Codec.deriver[Team].derive
+  implicit lazy val teamCodec: Codec[Team] = CodecDeriver.deriver[Team].derive
 
   case class TeamMember(
       membershipState: TeamMembershipState,
@@ -765,6 +766,6 @@ object TestBig {
       user: PartialUser
   )
 
-  implicit lazy val teamMemberCodec: Codec[TeamMember] = Codec.deriver[TeamMember].derive
+  implicit lazy val teamMemberCodec: Codec[TeamMember] = CodecDeriver.deriver[TeamMember].derive
 
 }
