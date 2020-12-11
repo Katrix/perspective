@@ -16,6 +16,7 @@ trait Decoder[A]:
   def decode(cursor: ACursor): Either[String, A]
 
 object Decoder:
+  given Decoder[Json]              = ???
   given Decoder[Int]               = ???
   given Decoder[Long]              = ???
   given Decoder[Double]            = ???
@@ -51,7 +52,7 @@ object Decoder:
         typeName <- cursor.get[String]("$type")
         index <- gen.nameToIndexMap.get(typeName).toRight(s"$typeName is not a valid ${gen.typeName}")
         decoder: Decoder[_ <: A] = decoders.indexK(index) //TODO Type needed. Inffered to Any otherwise
-        res <- decoder.decode(cursor)
+        res <- decoder.decode(cursor.get[Json]("$value").fold(_ => cursor, _.cursor))
       yield res
 
   private inline def caseDecoders[XS <: Tuple]: Tuple.Map[XS, Decoder] = inline erasedValue[XS] match
@@ -76,7 +77,9 @@ object Decoder:
           derivedSumDecoder(using gen, decoders)
       }
 
-trait Json
+trait Json:
+  def fields: Option[Map[String, Json]]
+  def cursor: ACursor
 
 trait Encoder[A]:
   def encode(a: A): Json
@@ -117,12 +120,17 @@ object Encoder:
     override def encode(a: A): Json =
       import gen.given
 
+      val typeName = implicitly[Encoder[String]].encode(gen.indexToNameMap(gen.indexOf(a)))
+
       val encodings = 
         gen
           .to(a)
           .map2K(encoders)([Z] => (optCase: Option[Z], encoder: Encoder[Z]) => optCase.map(x => encoder.encode(x)): Const[Option[Json]][Z])
 
-      encodings.indexK(gen.indexOf(a)).get
+      val json = encodings.indexK(gen.indexOf(a)).get
+      json.fields match
+        case Some(fields) => implicitly[Encoder[Map[String, Json]]].encode(fields.updated("$type", typeName))
+        case None         => implicitly[Encoder[Map[String, Json]]].encode(Map("$type" -> typeName, "$value" -> json))
 
   private inline def caseEncoders[XS <: Tuple]: Tuple.Map[XS, Encoder] = inline erasedValue[XS] match
     case _: EmptyTuple => EmptyTuple

@@ -48,7 +48,7 @@ object EncoderDerive {
     override def apply(a: A): Json = {
       import gen.implicits._
 
-      val typeName = gen.nameToIndexMap.map(_.swap)(gen.indexOf(a))
+      val typeName = gen.indexToNameMap(gen.indexOf(a))
 
       val encodings = gen
         .to(a)
