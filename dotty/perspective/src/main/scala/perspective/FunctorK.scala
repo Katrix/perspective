@@ -6,6 +6,9 @@ import scala.quoted._
 
 trait FunctorK[F[_[_], _]]:
   extension[A[_], B[_], C](fa: F[A, C]) def mapK (f: A ~>: B): F[B, C]
+  
+  extension[A[_], B, C](fa: F[A, C]) def mapConst (f: A ~>#: B): F[Const[B], C] =
+    fa.mapK(f)
 
   extension [A[_], B[_]](f: A ~>: B) def liftK: F[A, *] ~>: F[B, *] = [C] => (fa: F[A, C]) => fa.mapK(f)
 

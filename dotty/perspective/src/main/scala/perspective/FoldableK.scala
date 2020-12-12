@@ -1,7 +1,6 @@
 package perspective
 
 import cats._
-import cats.instances.list._
 import cats.syntax.all._
 
 import scala.language.implicitConversions
