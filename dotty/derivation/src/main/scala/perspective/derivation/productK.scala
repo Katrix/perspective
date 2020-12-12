@@ -8,6 +8,7 @@ import scala.deriving._
 import scala.compiletime._
 
 opaque type ProductK[F[_], T <: Tuple] = Tuple.Map[T, F]
+type ProductKPar[T <: Tuple] = [F[_]] =>> ProductK[F, T]
 object ProductK extends ProductKGather:
   def of[F[_], T <: Tuple](t: Tuple.Map[T, F]): ProductK[F, T] = t
   
@@ -20,7 +21,9 @@ object ProductK extends ProductKGather:
   given [F[_], T1, T2, T3, T4](using t1: F[T1], t2: F[T2], t3: F[T3], t4: F[T4]) as ProductK[F, (T1, T2, T3, T4)] = (t1, t2, t3, t4)
    */
   
-  given productKInstance[T <: Tuple](using size: ValueOf[Tuple.Size[T]], ev: Finite.NotZero[Tuple.Size[T]] =:= true) as RepresentableKC[[F[_]] =>> ProductK[F, T]], TraverseKC[[F[_]] =>> ProductK[F, T]]:
+  given productKInstance[T <: Tuple](
+    using size: ValueOf[Tuple.Size[T]]
+  ) as RepresentableKC[ProductKPar[T]], TraverseKC[ProductKPar[T]]:
     type RepresentationK[_] = Finite[Tuple.Size[T]]
     
     extension[A[_], B, C](fa: ProductK[A, T]) override def foldLeftK(b: B)(f: B => A ~>#: B): B = 
@@ -42,7 +45,9 @@ object ProductK extends ProductKGather:
 
       inner(Applicative[G].pure(List.empty[B[Any]]))
 
-    def tabulateK[A[_], C](f: RepresentationK ~>: A): ProductK[A, T] = 
+    def tabulateK[A[_], C](f: RepresentationK ~>: A): ProductK[A, T] =
+      //If the given is used, we already know that size > 0
+      given (Finite.NotZero[Tuple.Size[T]] =:= true) = <:<.refl[Boolean].asInstanceOf[Finite.NotZero[Tuple.Size[T]] =:= true]
       val arr = IArray.tabulate(size.value)(i => f(Finite(size.value, i)))
       Tuple.fromIArray(arr).asInstanceOf[ProductK[A, T]]
 
