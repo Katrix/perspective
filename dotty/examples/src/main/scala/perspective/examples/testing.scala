@@ -24,8 +24,8 @@ object Decoder:
   given Decoder[Boolean]           = ???
   given Decoder[Map[String, Json]] = ???
 
-  given[A: Decoder] as Decoder[Option[A]] = ???
-  given[A: Decoder] as Decoder[Seq[A]]       = ???
+  given[A: Decoder]: Decoder[Option[A]] = ???
+  given[A: Decoder]: Decoder[Seq[A]]       = ???
 
   def derivedProductDecoder[A](
       using gen: HKDProductGeneric[A],
@@ -64,7 +64,7 @@ object Decoder:
       }
       headDecoder *: caseDecoders[t]
 
-  inline given derived[A](using gen: HKDGeneric[A]) as Decoder[A] = inline gen match
+  inline given derived[A](using gen: HKDGeneric[A]): Decoder[A] = inline gen match
     case gen: HKDProductGeneric.Aux[A, gen.Gen] =>
       given gen.Gen[Decoder] = summonInline[gen.Gen[Decoder]]
       derivedProductDecoder(using gen)
@@ -92,8 +92,8 @@ object Encoder:
   given Encoder[Boolean]           = ???
   given Encoder[Map[String, Json]] = ???
 
-  given[A: Encoder] as Encoder[Option[A]] = ???
-  given[A: Encoder] as Encoder[Seq[A]]    = ???
+  given[A: Encoder]: Encoder[Option[A]] = ???
+  given[A: Encoder]: Encoder[Seq[A]]    = ???
 
   def derivedProductEncoder[A](
       using gen: HKDProductGeneric[A],
@@ -140,7 +140,7 @@ object Encoder:
       }
       headEncoder *: caseEncoders[t]
 
-  inline given derived[A](using gen: HKDGeneric[A]) as Encoder[A] = inline gen match
+  inline given derived[A](using gen: HKDGeneric[A]): Encoder[A] = inline gen match
     case gen: HKDProductGeneric.Aux[A, gen.Gen] => 
       given gen.Gen[Encoder] = summonInline[gen.Gen[Encoder]]
       derivedProductEncoder(using gen)
@@ -156,7 +156,7 @@ object Encoder:
 trait Codec[A] extends Encoder[A] with Decoder[A]
 object Codec:
 
-  given derived[A](using encoder: Encoder[A], decoder: Decoder[A]) as Codec[A]:
+  given derived[A](using encoder: Encoder[A], decoder: Decoder[A]): Codec[A]:
     override def decode(cursor: ACursor): Either[String, A] = decoder.decode(cursor)
 
     override def encode(a: A): Json = encoder.encode(a)

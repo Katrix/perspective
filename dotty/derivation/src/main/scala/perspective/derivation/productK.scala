@@ -15,15 +15,15 @@ object ProductK extends ProductKGather:
   extension [F[_], T <: Tuple](p: ProductK[F, T]) def tuple: Tuple.Map[T, F] = p
   
   /* TODO: Determine if provide premade implicits for small (n < 22) tuple sizes has a positive effect on classfile size
-  given [F[_], T1](using t1: F[T1]) as ProductK[F, Tuple1[T1]] = Tuple1(t1)
-  given [F[_], T1, T2](using t1: F[T1], t2: F[T2]) as ProductK[F, (T1, T2)] = (t1, t2)
-  given [F[_], T1, T2, T3](using t1: F[T1], t2: F[T2], t3: F[T3]) as ProductK[F, (T1, T2, T3)] = (t1, t2, t3)
-  given [F[_], T1, T2, T3, T4](using t1: F[T1], t2: F[T2], t3: F[T3], t4: F[T4]) as ProductK[F, (T1, T2, T3, T4)] = (t1, t2, t3, t4)
+  given [F[_], T1](using t1: F[T1]): ProductK[F, Tuple1[T1]] = Tuple1(t1)
+  given [F[_], T1, T2](using t1: F[T1], t2: F[T2]): ProductK[F, (T1, T2)] = (t1, t2)
+  given [F[_], T1, T2, T3](using t1: F[T1], t2: F[T2], t3: F[T3]): ProductK[F, (T1, T2, T3)] = (t1, t2, t3)
+  given [F[_], T1, T2, T3, T4](using t1: F[T1], t2: F[T2], t3: F[T3], t4: F[T4]): ProductK[F, (T1, T2, T3, T4)] = (t1, t2, t3, t4)
    */
   
   given productKInstance[T <: Tuple](
     using size: ValueOf[Tuple.Size[T]]
-  ) as RepresentableKC[ProductKPar[T]], TraverseKC[ProductKPar[T]]:
+  ): RepresentableKC[ProductKPar[T]], TraverseKC[ProductKPar[T]] with
     type RepresentationK[_] = Finite[Tuple.Size[T]]
     
     extension[A[_], B, C](fa: ProductK[A, T]) override def foldLeftK(b: B)(f: B => A ~>#: B): B = 
@@ -56,4 +56,4 @@ object ProductK extends ProductKGather:
 
 trait ProductKGather:
   self: ProductK.type =>
-  inline given gatherImplicits[F[_], T <: Tuple] as ProductK[F, T] = self.of(summonAll[Tuple.Map[T, F]].asInstanceOf[Tuple.Map[T, F]])
+  inline given gatherImplicits[F[_], T <: Tuple]: ProductK[F, T] = self.of(summonAll[Tuple.Map[T, F]].asInstanceOf[Tuple.Map[T, F]])
