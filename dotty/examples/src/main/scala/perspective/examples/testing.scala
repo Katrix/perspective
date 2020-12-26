@@ -156,7 +156,7 @@ object Encoder:
 trait Codec[A] extends Encoder[A] with Decoder[A]
 object Codec:
 
-  given derived[A](using encoder: Encoder[A], decoder: Decoder[A]): Codec[A]:
+  given derived[A](using encoder: Encoder[A], decoder: Decoder[A]): Codec[A] with
     override def decode(cursor: ACursor): Either[String, A] = decoder.decode(cursor)
 
     override def encode(a: A): Json = encoder.encode(a)
