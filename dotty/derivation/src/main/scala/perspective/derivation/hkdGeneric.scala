@@ -34,7 +34,7 @@ object HKDGeneric:
   transparent inline given derived[A](using m: Mirror.Of[A])(
     using ValueOf[Tuple.Size[m.MirroredElemTypes]],
     Finite.NotZero[Tuple.Size[m.MirroredElemTypes]] =:= true
-  ): HKDGeneric[A] = inline m match 
+  ): HKDGeneric[A] = inline m match
     case m: Mirror.ProductOf[A] { type MirroredElemTypes = m.MirroredElemTypes } =>
       HKDProductGeneric.derived[A](using m)
       
@@ -52,14 +52,10 @@ object HKDProductGeneric:
     type Gen[B[_]] = Gen0[B]
   }
 
-  inline given derived[A](using m: Mirror.ProductOf[A])(
+  transparent inline given derived[A](using m: Mirror.ProductOf[A])(
     using ValueOf[Tuple.Size[m.MirroredElemTypes]],
     Finite.NotZero[Tuple.Size[m.MirroredElemTypes]] =:= true
-  ): HKDProductGeneric[A] {
-    type Gen[F[_]] = ProductK[F, m.MirroredElemTypes]
-    type Index[_] = Finite[Tuple.Size[m.MirroredElemTypes]]
-    type TupleRep = m.MirroredElemTypes
-  } = derivedImpl(
+  ): HKDProductGeneric[A] = derivedImpl(
     constValue[m.MirroredLabel],
     constValueTuple[m.MirroredElemLabels].asInstanceOf[Tuple.Map[m.MirroredElemTypes, Const[String]]]
   )

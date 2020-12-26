@@ -23,7 +23,7 @@ object ProductK extends ProductKGather:
   
   given productKInstance[T <: Tuple](
     using size: ValueOf[Tuple.Size[T]]
-  ): RepresentableKC[ProductKPar[T]], TraverseKC[ProductKPar[T]] with
+  ): RepresentableKC[ProductKPar[T]] & TraverseKC[ProductKPar[T]] with
     type RepresentationK[_] = Finite[Tuple.Size[T]]
     
     extension[A[_], B, C](fa: ProductK[A, T]) override def foldLeftK(b: B)(f: B => A ~>#: B): B = 
