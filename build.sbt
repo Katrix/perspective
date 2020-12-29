@@ -1,19 +1,32 @@
 lazy val commonSettings = Seq(
-  version := "0.0.4",
-  organization := "net.katsstuff"
+  version := "0.0.5",
+  organization := "net.katsstuff",
+  publishTo := {
+    val nexus = "https://oss.sonatype.org/"
+    if (isSnapshot.value) Some("snapshots".at(nexus + "content/repositories/snapshots"))
+    else Some("releases".at(nexus + "service/local/staging/deploy/maven2"))
+  }
 )
 
 lazy val commonScala2Settings = commonSettings ++ Seq(
   scalaVersion := "2.13.3",
-  moduleName := s"perspectivescal2-${moduleName.value}",
+  moduleName := {
+    val old = moduleName.value
+    if (old == "perspective") "perspectivescala2"
+    else s"perspectivescala2-$old"
+  },
   addCompilerPlugin(("org.typelevel" %% "kind-projector" % "0.11.2").cross(CrossVersion.full)),
   scalacOptions += "-explaintypes"
 )
 
 lazy val commonDottySettings = commonSettings ++ Seq(
-  scalaVersion := "3.0.0-RC1-bin-20201224-2a32d6a-NIGHTLY",
-  moduleName := s"perspective-${moduleName.value}",
-  scalacOptions += "-Ykind-projector",
+  scalaVersion := "3.0.0-M3",
+  moduleName := {
+    val old = moduleName.value
+    if (old == "perspective") old
+    else s"perspective-$old"
+  },
+  scalacOptions += "-Ykind-projector"
   //libraryDependencies += "ch.epfl.lamp" %% "dotty-staging" % scalaVersion.value
 )
 
@@ -31,12 +44,7 @@ lazy val publishSettings = Seq(
   homepage := Some(url("https://github.com/Katrix/perspective")),
   developers := List(Developer("Katrix", "Kathryn", "katrix97@hotmail.com", url("http://katsstuff.net/"))),
   pomIncludeRepository := (_ => false),
-  autoAPIMappings := true,
-  publishTo := {
-    val nexus = "https://oss.sonatype.org/"
-    if (isSnapshot.value) Some("snapshots".at(nexus + "content/repositories/snapshots"))
-    else Some("releases".at(nexus + "service/local/staging/deploy/maven2"))
-  }
+  autoAPIMappings := true
 )
 
 lazy val noPublishSettings = Seq(publish := {}, publishLocal := {}, publishArtifact := false)
@@ -47,7 +55,6 @@ lazy val scala2Perspective = project
     commonScala2Settings,
     publishSettings,
     name := "perspective",
-    moduleName := "perspective",
     scalacOptions += "-Ymacro-annotations",
     libraryDependencies += "org.typelevel" %% "cats-core"  % "2.3.1",
     libraryDependencies += "org.typelevel" %% "simulacrum" % "1.0.1"
@@ -113,7 +120,6 @@ lazy val dottyPerspective = project
     commonDottySettings,
     publishSettings,
     name := "perspective",
-    moduleName := "perspectivedotty",
     libraryDependencies += "org.typelevel" %% "cats-core" % "2.3.1"
   )
 
@@ -123,8 +129,7 @@ lazy val dottyPerspectiveDerivation = project
   .settings(
     commonDottySettings,
     publishSettings,
-    name := "derivation",
-    moduleName := "derivationdotty"
+    name := "derivation"
   )
 
 lazy val dottyPerspectiveExamples = project
@@ -146,10 +151,22 @@ lazy val perspectiveScala2 = project
     scala2PerspectiveExamples,
     scala2PerspectiveMacros
   )
-lazy val perspectiveDotty =
-  project.in(file("dotty")).aggregate(dottyPerspective, dottyPerspectiveDerivation, dottyPerspectiveExamples)
+  .settings(
+    commonSettings,
+    noPublishSettings
+  )
 
-lazy val PerspectiveRoot =
+
+lazy val perspectiveDotty =
+  project
+    .in(file("dotty"))
+    .aggregate(dottyPerspective, dottyPerspectiveDerivation, dottyPerspectiveExamples)
+    .settings(
+      commonSettings,
+      noPublishSettings
+    )
+
+lazy val perspectiveRoot =
   project
     .in(file("."))
     .aggregate(
@@ -161,4 +178,8 @@ lazy val PerspectiveRoot =
       dottyPerspective,
       dottyPerspectiveDerivation,
       dottyPerspectiveExamples
+    )
+    .settings(
+      commonSettings,
+      noPublishSettings
     )
