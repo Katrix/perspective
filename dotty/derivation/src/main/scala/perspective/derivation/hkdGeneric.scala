@@ -34,7 +34,7 @@ object HKDGeneric:
   transparent inline given derived[A](using m: Mirror.Of[A])(
     using ValueOf[Tuple.Size[m.MirroredElemTypes]],
     Finite.NotZero[Tuple.Size[m.MirroredElemTypes]] =:= true
-  ) as HKDGeneric[A] = inline m match 
+  ): HKDGeneric[A] = inline m match
     case m: Mirror.ProductOf[A] { type MirroredElemTypes = m.MirroredElemTypes } =>
       HKDProductGeneric.derived[A](using m)
       
@@ -55,7 +55,7 @@ object HKDProductGeneric:
   transparent inline given derived[A](using m: Mirror.ProductOf[A])(
     using ValueOf[Tuple.Size[m.MirroredElemTypes]],
     Finite.NotZero[Tuple.Size[m.MirroredElemTypes]] =:= true
-  ) as HKDProductGeneric[A] = derivedImpl(
+  ): HKDProductGeneric[A] = derivedImpl(
     constValue[m.MirroredLabel],
     constValueTuple[m.MirroredElemLabels].asInstanceOf[Tuple.Map[m.MirroredElemTypes, Const[String]]]
   )
@@ -97,8 +97,8 @@ object HKDProductGeneric:
 trait HKDSumGeneric[A] extends HKDGeneric[A]:
   class IdxWrapper[X](val idx: Index[X])
   
-  given [X] as Conversion[IdxWrapper[X], Index[X]] = _.idx
-  given [X] as Conversion[Index[X], IdxWrapper[X]] = new IdxWrapper(_)
+  given [X]: Conversion[IdxWrapper[X], Index[X]] = _.idx
+  given [X]: Conversion[Index[X], IdxWrapper[X]] = new IdxWrapper(_)
   
   //Preferably we would say type Index[X <: A], but we can't
   def upcastIndexed[X](idx: Index[X], x: X): A  = x.asInstanceOf[A]
@@ -133,7 +133,7 @@ object HKDSumGeneric:
   transparent inline given derived[A](using m: Mirror.SumOf[A])(
     using ValueOf[Tuple.Size[m.MirroredElemTypes]],
     Finite.NotZero[Tuple.Size[m.MirroredElemTypes]] =:= true
-  ) as HKDSumGeneric[A] = derivedImpl(
+  ): HKDSumGeneric[A] = derivedImpl(
     constValue[m.MirroredLabel],
     constValueTuple[m.MirroredElemLabels].asInstanceOf[Tuple.Map[m.MirroredElemTypes, Const[String]]],
     constValue[Tuple.Size[m.MirroredElemTypes]]
