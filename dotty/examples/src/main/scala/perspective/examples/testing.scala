@@ -105,9 +105,10 @@ object Encoder:
       val list: List[(String, Json)] =
         gen
           .to(a)
-          .map2Const(encoders)([Z] => (caseObj: Z, encoder: Encoder[Z]) => encoder.encode(caseObj))
           //TODO Type needed
-          .map2Const[Const[Json], Const[String], (String, Json), Nothing](gen.names)([Z] => (json: Json, name: String) => (name, json))
+          .map2Const[Encoder, Json](encoders)([Z] => (caseObj: Z, encoder: Encoder[Z]) => encoder.encode(caseObj))
+          //TODO Type needed
+          .map2Const[Const[String], (String, Json)](gen.names)([Z] => (json: Json, name: String) => (name, json))
           .toListK
 
       implicitly[Encoder[Map[String, Json]]].encode(list.toMap)

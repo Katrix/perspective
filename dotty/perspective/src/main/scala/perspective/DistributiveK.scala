@@ -6,15 +6,17 @@ import cats.syntax.all._
 import scala.language.implicitConversions
 
 trait DistributiveK[F[_[_], _]] extends FunctorK[F]:
-  extension[G[_]: Functor, A[_], B[_], C](gfa: G[F[A, C]]) def distributeK(f: Compose2[G, A] ~>: B): F[B, C] =
-    gfa.cosequenceK.mapK(f)
+  extension[G[_]: Functor, A[_], C](gfa: G[F[A, C]]) 
+    def distributeK[B[_]](f: Compose2[G, A] ~>: B): F[B, C] =
+      gfa.cosequenceK.mapK(f)
     
-  extension[G[_]: Functor, A[_], B, C](gfa: G[F[A, C]]) def distributeConst(f: Compose2[G, A] ~>#: B): F[Const[B], C] =
-    gfa.distributeK[G, A, Const[B], C](f)
-  
-  extension[G[_]: Functor, A, B[_], C](ga: G[A]) def collectK(f: A => F[B, C]): F[Compose2[G, B], C] =
+    def distributeConst[B](f: Compose2[G, A] ~>#: B): F[Const[B], C] =
+      //distributeK[Const[B]](f) //TODO: Doesn't work
+      this.distributeK[G, A, C](gfa)[Const[B]](f)
+
+    def cosequenceK: F[Compose2[G, A], C]
+
+  extension[G[_]: Functor, A](ga: G[A]) def collectK[B[_], C](f: A => F[B, C]): F[Compose2[G, B], C] =
     ga.map(f).cosequenceK
-  
-  extension[G[_]: Functor, A[_], C](gfa: G[F[A, C]]) def cosequenceK: F[Compose2[G, A], C]
 
 type DistributiveKC[F[_[_]]] = DistributiveK[IgnoreC[F]]

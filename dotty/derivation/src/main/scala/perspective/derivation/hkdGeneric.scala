@@ -169,7 +169,7 @@ object HKDSumGeneric:
       override val traverse: TraverseKC[Gen] = instance
       
       def nameToIndexMap: Map[String, IdxWrapper[_ <: A]] = 
-        names.map2K[Const[String], Index, Const[(String, IdxWrapper[_ <: A])], Nothing](representable.indicesK)(
+        names.map2K[Index, Const[(String, IdxWrapper[_ <: A])]](representable.indicesK)(
           [Z] => (name: String, idx: Index[Z]) => (name, upcastIndex(idx))
         ).toListK.toMap
       
