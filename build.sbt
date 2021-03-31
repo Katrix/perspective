@@ -1,5 +1,5 @@
 lazy val commonSettings = Seq(
-  version := "0.0.5",
+  version := "0.0.6",
   organization := "net.katsstuff",
   publishTo := {
     val nexus = "https://oss.sonatype.org/"
@@ -20,7 +20,7 @@ lazy val commonScala2Settings = commonSettings ++ Seq(
 )
 
 lazy val commonDottySettings = commonSettings ++ Seq(
-  scalaVersion := "3.0.0-M4-bin-20210204-406ff9d-NIGHTLY",
+  scalaVersion := "3.0.0-RC2",
   moduleName := {
     val old = moduleName.value
     if (old == "perspective") old
@@ -120,7 +120,7 @@ lazy val dottyPerspective = project
     commonDottySettings,
     publishSettings,
     name := "perspective",
-    libraryDependencies += "org.typelevel" %% "cats-core" % "2.3.1"
+    libraryDependencies += "org.typelevel" %% "cats-core" % "2.5.0"
   )
 
 lazy val dottyPerspectiveDerivation = project
