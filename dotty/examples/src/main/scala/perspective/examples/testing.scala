@@ -3,40 +3,27 @@ package perspective.examples
 import scala.language.implicitConversions
 import cats.Id
 import cats.instances.either._
+import io.circe._
+import io.circe.syntax._
 import perspective._
 import perspective.derivation._
 
 import scala.deriving._
 import scala.compiletime.{erasedValue, summonFrom, summonInline}
 
-trait ACursor:
-  def get[A: Decoder](field: String): Either[String, A]
-
-trait Decoder[A]:
-  def decode(cursor: ACursor): Either[String, A]
-
-object Decoder:
-  given Decoder[Json]              = ???
-  given Decoder[Int]               = ???
-  given Decoder[Long]              = ???
-  given Decoder[Double]            = ???
-  given Decoder[String]            = ???
-  given Decoder[Boolean]           = ???
-  given Decoder[Map[String, Json]] = ???
-
-  given[A: Decoder]: Decoder[Option[A]] = ???
-  given[A: Decoder]: Decoder[Seq[A]]       = ???
+trait PersepctiveDecoder[A] extends Decoder[A]
+object PersepctiveDecoder:
 
   def derivedProductDecoder[A](
       using gen: HKDProductGeneric[A],
       decoders: gen.Gen[Decoder]
   ): Decoder[A] = new Decoder[A]:
-    override def decode(cursor: ACursor): Either[String, A] =
+    override def apply(cursor: HCursor): Either[DecodingFailure, A] =
       import gen.given
 
       gen.names
         .map2K(decoders)(
-          [Z] => (name: String, decoder: Decoder[Z]) => cursor.get(name)(using decoder)
+          [Z] => (name: gen.Names, decoder: Decoder[Z]) => cursor.get(name)(using decoder)
         )
         .sequenceIdK
         .map(gen.from)
@@ -45,14 +32,16 @@ object Decoder:
       using gen: HKDSumGeneric[A],
       decoders: gen.Gen[Decoder]
   ): Decoder[A] = new Decoder[A]:
-    override def decode(cursor: ACursor): Either[String, A] =
+    override def apply(cursor: HCursor): Either[DecodingFailure, A] =
       import gen.given
 
       for
-        typeName <- cursor.get[String]("$type")
-        index <- gen.nameToIndexMap.get(typeName).toRight(s"$typeName is not a valid ${gen.typeName}")
-        decoder: Decoder[_ <: A] = decoders.indexK(index) //TODO Type needed. Inffered to Any otherwise
-        res <- decoder.decode(cursor.get[Json]("$value").fold(_ => cursor, _.cursor))
+        typeNameStr <- cursor.get[String]("$type")
+        typeName <- gen.stringToName(typeNameStr).toRight(DecodingFailure(s"$typeNameStr is not a valid ${gen.typeName}", cursor.history))
+        index = gen.nameToIndex(typeName)
+        decoder = decoders.indexK(index)
+        valueCursor = cursor.downField("$value")
+        res <- decoder(cursor.downField("$value").success.getOrElse(cursor))
       yield res
 
   private inline def caseDecoders[XS <: Tuple]: Tuple.Map[XS, Decoder] = inline erasedValue[XS] match
@@ -77,60 +66,44 @@ object Decoder:
           derivedSumDecoder(using gen, decoders)
       }
 
-trait Json:
-  def fields: Option[Map[String, Json]]
-  def cursor: ACursor
-
-trait Encoder[A]:
-  def encode(a: A): Json
-
-object Encoder:
-  given Encoder[Int]               = ???
-  given Encoder[String]            = ???
-  given Encoder[Double]            = ???
-  given Encoder[Long]              = ???
-  given Encoder[Boolean]           = ???
-  given Encoder[Map[String, Json]] = ???
-
-  given[A: Encoder]: Encoder[Option[A]] = ???
-  given[A: Encoder]: Encoder[Seq[A]]    = ???
+trait PersepctiveEncoder[A] extends Encoder[A]
+object PersepctiveEncoder:
 
   def derivedProductEncoder[A](
       using gen: HKDProductGeneric[A],
       encoders: gen.Gen[Encoder]
   ): Encoder[A] = new Encoder[A]:
-    override def encode(a: A): Json =
+    override def apply(a: A): Json =
       import gen.given
 
       val list: List[(String, Json)] =
         gen
           .to(a)
+          .map2Const(encoders)([Z] => (caseObj: Z, encoder: Encoder[Z]) => encoder(caseObj))
           //TODO Type needed
-          .map2Const[Encoder, Json](encoders)([Z] => (caseObj: Z, encoder: Encoder[Z]) => encoder.encode(caseObj))
-          //TODO Type needed
-          .map2Const[Const[String], (String, Json)](gen.names)([Z] => (json: Json, name: String) => (name, json))
+          .map2Const[Const[gen.Names], (gen.Names, Json)](gen.names)([Z] => (json: Json, name: gen.Names) => (name, json))
           .toListK
 
-      implicitly[Encoder[Map[String, Json]]].encode(list.toMap)
+      Json.obj(list: _*)
 
   def derivedSumEncoder[A](
       using gen: HKDSumGeneric[A],
       encoders: gen.Gen[Encoder]
   ): Encoder[A] = new Encoder[A]:
-    override def encode(a: A): Json =
+    override def apply(a: A): Json =
       import gen.given
 
-      val typeName = implicitly[Encoder[String]].encode(gen.indexToNameMap(gen.indexOf(a)))
+      val typeName = (gen.indexToName(gen.indexOf(a)): String).asJson
 
       val encodings = 
         gen
           .to(a)
-          .map2Const(encoders)([Z] => (optCase: Option[Z], encoder: Encoder[Z]) => optCase.map(x => encoder.encode(x)))
+          .map2Const(encoders)([Z] => (optCase: Option[Z], encoder: Encoder[Z]) => optCase.map(x => encoder(x)))
 
       val json = encodings.indexK(gen.indexOf(a)).get
-      json.fields match
-        case Some(fields) => implicitly[Encoder[Map[String, Json]]].encode(fields.updated("$type", typeName))
-        case None         => implicitly[Encoder[Map[String, Json]]].encode(Map("$type" -> typeName, "$value" -> json))
+      json.asObject match
+        case Some(fields) => json.deepMerge(Json.obj("$type" -> typeName))
+        case None         => Json.obj("$type" -> typeName, "$value" -> json)
 
   private inline def caseEncoders[XS <: Tuple]: Tuple.Map[XS, Encoder] = inline erasedValue[XS] match
     case _: EmptyTuple => EmptyTuple
@@ -154,16 +127,23 @@ object Encoder:
           derivedSumEncoder(using gen, encoders)
       }
 
-trait Codec[A] extends Encoder[A] with Decoder[A]
-object Codec:
+case class Foo(i: Int, s: String, foobar: Long) //derives PersepctiveEncoder//, PersepctiveDecoder
+object Foo {
+  given PersepctiveEncoder[Foo] = summon[PersepctiveEncoder[Foo]]
+  given PersepctiveDecoder[Foo] = summon[PersepctiveDecoder[Foo]]
 
-  given derived[A](using encoder: Encoder[A], decoder: Decoder[A]): Codec[A] with
-    override def decode(cursor: ACursor): Either[String, A] = decoder.decode(cursor)
+}
 
-    override def encode(a: A): Json = encoder.encode(a)
-  
+extension [A](a: A)(using gen: HKDProductGeneric[A]) {
+  def foo[X <: gen.Names](x: X): gen.FieldOf[X] =
+    import gen.given
+    gen.to(a).indexK(gen.nameToIndex(x))
+}
 
-case class Foo(i: Int, s: String, foobar: Long) derives Encoder, Decoder
+case class Cat(name: String)
+val res = Cat("Garfield").foo("name")
+
+/*
 
 case class Bar1(
     i1_1: Int,
@@ -188,22 +168,23 @@ case class Bar1(
     i1_20: Int,
     i1_21: Int,
     i1_22: Int
-) derives Encoder, Decoder
+) derives PersepctiveEncoder, PersepctiveDecoder
 
-enum Baz1 derives Encoder, Decoder {
+enum Baz1 derives PersepctiveEncoder, PersepctiveDecoder {
   case Baz11(i: Int)
   case Baz12(s: String, l: Long)
 }
 
-sealed trait Baz2 derives Encoder, Decoder
+sealed trait Baz2 derives PersepctiveEncoder, PersepctiveDecoder
 object Baz2 {
-  case class Baz21(i: Int) extends Baz2 derives Encoder, Decoder
-  case class Baz22(s: String, l: Long) extends Baz2 derives Encoder, Decoder
+  case class Baz21(i: Int) extends Baz2 derives PersepctiveEncoder, PersepctiveDecoder
+  case class Baz22(s: String, l: Long) extends Baz2 derives PersepctiveEncoder, PersepctiveDecoder
 }
+*/
 
 //@main def nameTest = println(HKDProductGeneric.derived[Foo].names)
 
-object Foo {
+object Foo2 {
 
   //summon[Decoder[Foo]]
   

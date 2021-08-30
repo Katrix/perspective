@@ -11,17 +11,31 @@ import perspective._
 sealed trait HKDGeneric[A]:
   type Gen[_[_]]
   type Index[A]
+
+  class IdxWrapper[X](val idx: Index[X])
+  given [X]: Conversion[IdxWrapper[X], Index[X]] = _.idx
+  given [X]: Conversion[Index[X], IdxWrapper[X]] = new IdxWrapper(_)
+
+  //Preferably we would say type Index[X <: A], but we can't
+  def upcastIndexed[X](idx: Index[X], x: X): A  = x.asInstanceOf[A]
+  def upcastIndex[X](idx: Index[X]): IdxWrapper[_ <: A] = new IdxWrapper(idx).asInstanceOf[IdxWrapper[_ <: A]]
+
+  type TypeName <: String
+  def typeName: TypeName
+
+  type Names <: String
+  def names: Gen[Const[Names]]
+  def stringToName(s: String): Option[Names]
+
+  type FieldOf[Name <: Names]
+  def nameToIndex[Name <: Names](name: Name): Index[FieldOf[Name]]
+
   type TupleRep <: Tuple
-
-  def typeName: String
-
-  def names: Gen[Const[String]]
-  
   def genToTuple[F[_]](gen: Gen[F]): Tuple.Map[TupleRep, F]
   def tupleToGen[F[_]](tuple: Tuple.Map[TupleRep, F]): Gen[F]
 
-  val representable: RepresentableKC.Aux[Gen, Index]
-  val traverse: TraverseKC[Gen]
+  lazy val representable: RepresentableKC.Aux[Gen, Index]
+  lazy val traverse: TraverseKC[Gen]
 
   given RepresentableKC.Aux[Gen, Index] = representable
   given TraverseKC[Gen] = traverse
@@ -29,6 +43,11 @@ sealed trait HKDGeneric[A]:
 object HKDGeneric:
   type Aux[A, Gen0[_[_]]] = HKDGeneric[A] {
     type Gen[B[_]] = Gen0[B]
+  }
+
+  type TupleUnionLub[T <: Tuple, Lub, Acc <: Lub] <: Lub = T match {
+    case (h & Lub) *: t => TupleUnionLub[t, Lub, Acc | h]
+    case EmptyTuple     => Acc
   }
   
   transparent inline given derived[A](using m: Mirror.Of[A])(
@@ -52,34 +71,61 @@ object HKDProductGeneric:
     type Gen[B[_]] = Gen0[B]
   }
 
+  type FieldOfImpl[Name, ElemTypes, Labels] = (ElemTypes, Labels) match {
+    case (th *: tt, Name *: lt) => th
+    case (th *: tt, lh *: lt) => FieldOfImpl[Name, tt, lt]
+  }
+
   transparent inline given derived[A](using m: Mirror.ProductOf[A])(
     using ValueOf[Tuple.Size[m.MirroredElemTypes]],
     Finite.NotZero[Tuple.Size[m.MirroredElemTypes]] =:= true
-  ): HKDProductGeneric[A] = derivedImpl(
-    constValue[m.MirroredLabel],
-    constValueTuple[m.MirroredElemLabels].asInstanceOf[Tuple.Map[m.MirroredElemTypes, Const[String]]]
-  )
+  ): HKDProductGeneric[A] =
+    type Names = HKDGeneric.TupleUnionLub[m.MirroredElemLabels, String, Nothing]
+    derivedImpl[A, m.MirroredElemTypes, m.MirroredLabel, Names](
+      constValue[m.MirroredLabel],
+      constValueTuple[m.MirroredElemLabels].asInstanceOf[Tuple.Map[m.MirroredElemTypes, Const[Names]]],
+      constValueTuple[m.MirroredElemLabels].toList.toSet.asInstanceOf[Set[String]]
+    )
 
-  def derivedImpl[A, ElemTypes <: Tuple](label: String, namesTuple: Tuple.Map[ElemTypes, Const[String]])(
-    using m: Mirror.ProductOf[A] { type MirroredElemTypes = ElemTypes }
+  def derivedImpl[A, ElemTypes <: Tuple, Label <: String, NamesUnion <: String](
+    label: Label,
+    namesTuple: Tuple.Map[ElemTypes, Const[NamesUnion]],
+    namesSet: Set[String]
   )(
-    using ValueOf[Tuple.Size[m.MirroredElemTypes]], 
+    using m: Mirror.ProductOf[A] { type MirroredElemTypes = ElemTypes; type MirroredLabel = Label }
+  )(
+    using ValueOf[Tuple.Size[m.MirroredElemTypes]],
     Finite.NotZero[Tuple.Size[m.MirroredElemTypes]] =:= true
   ): HKDProductGeneric[A] {
     type Gen[F[_]] = ProductK[F, m.MirroredElemTypes]
     type Index[_] = Finite[Tuple.Size[m.MirroredElemTypes]]
+    type TypeName = Label
+    type Names = NamesUnion
+    type FieldOf[Name <: Names] = FieldOfImpl[Name, ElemTypes, m.MirroredElemLabels]
     type TupleRep = m.MirroredElemTypes
   } =
     new HKDProductGeneric[A]:
-      type Gen[F[_]] = ProductK[F, m.MirroredElemTypes]
-      type Index[_] = Finite[Tuple.Size[m.MirroredElemTypes]]
-      type TupleRep = m.MirroredElemTypes
+      override type Gen[F[_]] = ProductK[F, m.MirroredElemTypes]
+      override type Index[_] = Finite[Tuple.Size[m.MirroredElemTypes]]
 
-      override def typeName: String = label
+      override type TypeName = Label
+      override def typeName: TypeName = label
 
-      override def names: Gen[Const[String]] = 
-        ProductK.of[Const[String], m.MirroredElemTypes](namesTuple)
+      override type Names = NamesUnion
+      override def names: Gen[Const[Names]] =
+        ProductK.of[Const[Names], m.MirroredElemTypes](namesTuple)
 
+      override def stringToName(s: String): Option[NamesUnion] =
+        Option.when(namesSet(s))(s.asInstanceOf[Names])
+
+      override type FieldOf[Name <: Names] = FieldOfImpl[Name, ElemTypes, m.MirroredElemLabels]
+
+      private lazy val nameMap =
+        names.map2Const(representable.indicesK)([Z] => (name: Names, idx: Index[Z]) => (name, upcastIndex(idx))).toListK.toMap
+
+      override def nameToIndex[Name <: Names](name: Name): Index[FieldOf[Name]] = nameMap(name)
+
+      override type TupleRep = m.MirroredElemTypes
       override def genToTuple[F[_]](gen: Gen[F]): Tuple.Map[TupleRep, F] = gen.tuple
       override def tupleToGen[F[_]](tuple: Tuple.Map[TupleRep, F]): Gen[F] = ProductK.of(tuple)
 
@@ -88,26 +134,22 @@ object HKDProductGeneric:
       override def from(a: Gen[Id]): A = 
         m.fromProduct(a.tuple)
 
-      private val instance: RepresentableKC.Aux[Gen, Index] & TraverseKC[Gen] = 
+      private lazy val instance: RepresentableKC.Aux[Gen, Index] & TraverseKC[Gen] =
         ProductK.productKInstance[m.MirroredElemTypes]
 
-      override val representable: RepresentableKC.Aux[Gen, Index] = instance
-      override val traverse: TraverseKC[Gen] = instance
+      override lazy val representable: RepresentableKC.Aux[Gen, Index] = instance
+      override lazy val traverse: TraverseKC[Gen] = instance
 
 trait HKDSumGeneric[A] extends HKDGeneric[A]:
-  class IdxWrapper[X](val idx: Index[X])
-  
-  given [X]: Conversion[IdxWrapper[X], Index[X]] = _.idx
-  given [X]: Conversion[Index[X], IdxWrapper[X]] = new IdxWrapper(_)
-  
-  //Preferably we would say type Index[X <: A], but we can't
-  def upcastIndexed[X](idx: Index[X], x: X): A  = x.asInstanceOf[A]
-  def upcastIndex[X](idx: Index[X]): IdxWrapper[_ <: A] = new IdxWrapper(idx).asInstanceOf[IdxWrapper[_ <: A]]
-
-  def nameToIndexMap: Map[String, IdxWrapper[_ <: A]]
-  def indexToNameMap: Map[IdxWrapper[_ <: A], String]
+  type FieldOf[Name <: Names] <: A
+  type NameOf[X <: A] <: Names
 
   def indexOf[X <: A](x: X): Index[X]
+  def indexToName[X <: A](idx: Index[X]): NameOf[X]
+
+  inline def widenConst[F[+_]](gen: Gen[F]): Gen[Const[F[A]]] =
+    //This is safe. We can't use the widen method as it can't know about the contents of Gen, we do
+    gen.asInstanceOf[Gen[Const[F[A]]]]
 
   def to(a: A): Gen[Option] =
     val index = indexOf(a)
@@ -115,10 +157,7 @@ trait HKDSumGeneric[A] extends HKDGeneric[A]:
     representable.tabulateK([Z] => (i: Index[Z]) => if i == index then Some(a.asInstanceOf[Z]) else None)
   
   def from(a: Gen[Option]): Option[A] =
-    //This is safe. We can't use the widen method as it can't know about the contents of Gen, we do
-    val aWiden = a.asInstanceOf[Gen[Const[Option[A]]]]
-    val asList = traverse.toListK[Option[A], Nothing](aWiden).flatten
-    asList match
+    traverse.toListK(widenConst(a)).flatten match
       case Nil      => None    //No values present
       case a :: Nil => Some(a) //One value present
       case _        => None    //More than one value present
@@ -130,51 +169,81 @@ object HKDSumGeneric:
     type Gen[B[_]] = Gen0[B]
   }
 
+  type FieldOfImpl[A, Name, ElemTypes, Labels] <: A = (ElemTypes, Labels) match {
+    case (th *: tt, Name *: lt) => th & A
+    case (th *: tt, lh *: lt) => FieldOfImpl[A, Name, tt, lt]
+  }
+  type NameOfImpl[Names, X, ElemTypes, Labels] <: Names = (ElemTypes, Labels) match {
+    case (X *: tt, lh *: lt) => lh & Names
+    case (th *: tt, lh *: lt) => NameOfImpl[Names, X, tt, lt]
+  }
+
   transparent inline given derived[A](using m: Mirror.SumOf[A])(
     using ValueOf[Tuple.Size[m.MirroredElemTypes]],
     Finite.NotZero[Tuple.Size[m.MirroredElemTypes]] =:= true
-  ): HKDSumGeneric[A] = derivedImpl(
-    constValue[m.MirroredLabel],
-    constValueTuple[m.MirroredElemLabels].asInstanceOf[Tuple.Map[m.MirroredElemTypes, Const[String]]],
-    constValue[Tuple.Size[m.MirroredElemTypes]]
-  )
+  ): HKDSumGeneric[A] =
+    type Names = HKDGeneric.TupleUnionLub[m.MirroredElemLabels, String, Nothing]
+    derivedImpl[A, m.MirroredElemTypes, m.MirroredLabel, Names](
+      constValue[m.MirroredLabel],
+      constValueTuple[m.MirroredElemLabels].asInstanceOf[Tuple.Map[m.MirroredElemTypes, Const[Names]]],
+      constValueTuple[m.MirroredElemLabels].toList.toSet.asInstanceOf[Set[String]],
+      constValue[Tuple.Size[m.MirroredElemTypes]]
+    )
 
-  def derivedImpl[A, ElemTypes <: Tuple](label: String, namesTuple: Tuple.Map[ElemTypes, Const[String]], size: Tuple.Size[ElemTypes])(
-    using m: Mirror.SumOf[A] { type MirroredElemTypes = ElemTypes }
+  def derivedImpl[A, ElemTypes <: Tuple, Label <: String, NamesUnion <: String](
+    label: Label,
+    namesTuple: Tuple.Map[ElemTypes, Const[NamesUnion]],
+    namesSet: Set[String],
+    size: Tuple.Size[ElemTypes]
   )(
-    using ValueOf[Tuple.Size[m.MirroredElemTypes]],
-    Finite.NotZero[Tuple.Size[m.MirroredElemTypes]] =:= true
+    using m: Mirror.SumOf[A] { type MirroredElemTypes = ElemTypes; type MirroredLabel = Label }
+  )(
+    using ValueOf[Tuple.Size[ElemTypes]],
+    Finite.NotZero[Tuple.Size[ElemTypes]] =:= true
   ): HKDSumGeneric[A] {
-    type Gen[F[_]] = ProductK[F, m.MirroredElemTypes]
-    type Index[_] = Finite[Tuple.Size[m.MirroredElemTypes]]
-    type TupleRep = m.MirroredElemTypes
+    type Gen[F[_]] = ProductK[F, ElemTypes]
+    type Index[_] = Finite[Tuple.Size[ElemTypes]]
+    type TypeName = Label
+    type Names = NamesUnion
+    type FieldOf[Name <: Names] = FieldOfImpl[A, Name, ElemTypes, m.MirroredElemLabels]
+    type NameOf[X <: A] = NameOfImpl[Names, X, ElemTypes, m.MirroredElemLabels]
+    type TupleRep = ElemTypes
   } = 
     new HKDSumGeneric[A]:
-      type Gen[F[_]] = ProductK[F, m.MirroredElemTypes]
-      type Index[_] = Finite[Tuple.Size[m.MirroredElemTypes]]
-      type TupleRep = m.MirroredElemTypes
-    
-      override def typeName: String = label
-    
-      override def names: Gen[Const[String]] =
-        ProductK.of[Const[String], m.MirroredElemTypes](namesTuple)
-        
+      type Gen[F[_]] = ProductK[F, ElemTypes]
+      type Index[_] = Finite[Tuple.Size[ElemTypes]]
+
+      override type TypeName = Label
+      override def typeName: TypeName = label
+
+      override type Names = NamesUnion
+      override def names: Gen[Const[Names]] =
+        ProductK.of[Const[Names], ElemTypes](namesTuple)
+
+      override def stringToName(s: String): Option[NamesUnion] =
+        Option.when(namesSet(s))(s.asInstanceOf[Names])
+
+      override type FieldOf[Name <: Names] = FieldOfImpl[A, Name, ElemTypes, m.MirroredElemLabels]
+      override type NameOf[X <: A] = NameOfImpl[Names, X, ElemTypes, m.MirroredElemLabels]
+
+      private lazy val nameMap =
+        names.map2K[Index, Const[(Names, IdxWrapper[_ <: A])]](representable.indicesK)(
+          [Z] => (name: Names, idx: Index[Z]) => (name, upcastIndex(idx))
+        ).toListK.toMap
+
+      private lazy val swappedNameMap = nameMap.map(_.swap)
+
+      override def nameToIndex[Name <: Names](name: Name): Index[FieldOf[Name]] = nameMap(name)
+      override def indexToName[X <: A](idx: Index[X]): NameOf[X] = swappedNameMap(idx).asInstanceOf[NameOf[X]]
+
+      override def indexOf[X <: A](x: X): Index[X] = Finite(size, m.ordinal(x))
+
+      override type TupleRep = ElemTypes
       override def genToTuple[F[_]](gen: Gen[F]): Tuple.Map[TupleRep, F] = gen.tuple
       override def tupleToGen[F[_]](tuple: Tuple.Map[TupleRep, F]): Gen[F] = ProductK.of(tuple)
     
-      private val instance: RepresentableKC.Aux[Gen, Index] & TraverseKC[Gen] =
+      private lazy val instance: RepresentableKC.Aux[Gen, Index] & TraverseKC[Gen] =
         ProductK.productKInstance[m.MirroredElemTypes]
   
-      override val representable: RepresentableKC.Aux[Gen, Index] = instance
-      override val traverse: TraverseKC[Gen] = instance
-      
-      def nameToIndexMap: Map[String, IdxWrapper[_ <: A]] = 
-        names.map2K[Index, Const[(String, IdxWrapper[_ <: A])]](representable.indicesK)(
-          [Z] => (name: String, idx: Index[Z]) => (name, upcastIndex(idx))
-        ).toListK.toMap
-      
-      def indexToNameMap: Map[IdxWrapper[_ <: A], String] = 
-        nameToIndexMap.map(_.swap)
-  
-      def indexOf[X <: A](x: X): Index[X] = 
-        Finite(size, m.ordinal(x))
+      override lazy val representable: RepresentableKC.Aux[Gen, Index] = instance
+      override lazy val traverse: TraverseKC[Gen] = instance

@@ -20,7 +20,7 @@ lazy val commonScala2Settings = commonSettings ++ Seq(
 )
 
 lazy val commonDottySettings = commonSettings ++ Seq(
-  scalaVersion := "3.0.0-RC2",
+  scalaVersion := "3.0.2-RC2",
   moduleName := {
     val old = moduleName.value
     if (old == "perspective") old
@@ -32,7 +32,7 @@ lazy val commonDottySettings = commonSettings ++ Seq(
 
 lazy val publishSettings = Seq(
   publishMavenStyle := true,
-  publishArtifact in Test := false,
+  Test / publishArtifact := false,
   licenses := Seq("MIT" -> url("http://opensource.org/licenses/MIT")),
   scmInfo := Some(
     ScmInfo(
@@ -70,7 +70,7 @@ lazy val scala2PerspectiveParameterized = project
     scalacOptions += "-Ymacro-annotations"
   )
 
-lazy val circeVersion = "0.12.3"
+lazy val circeVersion = "0.14.1"
 
 lazy val scala2PerspectiveDerivation = project
   .in(file("scala2/derivation"))
@@ -120,7 +120,7 @@ lazy val dottyPerspective = project
     commonDottySettings,
     publishSettings,
     name := "perspective",
-    libraryDependencies += "org.typelevel" %% "cats-core" % "2.5.0"
+    libraryDependencies += "org.typelevel" %% "cats-core" % "2.6.1"
   )
 
 lazy val dottyPerspectiveDerivation = project
@@ -138,7 +138,11 @@ lazy val dottyPerspectiveExamples = project
   .settings(
     commonDottySettings,
     noPublishSettings,
-    name := "examples"
+    name := "examples",
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-core",
+      "io.circe" %% "circe-parser"
+    ).map(_ % circeVersion),
     //scalacOptions ++= Seq("-Xprint:typer")
   )
 
