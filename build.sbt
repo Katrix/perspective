@@ -1,5 +1,5 @@
 lazy val commonSettings = Seq(
-  version := "0.0.6",
+  version := "0.0.7",
   organization := "net.katsstuff",
   publishTo := {
     val nexus = "https://oss.sonatype.org/"
@@ -20,7 +20,7 @@ lazy val commonScala2Settings = commonSettings ++ Seq(
 )
 
 lazy val commonDottySettings = commonSettings ++ Seq(
-  scalaVersion := "3.0.2-RC2",
+  scalaVersion := "3.1.3-RC2",
   moduleName := {
     val old = moduleName.value
     if (old == "perspective") old

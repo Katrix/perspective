@@ -17,7 +17,7 @@ object PersepctiveDecoder:
   def derivedProductDecoder[A](
       using gen: HKDProductGeneric[A],
       decoders: gen.Gen[Decoder]
-  ): Decoder[A] = new Decoder[A]:
+  ): PersepctiveDecoder[A] = new PersepctiveDecoder[A]:
     override def apply(cursor: HCursor): Either[DecodingFailure, A] =
       import gen.given
 
@@ -31,7 +31,7 @@ object PersepctiveDecoder:
   def derivedSumDecoder[A](
       using gen: HKDSumGeneric[A],
       decoders: gen.Gen[Decoder]
-  ): Decoder[A] = new Decoder[A]:
+  ): PersepctiveDecoder[A] = new PersepctiveDecoder[A]:
     override def apply(cursor: HCursor): Either[DecodingFailure, A] =
       import gen.given
 
@@ -53,7 +53,7 @@ object PersepctiveDecoder:
       }
       headDecoder *: caseDecoders[t]
 
-  inline given derived[A](using gen: HKDGeneric[A]): Decoder[A] = inline gen match
+  inline given derived[A](using gen: HKDGeneric[A]): PersepctiveDecoder[A] = inline gen match
     case gen: HKDProductGeneric.Aux[A, gen.Gen] =>
       given gen.Gen[Decoder] = summonInline[gen.Gen[Decoder]]
       derivedProductDecoder(using gen)
@@ -72,7 +72,7 @@ object PersepctiveEncoder:
   def derivedProductEncoder[A](
       using gen: HKDProductGeneric[A],
       encoders: gen.Gen[Encoder]
-  ): Encoder[A] = new Encoder[A]:
+  ): PersepctiveEncoder[A] = new PersepctiveEncoder[A]:
     override def apply(a: A): Json =
       import gen.given
 
@@ -89,7 +89,7 @@ object PersepctiveEncoder:
   def derivedSumEncoder[A](
       using gen: HKDSumGeneric[A],
       encoders: gen.Gen[Encoder]
-  ): Encoder[A] = new Encoder[A]:
+  ): PersepctiveEncoder[A] = new PersepctiveEncoder[A]:
     override def apply(a: A): Json =
       import gen.given
 
@@ -114,10 +114,10 @@ object PersepctiveEncoder:
       }
       headEncoder *: caseEncoders[t]
 
-  inline given derived[A](using gen: HKDGeneric[A]): Encoder[A] = inline gen match
+  inline given derived[A](using gen: HKDGeneric[A]): PersepctiveEncoder[A] = inline gen match
     case gen: HKDProductGeneric.Aux[A, gen.Gen] => 
-      given gen.Gen[Encoder] = summonInline[gen.Gen[Encoder]]
-      derivedProductEncoder(using gen)
+      val encoders = summonInline[gen.Gen[Encoder]]
+      derivedProductEncoder(using gen, encoders)
     case gen: HKDSumGeneric.Aux[A, gen.Gen] =>
       summonFrom {
         case encoders: gen.Gen[Encoder] => derivedSumEncoder(using gen, encoders)
@@ -183,6 +183,12 @@ object Baz2 {
 */
 
 //@main def nameTest = println(HKDProductGeneric.derived[Foo].names)
+
+@main def loopTest =
+  case class A(value: String) derives PersepctiveEncoder
+  case class B(as: List[A]) derives PersepctiveEncoder
+  println(A("foo").asJson)
+  println(B(List(A("foo"), A("bar"), A("baz"))).asJson)
 
 object Foo2 {
 
