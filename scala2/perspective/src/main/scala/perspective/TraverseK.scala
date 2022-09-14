@@ -2,9 +2,8 @@ package perspective
 
 import cats.Applicative
 import cats.data.State
-import simulacrum.typeclass
 
-@typeclass trait TraverseK[F[_[_], _]] extends FunctorK[F] with FoldableK[F] {
+trait TraverseK[F[_[_], _]] extends FunctorK[F] with FoldableK[F] {
 
   def traverseK[G[_]: Applicative, A[_], B[_], C](fa: F[A, C])(f: A ~>: Compose2[G, B, *]): G[F[B, C]]
 

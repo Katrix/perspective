@@ -11,6 +11,9 @@ trait RepresentableK[F[_[_], _]] extends MonadK[F] with DistributiveK[F]:
 
   def tabulateK[A[_], C](f: RepresentationK ~>: A): F[A, C]
 
+  def tabulateConst[A, C](f: RepresentationK ~>#: A): F[Const[A], C] =
+    tabulateK(f)
+
   def indicesK[C]: F[RepresentationK, C] = tabulateK(FunctionK.identity)
 
   extension[A[_]](a: ValueK[A]) override def pure[C]: F[A, C] = 

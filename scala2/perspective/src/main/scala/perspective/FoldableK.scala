@@ -3,9 +3,7 @@ package perspective
 import cats.Monoid
 import cats.instances.list._
 
-import simulacrum.typeclass
-
-@typeclass trait FoldableK[F[_[_], _]] {
+trait FoldableK[F[_[_], _]] {
 
   def foldLeftK[A[_], B, C](fa: F[A, C], b: B)(f: B => A ~>#: B): B
 

@@ -1,8 +1,6 @@
 package perspective
 
-import simulacrum.typeclass
-
-@typeclass trait FunctorK[F[_[_], _]] {
+trait FunctorK[F[_[_], _]] {
 
   def mapK[A[_], B[_], C](fa: F[A, C])(f: A ~>: B): F[B, C]
 

@@ -1,6 +1,10 @@
 package perspective.examples
 
 import scala.language.implicitConversions
+
+import scala.compiletime.{erasedValue, summonFrom, summonInline}
+import scala.deriving._
+
 import cats.Id
 import cats.instances.either._
 import io.circe._
@@ -8,16 +12,13 @@ import io.circe.syntax._
 import perspective._
 import perspective.derivation._
 
-import scala.deriving._
-import scala.compiletime.{erasedValue, summonFrom, summonInline}
-
-trait PersepctiveDecoder[A] extends Decoder[A]
-object PersepctiveDecoder:
+trait PerspectiveDecoder[A] extends Decoder[A]
+object PerspectiveDecoder:
 
   def derivedProductDecoder[A](
       using gen: HKDProductGeneric[A],
       decoders: gen.Gen[Decoder]
-  ): PersepctiveDecoder[A] = new PersepctiveDecoder[A]:
+  ): PerspectiveDecoder[A] = new PerspectiveDecoder[A]:
     override def apply(cursor: HCursor): Either[DecodingFailure, A] =
       import gen.given
 
@@ -31,15 +32,17 @@ object PersepctiveDecoder:
   def derivedSumDecoder[A](
       using gen: HKDSumGeneric[A],
       decoders: gen.Gen[Decoder]
-  ): PersepctiveDecoder[A] = new PersepctiveDecoder[A]:
+  ): PerspectiveDecoder[A] = new PerspectiveDecoder[A]:
     override def apply(cursor: HCursor): Either[DecodingFailure, A] =
       import gen.given
 
       for
         typeNameStr <- cursor.get[String]("$type")
-        typeName <- gen.stringToName(typeNameStr).toRight(DecodingFailure(s"$typeNameStr is not a valid ${gen.typeName}", cursor.history))
-        index = gen.nameToIndex(typeName)
-        decoder = decoders.indexK(index)
+        typeName <- gen
+          .stringToName(typeNameStr)
+          .toRight(DecodingFailure(s"$typeNameStr is not a valid ${gen.typeName}", cursor.history))
+        index       = gen.nameToIndex(typeName)
+        decoder     = decoders.indexK(index)
         valueCursor = cursor.downField("$value")
         res <- decoder(cursor.downField("$value").success.getOrElse(cursor))
       yield res
@@ -48,12 +51,12 @@ object PersepctiveDecoder:
     case _: EmptyTuple => EmptyTuple
     case _: (h *: t) =>
       val headDecoder: Decoder[h] = summonFrom {
-        case d: Decoder[`h`] => d
+        case d: Decoder[`h`]      => d
         case gen: HKDGeneric[`h`] => derived[h]
       }
       headDecoder *: caseDecoders[t]
 
-  inline given derived[A](using gen: HKDGeneric[A]): PersepctiveDecoder[A] = inline gen match
+  inline given derived[A](using gen: HKDGeneric[A]): PerspectiveDecoder[A] = inline gen match
     case gen: HKDProductGeneric.Aux[A, gen.Gen] =>
       given gen.Gen[Decoder] = summonInline[gen.Gen[Decoder]]
       derivedProductDecoder(using gen)
@@ -62,17 +65,17 @@ object PersepctiveDecoder:
         case decoders: gen.Gen[Decoder] => derivedSumDecoder(using gen, decoders)
         case _ =>
           val decodersTuple = caseDecoders[gen.TupleRep]
-          val decoders = gen.tupleToGen(decodersTuple)
+          val decoders      = gen.tupleToGen(decodersTuple)
           derivedSumDecoder(using gen, decoders)
       }
 
-trait PersepctiveEncoder[A] extends Encoder[A]
-object PersepctiveEncoder:
+trait PerspectiveEncoder[A] extends Encoder[A]
+object PerspectiveEncoder:
 
   def derivedProductEncoder[A](
       using gen: HKDProductGeneric[A],
       encoders: gen.Gen[Encoder]
-  ): PersepctiveEncoder[A] = new PersepctiveEncoder[A]:
+  ): PerspectiveEncoder[A] = new PerspectiveEncoder[A]:
     override def apply(a: A): Json =
       import gen.given
 
@@ -80,8 +83,10 @@ object PersepctiveEncoder:
         gen
           .to(a)
           .map2Const(encoders)([Z] => (caseObj: Z, encoder: Encoder[Z]) => encoder(caseObj))
-          //TODO Type needed
-          .map2Const[Const[gen.Names], (gen.Names, Json)](gen.names)([Z] => (json: Json, name: gen.Names) => (name, json))
+          // TODO Type needed
+          .map2Const[Const[gen.Names], (gen.Names, Json)](gen.names)(
+            [Z] => (json: Json, name: gen.Names) => (name, json)
+          )
           .toListK
 
       Json.obj(list: _*)
@@ -89,33 +94,33 @@ object PersepctiveEncoder:
   def derivedSumEncoder[A](
       using gen: HKDSumGeneric[A],
       encoders: gen.Gen[Encoder]
-  ): PersepctiveEncoder[A] = new PersepctiveEncoder[A]:
+  ): PerspectiveEncoder[A] = new PerspectiveEncoder[A]:
     override def apply(a: A): Json =
       import gen.given
 
-      val typeName = (gen.indexToName(gen.indexOf(a)): String).asJson
+      val typeName = (gen.indexToName(gen.indexOfA(a)): String).asJson
 
-      val encodings = 
+      val encodings =
         gen
           .to(a)
           .map2Const(encoders)([Z] => (optCase: Option[Z], encoder: Encoder[Z]) => optCase.map(x => encoder(x)))
 
-      val json = encodings.indexK(gen.indexOf(a)).get
+      val json = encodings.indexK(gen.indexOfA(a)).get
       json.asObject match
         case Some(fields) => json.deepMerge(Json.obj("$type" -> typeName))
         case None         => Json.obj("$type" -> typeName, "$value" -> json)
 
   private inline def caseEncoders[XS <: Tuple]: Tuple.Map[XS, Encoder] = inline erasedValue[XS] match
     case _: EmptyTuple => EmptyTuple
-    case _: (h *: t) => 
+    case _: (h *: t) =>
       val headEncoder: Encoder[h] = summonFrom {
-        case e: Encoder[`h`] => e
+        case e: Encoder[`h`]      => e
         case gen: HKDGeneric[`h`] => derived[h]
       }
       headEncoder *: caseEncoders[t]
 
-  inline given derived[A](using gen: HKDGeneric[A]): PersepctiveEncoder[A] = inline gen match
-    case gen: HKDProductGeneric.Aux[A, gen.Gen] => 
+  inline given derived[A](using gen: HKDGeneric[A]): PerspectiveEncoder[A] = inline gen match
+    case gen: HKDProductGeneric.Aux[A, gen.Gen] =>
       val encoders = summonInline[gen.Gen[Encoder]]
       derivedProductEncoder(using gen, encoders)
     case gen: HKDSumGeneric.Aux[A, gen.Gen] =>
@@ -123,14 +128,14 @@ object PersepctiveEncoder:
         case encoders: gen.Gen[Encoder] => derivedSumEncoder(using gen, encoders)
         case _ =>
           val encodersTuple = caseEncoders[gen.TupleRep]
-          val encoders = gen.tupleToGen(encodersTuple)
+          val encoders      = gen.tupleToGen(encodersTuple)
           derivedSumEncoder(using gen, encoders)
       }
 
 case class Foo(i: Int, s: String, foobar: Long) //derives PersepctiveEncoder//, PersepctiveDecoder
 object Foo {
-  given PersepctiveEncoder[Foo] = summon[PersepctiveEncoder[Foo]]
-  given PersepctiveDecoder[Foo] = summon[PersepctiveDecoder[Foo]]
+  given PerspectiveEncoder[Foo] = summon[PerspectiveEncoder[Foo]]
+  given PerspectiveDecoder[Foo] = summon[PerspectiveDecoder[Foo]]
 
 }
 
@@ -180,20 +185,20 @@ object Baz2 {
   case class Baz21(i: Int) extends Baz2 derives PersepctiveEncoder, PersepctiveDecoder
   case class Baz22(s: String, l: Long) extends Baz2 derives PersepctiveEncoder, PersepctiveDecoder
 }
-*/
+ */
 
 //@main def nameTest = println(HKDProductGeneric.derived[Foo].names)
 
 @main def loopTest =
-  case class A(value: String) derives PersepctiveEncoder
-  case class B(as: List[A]) derives PersepctiveEncoder
+  case class A(value: String) derives PerspectiveEncoder
+  case class B(as: List[A]) derives PerspectiveEncoder
   println(A("foo").asJson)
   println(B(List(A("foo"), A("bar"), A("baz"))).asJson)
 
 object Foo2 {
 
-  //summon[Decoder[Foo]]
-  
+  // summon[Decoder[Foo]]
+
   /*
   summon[Encoder[Foo]](
     using Encoder.derived(
@@ -205,14 +210,151 @@ object Foo2 {
       summon[Product2K[Int, String, Encoder]](using Product2K.findInstances)
     )
   )
-  */
+   */
 
-  //summon[Encoder[(String, Int)]]
+  // summon[Encoder[(String, Int)]]
 
-  //summon[Decoder[Bar]]
-  //HKDProductGeneric[Bar1]
-  //HKDProductGeneric[Bar1]
-  //HKDProductGeneric[Bar1]
-  //HKDProductGeneric[Bar1]
-  //HKDProductGeneric[Bar1]
+  // summon[Decoder[Bar]]
+  // HKDProductGeneric[Bar1]
+  // HKDProductGeneric[Bar1]
+  // HKDProductGeneric[Bar1]
+  // HKDProductGeneric[Bar1]
+  // HKDProductGeneric[Bar1]
+}
+
+trait PerspectiveInlineDecoder[A] extends Decoder[A]
+object PerspectiveInlineDecoder:
+
+  inline def derivedProductDecoder[A](using gen: InlineHKDProductGeneric[A]): PerspectiveInlineDecoder[A] =
+    new PerspectiveInlineDecoder[A]:
+      private val names    = gen.names
+      private val decoders = gen.summonInstances[Decoder]
+
+      override def apply(cursor: HCursor): Either[DecodingFailure, A] =
+        gen
+          .tabulateTraverseIdK { i =>
+            val name    = names.indexK(i)
+            val decoder = decoders.indexK(i)
+
+            cursor.get(name)(using decoder)
+          }
+          .map(gen.from(_))
+
+  inline def derivedSumDecoder[A](using gen: InlineHKDSumGeneric[A]): PerspectiveInlineDecoder[A] =
+    new PerspectiveInlineDecoder[A]:
+      import gen.given
+
+      private val names = gen.names
+      private val decoders = summonFrom {
+        case decoders: gen.Gen[Decoder] => decoders
+        case _                          => gen.tupleToGen(caseDecoders[gen.TupleRep])
+      }
+
+      override def apply(cursor: HCursor): Either[DecodingFailure, A] =
+        cursor
+          .get[String]("$type")
+          .flatMap { typeNameStr =>
+            gen
+              .stringToName(typeNameStr)
+              .toRight(DecodingFailure(s"$typeNameStr is not a valid ${gen.typeName}", cursor.history))
+          }
+          .flatMap { typeName =>
+            val index   = gen.nameToIndex(typeName)
+            val decoder = decoders.indexK(index)
+            decoder(cursor.downField("$value").success.getOrElse(cursor))
+          }
+
+  private inline def caseDecoders[XS <: Tuple]: Tuple.Map[XS, Decoder] = inline erasedValue[XS] match
+    case _: EmptyTuple => EmptyTuple
+    case _: (h *: t) =>
+      val headDecoder: Decoder[h] = summonFrom {
+        case d: Decoder[`h`]             => d
+        case given InlineHKDGeneric[`h`] => derived[h]
+      }
+      headDecoder *: caseDecoders[t]
+
+  inline given derived[A](using gen: InlineHKDGeneric[A]): PerspectiveInlineDecoder[A] = inline gen match
+    case gen: InlineHKDProductGeneric.Aux[A, gen.Gen] => derivedProductDecoder(using gen)
+    case gen: InlineHKDSumGeneric.Aux[A, gen.Gen]     => derivedSumDecoder(using gen)
+
+trait PerspectiveInlineEncoder[A] extends Encoder[A]
+object PerspectiveInlineEncoder:
+
+  inline def derivedProductEncoder[A](using gen: InlineHKDProductGeneric[A]): PerspectiveInlineEncoder[A] =
+    new PerspectiveInlineEncoder[A]:
+      private val names    = gen.names
+      private val encoders = gen.summonInstances[Encoder]
+
+      override def apply(a: A): Json =
+        val obj = gen.to(a)
+
+        val list = gen.tabulateFoldLeft(Nil: List[(String, Json)])((acc, idx) =>
+          val field   = obj.indexK(idx)
+          val name    = names.indexK(idx)
+          val encoder = encoders.indexK(idx)
+
+          (name, encoder(field)) :: acc
+        )
+
+        Json.obj(list: _*)
+
+  inline def derivedSumEncoder[A](using gen: InlineHKDSumGeneric[A]): PerspectiveInlineEncoder[A] =
+    import gen.given
+
+    val encoders = summonFrom {
+      case encoders: gen.Gen[Encoder] => encoders
+      case _                          => gen.tupleToGen(caseEncoders[gen.TupleRep])
+    }
+    val names = gen.names
+
+    new PerspectiveInlineEncoder[A]:
+      override def apply(a: A): Json =
+        val casted       = gen.indexOfACasting(a)
+        val idx          = casted.index
+        val obj          = casted.value
+        val typeName     = names.indexK(idx)
+        val typeNameJson = Json.fromString(typeName)
+        val encoder      = encoders.indexK(idx)
+
+        val json = encoder(obj)
+        json.asObject match
+          case Some(_) => json.deepMerge(Json.obj("$type" -> typeNameJson))
+          case None    => Json.obj("$type" -> typeNameJson, "$value" -> json)
+
+  private inline def caseEncoders[XS <: Tuple]: Tuple.Map[XS, Encoder] = inline erasedValue[XS] match
+    case _: EmptyTuple => EmptyTuple
+    case _: (h *: t) =>
+      val headEncoder: Encoder[h] = summonFrom {
+        case e: Encoder[`h`]            => e
+        case gen: InlineHKDGeneric[`h`] => derived[h]
+      }
+      headEncoder *: caseEncoders[t]
+
+  inline given derived[A](using gen: InlineHKDGeneric[A]): PerspectiveInlineEncoder[A] = inline gen match
+    case gen: InlineHKDProductGeneric.Aux[A, gen.Gen] => derivedProductEncoder(using gen)
+    case gen: InlineHKDSumGeneric.Aux[A, gen.Gen]     => derivedSumEncoder(using gen)
+
+object PerformanceTesting {
+  def foo: (String, Int, Double, String, Boolean) =
+    scala.compiletime.constValueTuple[("foo", 5, 3.14, "bar", false)]
+
+  def bar: (String, Int, Double, String, Boolean) =
+    perspective.derivation.Helpers.constValueTupleOptimized[("foo", 5, 3.14, "bar", false)]
+}
+
+sealed trait BarInline {
+  given encoder: PerspectiveInlineEncoder[BarInline] =
+    PerspectiveInlineEncoder.derivedSumEncoder[BarInline]
+
+  given decoder: PerspectiveInlineDecoder[BarInline] = PerspectiveInlineDecoder.derivedSumDecoder[BarInline]
+}
+case class FooInline(i: Int, s: String, foobar: Long)
+    extends BarInline //derives PersepctiveEncoder//, PersepctiveDecoder
+object FooInline {
+
+  given encoder: PerspectiveInlineEncoder[FooInline] =
+    PerspectiveInlineEncoder.derivedProductEncoder[FooInline]
+
+  given decoder: PerspectiveInlineDecoder[FooInline] =
+    PerspectiveInlineDecoder.derivedProductDecoder[FooInline]
 }

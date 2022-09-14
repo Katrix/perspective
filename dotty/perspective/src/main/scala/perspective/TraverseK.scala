@@ -6,11 +6,14 @@ import cats.syntax.all._
 trait TraverseK[F[_[_], _]] extends FunctorK[F], FoldableK[F]:
   extension[A[_], C](fa: F[A, C]) 
     def traverseK[G[_]: Applicative, B[_]](f: A ~>: Compose2[G, B]): G[F[B, C]]
-
-    def traverseIdK[G[_]: Applicative] (f: A ~>: G): G[F[Id, C]] =
+    
+    inline def traverseConst[G[_]: Applicative, B](f: A ~>#: G[B]): G[F[Const[B], C]] =
+      traverseK(f)
+    
+    inline def traverseIdK[G[_]: Applicative] (f: A ~>: G): G[F[Id, C]] =
       traverseK(f)
 
-    def sequenceIdK(using Applicative[A]): A[F[Id, C]] =
+    inline def sequenceIdK(using Applicative[A]): A[F[Id, C]] =
       fa.sequenceK
 
     override def mapK[B[_]](f: A ~>: B): F[B, C] = 

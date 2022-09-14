@@ -1,9 +1,8 @@
 package perspective
 
 import cats.{Functor, Monad}
-import simulacrum.typeclass
 
-@typeclass trait DistributiveK[F[_[_], _]] extends FunctorK[F] {
+trait DistributiveK[F[_[_], _]] extends FunctorK[F] {
 
   def distributeK[G[_]: Functor, A[_], B[_], C](gfa: G[F[A, C]])(f: Compose2[G, A, *] ~>: B): F[B, C] =
     mapK(cosequenceK(gfa))(f)

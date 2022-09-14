@@ -5,7 +5,7 @@ import cats.{Functor, Monad}
 
 import scala.language.implicitConversions
 
-trait DistributiveKSyntax extends DistributiveK.ToDistributiveKOps {
+trait DistributiveKSyntax {
 
   implicit def perspectiveDistributiveKGFunctorOps[G[_]: Functor, A](ga: G[A]): DistributiveKCGFunctorOps[G, A] =
     new DistributiveKCGFunctorOps[G, A](ga)

@@ -1,8 +1,6 @@
 package perspective
 
-import simulacrum.typeclass
-
-@typeclass trait ApplyK[F[_[_], _]] extends FunctorK[F] {
+trait ApplyK[F[_[_], _]] extends FunctorK[F] {
 
   def apK[A[_], B[_], C](ff: F[λ[D => A[D] => B[D]], C])(fa: F[A, C]): F[B, C] =
     map2K(ff, fa)(λ[Tuple2K[λ[D => A[D] => B[D]], A, *] ~>: B](t => t._1(t._2)))

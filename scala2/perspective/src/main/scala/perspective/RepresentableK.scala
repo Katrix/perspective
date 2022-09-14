@@ -1,9 +1,8 @@
 package perspective
 
 import cats.Functor
-import simulacrum.typeclass
 
-@typeclass trait RepresentableK[F[_[_], _]] extends MonadK[F] with DistributiveK[F] {
+trait RepresentableK[F[_[_], _]] extends MonadK[F] with DistributiveK[F] {
 
   type RepresentationK[_]
 

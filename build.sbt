@@ -1,5 +1,5 @@
 lazy val commonSettings = Seq(
-  version := "0.0.7",
+  version      := "0.0.8-SNAPSHOT",
   organization := "net.katsstuff",
   publishTo := {
     val nexus = "https://oss.sonatype.org/"
@@ -9,31 +9,33 @@ lazy val commonSettings = Seq(
 )
 
 lazy val commonScala2Settings = commonSettings ++ Seq(
-  scalaVersion := "2.13.3",
+  scalaVersion := "2.13.8",
   moduleName := {
     val old = moduleName.value
     if (old == "perspective") "perspectivescala2"
     else s"perspectivescala2-$old"
   },
-  addCompilerPlugin(("org.typelevel" %% "kind-projector" % "0.11.2").cross(CrossVersion.full)),
+  addCompilerPlugin(("org.typelevel" %% "kind-projector" % "0.13.2").cross(CrossVersion.full)),
   scalacOptions += "-explaintypes"
 )
 
 lazy val commonDottySettings = commonSettings ++ Seq(
-  scalaVersion := "3.1.3-RC2",
+  scalaVersion := "3.2.0",
   moduleName := {
     val old = moduleName.value
     if (old == "perspective") old
     else s"perspective-$old"
   },
-  scalacOptions += "-Ykind-projector"
-  //libraryDependencies += "ch.epfl.lamp" %% "dotty-staging" % scalaVersion.value
+  scalacOptions += "-Ykind-projector",
+  scalacOptions += "-feature",
+  libraryDependencies += "org.scalactic" %% "scalactic" % "3.2.13" % Test,
+  libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.13" % Test
 )
 
 lazy val publishSettings = Seq(
-  publishMavenStyle := true,
+  publishMavenStyle      := true,
   Test / publishArtifact := false,
-  licenses := Seq("MIT" -> url("http://opensource.org/licenses/MIT")),
+  licenses               := Seq("MIT" -> url("http://opensource.org/licenses/MIT")),
   scmInfo := Some(
     ScmInfo(
       url("https://github.com/Katrix/perspective"),
@@ -41,10 +43,10 @@ lazy val publishSettings = Seq(
       Some("scm:git:github.com/Katrix/perspective")
     )
   ),
-  homepage := Some(url("https://github.com/Katrix/perspective")),
-  developers := List(Developer("Katrix", "Kathryn", "katrix97@hotmail.com", url("http://katsstuff.net/"))),
+  homepage             := Some(url("https://github.com/Katrix/perspective")),
+  developers           := List(Developer("Katrix", "Kathryn", "katrix97@hotmail.com", url("http://katsstuff.net/"))),
   pomIncludeRepository := (_ => false),
-  autoAPIMappings := true
+  autoAPIMappings      := true
 )
 
 lazy val noPublishSettings = Seq(publish := {}, publishLocal := {}, publishArtifact := false)
@@ -56,21 +58,11 @@ lazy val scala2Perspective = project
     publishSettings,
     name := "perspective",
     scalacOptions += "-Ymacro-annotations",
-    libraryDependencies += "org.typelevel" %% "cats-core"  % "2.3.1",
+    libraryDependencies += "org.typelevel" %% "cats-core"  % "2.8.0",
     libraryDependencies += "org.typelevel" %% "simulacrum" % "1.0.1"
   )
 
-lazy val scala2PerspectiveParameterized = project
-  .in(file("scala2/parameterized"))
-  .dependsOn(scala2Perspective)
-  .settings(
-    commonScala2Settings,
-    publishSettings,
-    name := "parameterized",
-    scalacOptions += "-Ymacro-annotations"
-  )
-
-lazy val circeVersion = "0.14.1"
+lazy val circeVersion = "0.14.2"
 
 lazy val scala2PerspectiveDerivation = project
   .in(file("scala2/derivation"))
@@ -78,14 +70,14 @@ lazy val scala2PerspectiveDerivation = project
   .settings(
     commonScala2Settings,
     publishSettings,
-    name := "derivation",
-    libraryDependencies += "com.chuusai"   %% "shapeless"     % "2.3.3",
+    name                                   := "derivation",
+    libraryDependencies += "com.chuusai"   %% "shapeless"     % "2.3.9",
     libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-core",
       "io.circe" %% "circe-parser"
     ).map(_ % circeVersion % Test),
-    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.2" % Test
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.13" % Test
   )
 
 lazy val scala2PerspectiveExamples = project
@@ -119,8 +111,8 @@ lazy val dottyPerspective = project
   .settings(
     commonDottySettings,
     publishSettings,
-    name := "perspective",
-    libraryDependencies += "org.typelevel" %% "cats-core" % "2.6.1"
+    name                                   := "perspective",
+    libraryDependencies += "org.typelevel" %% "cats-core" % "2.8.0"
   )
 
 lazy val dottyPerspectiveDerivation = project
@@ -129,7 +121,11 @@ lazy val dottyPerspectiveDerivation = project
   .settings(
     commonDottySettings,
     publishSettings,
-    name := "derivation"
+    name := "derivation",
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-core",
+      "io.circe" %% "circe-parser"
+    ).map(_ % circeVersion % Test)
   )
 
 lazy val dottyPerspectiveExamples = project
@@ -142,15 +138,14 @@ lazy val dottyPerspectiveExamples = project
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-core",
       "io.circe" %% "circe-parser"
-    ).map(_ % circeVersion),
-    //scalacOptions ++= Seq("-Xprint:typer")
+    ).map(_ % circeVersion)
+    // scalacOptions ++= Seq("-Xprint:typer")
   )
 
 lazy val perspectiveScala2 = project
   .in(file("scala2"))
   .aggregate(
     scala2Perspective,
-    scala2PerspectiveParameterized,
     scala2PerspectiveDerivation,
     scala2PerspectiveExamples,
     scala2PerspectiveMacros
@@ -159,7 +154,6 @@ lazy val perspectiveScala2 = project
     commonSettings,
     noPublishSettings
   )
-
 
 lazy val perspectiveDotty =
   project
@@ -175,7 +169,6 @@ lazy val perspectiveRoot =
     .in(file("."))
     .aggregate(
       scala2Perspective,
-      scala2PerspectiveParameterized,
       scala2PerspectiveDerivation,
       scala2PerspectiveExamples,
       scala2PerspectiveMacros,

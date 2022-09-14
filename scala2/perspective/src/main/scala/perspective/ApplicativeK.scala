@@ -1,8 +1,6 @@
 package perspective
 
-import simulacrum.typeclass
-
-@typeclass trait ApplicativeK[F[_[_], _]] extends ApplyK[F] {
+trait ApplicativeK[F[_[_], _]] extends ApplyK[F] {
 
   def pureK[A[_], C](a: Unit #~>: A): F[A, C]
 

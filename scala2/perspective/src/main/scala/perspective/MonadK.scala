@@ -1,9 +1,7 @@
 package perspective
 
-import simulacrum.typeclass
-
 //TODO: Check if this is the valid way to define MonadK
-@typeclass trait MonadK[F[_[_], _]] extends ApplicativeK[F] {
+trait MonadK[F[_[_], _]] extends ApplicativeK[F] {
 
   def flattenK[A[_], C](ffa: F[F[A, *], C]): F[A, C] = flatMapK(ffa)(FunctionK.identity)
 

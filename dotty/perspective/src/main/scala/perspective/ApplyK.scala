@@ -7,7 +7,7 @@ trait ApplyK[F[_[_], _]] extends FunctorK[F]:
   extension[A[_], C](fa: F[A, C]) 
     def map2K[B[_], Z[_]](fb: F[B, C])(f: [X] => (A[X], B[X]) => Z[X]): F[Z, C]
 
-    def map2Const[B[_], Z](fb: F[B, C])(f: [X] => (A[X], B[X]) => Z): F[Const[Z], C] =
+    inline def map2Const[B[_], Z](fb: F[B, C])(f: [X] => (A[X], B[X]) => Z): F[Const[Z], C] =
       fa.map2K(fb)(f)
   
     def tupledK[B[_]](fb: F[B, C]): F[Tuple2K[A, B], C] = 
