@@ -1,10 +1,10 @@
 package perspective.derivation
 
 import cats.Id
-import perspective._
-import perspective.syntax.all._
 import io.circe._
 import io.circe.syntax._
+import perspective._
+import perspective.syntax.all._
 
 object EncoderDerive {
 

@@ -7,5 +7,5 @@ trait MonadK[F[_[_], _]] extends ApplicativeK[F] {
 
   def flatMapK[A[_], B[_], C](fa: F[A, C])(f: A ~>: F[B, *]): F[B, C]
 
-  //TODO: Implement mapK and map2K in terms of flatMapK
+  // TODO: Implement mapK and map2K in terms of flatMapK
 }

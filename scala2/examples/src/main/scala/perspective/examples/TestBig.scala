@@ -1,6 +1,7 @@
 package perspective.examples
 
 import java.time.{Instant, OffsetDateTime}
+
 import io.circe._
 
 object TestBig {
@@ -92,7 +93,7 @@ object TestBig {
       id: UserId,
       username: Option[String],
       discriminator: Option[String],
-      avatar: Option[String], //avatar can be null
+      avatar: Option[String], // avatar can be null
       bot: Option[Boolean],
       system: Option[Boolean],
       mfaEnabled: Option[Boolean],
@@ -270,7 +271,8 @@ object TestBig {
       proxyIconUrl: Option[String]
   )
 
-  implicit lazy val receivedEmbedAuthorCodec: Codec[ReceivedEmbedAuthor] = CodecDeriver.deriver[ReceivedEmbedAuthor].derive
+  implicit lazy val receivedEmbedAuthorCodec: Codec[ReceivedEmbedAuthor] =
+    CodecDeriver.deriver[ReceivedEmbedAuthor].derive
 
   case class ReceivedEmbed(
       title: Option[String],
@@ -292,7 +294,8 @@ object TestBig {
 
   case class OutgoingEmbedFooter(text: String, iconUrl: Option[String] = None)
 
-  implicit lazy val outgoingEmbedFooterCodec: Codec[OutgoingEmbedFooter] = CodecDeriver.deriver[OutgoingEmbedFooter].derive
+  implicit lazy val outgoingEmbedFooterCodec: Codec[OutgoingEmbedFooter] =
+    CodecDeriver.deriver[OutgoingEmbedFooter].derive
 
   case class OutgoingEmbedImage(url: String)
 
@@ -309,7 +312,8 @@ object TestBig {
 
   case class OutgoingEmbedAuthor(name: String, url: Option[String] = None, iconUrl: Option[String] = None)
 
-  implicit lazy val outgoingEmbedAuthorCodec: Codec[OutgoingEmbedAuthor] = CodecDeriver.deriver[OutgoingEmbedAuthor].derive
+  implicit lazy val outgoingEmbedAuthorCodec: Codec[OutgoingEmbedAuthor] =
+    CodecDeriver.deriver[OutgoingEmbedAuthor].derive
 
   case class OutgoingEmbed(
       title: Option[String] = None,
@@ -462,7 +466,7 @@ object TestBig {
   case class Integration(
       id: IntegrationId,
       name: String,
-      `type`: String, //TODO: Use enum here
+      `type`: String, // TODO: Use enum here
       enabled: Boolean,
       syncing: Boolean,
       roleId: RoleId,
@@ -494,7 +498,7 @@ object TestBig {
       name: String,
       `type`: String,
       revoked: Boolean,
-      integrations: Seq[Integration], //TODO: Partial
+      integrations: Seq[Integration], // TODO: Partial
       verified: Boolean,
       friendSync: Boolean,
       showActivity: Boolean,
@@ -548,7 +552,8 @@ object TestBig {
       roleName: Option[String]
   )
 
-  implicit lazy val optionalAuditLogInfoCodec: Codec[OptionalAuditLogInfo] = CodecDeriver.deriver[OptionalAuditLogInfo].derive
+  implicit lazy val optionalAuditLogInfoCodec: Codec[OptionalAuditLogInfo] =
+    CodecDeriver.deriver[OptionalAuditLogInfo].derive
 
   case class PartialRole(
       name: String,
@@ -731,10 +736,10 @@ object TestBig {
       case "nick"                          => mkChange(AuditLogChange.Nick)
       case "avatar_hash"                   => mkChange(AuditLogChange.AvatarHash)
       case "id"                            => mkChange(AuditLogChange.Id)
-      case "type"                          => mkChange(AuditLogChange.TypeInt).left.flatMap(_ => mkChange(AuditLogChange.TypeString))
-      case "enable_emoticons"              => mkChange(AuditLogChange.EnableEmoticons)
-      case "expire_behavior"               => mkChange(AuditLogChange.ExpireBehavior)
-      case "expire_grace_period"           => mkChange(AuditLogChange.ExpireGracePeriod)
+      case "type"             => mkChange(AuditLogChange.TypeInt).left.flatMap(_ => mkChange(AuditLogChange.TypeString))
+      case "enable_emoticons" => mkChange(AuditLogChange.EnableEmoticons)
+      case "expire_behavior"  => mkChange(AuditLogChange.ExpireBehavior)
+      case "expire_grace_period" => mkChange(AuditLogChange.ExpireGracePeriod)
     }
   }
 

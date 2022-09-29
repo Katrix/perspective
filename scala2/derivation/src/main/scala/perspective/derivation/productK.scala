@@ -28,7 +28,7 @@ object Product1K {
       override def traverseK[G[_]: Applicative, A[_], B[_], C](
           fa: Product1K[A, T1]
       )(f: A ~>: Compose2[G, B, *]): G[Product1K[B, T1]] =
-        Applicative[G].map(f(fa.p1)) { (p1) =>
+        Applicative[G].map(f(fa.p1)) { p1 =>
           Product1K[B, T1](p1)
         }
 
@@ -218,7 +218,7 @@ object Product6K {
       : RepresentableKC.Aux[Product6K[*[_], T1, T2, T3, T4, T5, T6], Const[Finite[6], *]]
         with TraverseKC[Product6K[*[_], T1, T2, T3, T4, T5, T6]] =
     new RepresentableKC[Product6K[*[_], T1, T2, T3, T4, T5, T6]]
-    with TraverseKC[Product6K[*[_], T1, T2, T3, T4, T5, T6]] {
+      with TraverseKC[Product6K[*[_], T1, T2, T3, T4, T5, T6]] {
       override type RepresentationK[A] = Finite[6]
 
       override def indexK[A[_], C](fa: Product6K[A, T1, T2, T3, T4, T5, T6]): RepresentationK ~>: A =
@@ -278,7 +278,7 @@ object Product7K {
       : RepresentableKC.Aux[Product7K[*[_], T1, T2, T3, T4, T5, T6, T7], Const[Finite[7], *]]
         with TraverseKC[Product7K[*[_], T1, T2, T3, T4, T5, T6, T7]] =
     new RepresentableKC[Product7K[*[_], T1, T2, T3, T4, T5, T6, T7]]
-    with TraverseKC[Product7K[*[_], T1, T2, T3, T4, T5, T6, T7]] {
+      with TraverseKC[Product7K[*[_], T1, T2, T3, T4, T5, T6, T7]] {
       override type RepresentationK[A] = Finite[7]
 
       override def indexK[A[_], C](fa: Product7K[A, T1, T2, T3, T4, T5, T6, T7]): RepresentationK ~>: A =
@@ -344,7 +344,7 @@ object Product8K {
       : RepresentableKC.Aux[Product8K[*[_], T1, T2, T3, T4, T5, T6, T7, T8], Const[Finite[8], *]]
         with TraverseKC[Product8K[*[_], T1, T2, T3, T4, T5, T6, T7, T8]] =
     new RepresentableKC[Product8K[*[_], T1, T2, T3, T4, T5, T6, T7, T8]]
-    with TraverseKC[Product8K[*[_], T1, T2, T3, T4, T5, T6, T7, T8]] {
+      with TraverseKC[Product8K[*[_], T1, T2, T3, T4, T5, T6, T7, T8]] {
       override type RepresentationK[A] = Finite[8]
 
       override def indexK[A[_], C](fa: Product8K[A, T1, T2, T3, T4, T5, T6, T7, T8]): RepresentationK ~>: A =
@@ -414,7 +414,7 @@ object Product9K {
       : RepresentableKC.Aux[Product9K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9], Const[Finite[9], *]]
         with TraverseKC[Product9K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9]] =
     new RepresentableKC[Product9K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9]]
-    with TraverseKC[Product9K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9]] {
+      with TraverseKC[Product9K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9]] {
       override type RepresentationK[A] = Finite[9]
 
       override def indexK[A[_], C](fa: Product9K[A, T1, T2, T3, T4, T5, T6, T7, T8, T9]): RepresentationK ~>: A =
@@ -490,7 +490,7 @@ object Product10K {
       : RepresentableKC.Aux[Product10K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10], Const[Finite[10], *]]
         with TraverseKC[Product10K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]] =
     new RepresentableKC[Product10K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]
-    with TraverseKC[Product10K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]] {
+      with TraverseKC[Product10K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]] {
       override type RepresentationK[A] = Finite[10]
 
       override def indexK[A[_], C](fa: Product10K[A, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]): RepresentationK ~>: A =
@@ -582,7 +582,7 @@ object Product11K {
       : RepresentableKC.Aux[Product11K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11], Const[Finite[11], *]]
         with TraverseKC[Product11K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]] =
     new RepresentableKC[Product11K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]]
-    with TraverseKC[Product11K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]] {
+      with TraverseKC[Product11K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]] {
       override type RepresentationK[A] = Finite[11]
 
       override def indexK[A[_], C](
@@ -682,7 +682,7 @@ object Product12K {
       : RepresentableKC.Aux[Product12K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12], Const[Finite[12], *]]
         with TraverseKC[Product12K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]] =
     new RepresentableKC[Product12K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]]
-    with TraverseKC[Product12K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]] {
+      with TraverseKC[Product12K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]] {
       override type RepresentationK[A] = Finite[12]
 
       override def indexK[A[_], C](
@@ -818,7 +818,7 @@ object Product13K {
         *
       ]] with TraverseKC[Product13K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]] =
     new RepresentableKC[Product13K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]]
-    with TraverseKC[Product13K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]] {
+      with TraverseKC[Product13K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]] {
       override type RepresentationK[A] = Finite[13]
 
       override def indexK[A[_], C](
@@ -963,7 +963,7 @@ object Product14K {
         14
       ], *]] with TraverseKC[Product14K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]] =
     new RepresentableKC[Product14K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]]
-    with TraverseKC[Product14K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]] {
+      with TraverseKC[Product14K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]] {
       override type RepresentationK[A] = Finite[14]
 
       override def indexK[A[_], C](
@@ -1118,7 +1118,7 @@ object Product15K {
         *
       ]] with TraverseKC[Product15K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]] =
     new RepresentableKC[Product15K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]]
-    with TraverseKC[Product15K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]] {
+      with TraverseKC[Product15K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]] {
       override type RepresentationK[A] = Finite[15]
 
       override def indexK[A[_], C](
@@ -1300,7 +1300,7 @@ object Product16K {
     *
   ]] with TraverseKC[Product16K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]] =
     new RepresentableKC[Product16K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]]
-    with TraverseKC[Product16K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]] {
+      with TraverseKC[Product16K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]] {
       override type RepresentationK[A] = Finite[16]
 
       override def indexK[A[_], C](
@@ -1511,7 +1511,7 @@ object Product17K {
   ], Const[Finite[17], *]]
     with TraverseKC[Product17K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17]] =
     new RepresentableKC[Product17K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17]]
-    with TraverseKC[Product17K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17]] {
+      with TraverseKC[Product17K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17]] {
       override type RepresentationK[A] = Finite[17]
 
       override def indexK[A[_], C](
@@ -1734,8 +1734,9 @@ object Product18K {
     with TraverseKC[Product18K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18]] =
     new RepresentableKC[
       Product18K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18]
-    ]
-    with TraverseKC[Product18K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18]] {
+    ] with TraverseKC[
+        Product18K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18]
+      ] {
       override type RepresentationK[A] = Finite[18]
 
       override def indexK[A[_], C](
@@ -1881,7 +1882,9 @@ case class Product19K[F[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T
     p19: F[T19]
 )
 object Product19K {
-  implicit def findInstances[F[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19](
+  implicit def findInstances[F[
+      _
+  ], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19](
       implicit p1: F[T1],
       p2: F[T2],
       p3: F[T3],
@@ -1972,8 +1975,8 @@ object Product19K {
     new RepresentableKC[
       Product19K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19]
     ] with TraverseKC[
-      Product19K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19]
-    ] {
+        Product19K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19]
+      ] {
       override type RepresentationK[A] = Finite[19]
 
       override def indexK[A[_], C](
@@ -2126,7 +2129,9 @@ case class Product20K[F[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T
     p20: F[T20]
 )
 object Product20K {
-  implicit def findInstances[F[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20](
+  implicit def findInstances[F[
+      _
+  ], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20](
       implicit p1: F[T1],
       p2: F[T2],
       p3: F[T3],
@@ -2221,8 +2226,8 @@ object Product20K {
     new RepresentableKC[
       Product20K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20]
     ] with TraverseKC[
-      Product20K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20]
-    ] {
+        Product20K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20]
+      ] {
       override type RepresentationK[A] = Finite[20]
 
       override def indexK[A[_], C](
@@ -2360,7 +2365,9 @@ object Product20K {
         )(fa.p20)
     }
 }
-case class Product21K[F[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21](
+case class Product21K[F[
+    _
+], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21](
     p1: F[T1],
     p2: F[T2],
     p3: F[T3],
@@ -2384,7 +2391,9 @@ case class Product21K[F[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T
     p21: F[T21]
 )
 object Product21K {
-  implicit def findInstances[F[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21](
+  implicit def findInstances[F[
+      _
+  ], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21](
       implicit p1: F[T1],
       p2: F[T2],
       p3: F[T3],
@@ -2483,8 +2492,8 @@ object Product21K {
     new RepresentableKC[
       Product21K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21]
     ] with TraverseKC[
-      Product21K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21]
-    ] {
+        Product21K[*[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21]
+      ] {
       override type RepresentationK[A] = Finite[21]
 
       override def indexK[A[_], C](
@@ -2697,7 +2706,9 @@ object Product21K {
         )(fa.p21)
     }
 }
-case class Product22K[F[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22](
+case class Product22K[F[
+    _
+], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22](
     p1: F[T1],
     p2: F[T2],
     p3: F[T3],
@@ -2722,7 +2733,9 @@ case class Product22K[F[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T
     p22: F[T22]
 )
 object Product22K {
-  implicit def findInstances[F[_], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22](
+  implicit def findInstances[F[
+      _
+  ], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22](
       implicit p1: F[T1],
       p2: F[T2],
       p3: F[T3],
@@ -2892,31 +2905,32 @@ object Product22K {
       T20,
       T21,
       T22
-    ]] with TraverseKC[Product22K[
-      *[_],
-      T1,
-      T2,
-      T3,
-      T4,
-      T5,
-      T6,
-      T7,
-      T8,
-      T9,
-      T10,
-      T11,
-      T12,
-      T13,
-      T14,
-      T15,
-      T16,
-      T17,
-      T18,
-      T19,
-      T20,
-      T21,
-      T22
-    ]] {
+    ]]
+      with TraverseKC[Product22K[
+        *[_],
+        T1,
+        T2,
+        T3,
+        T4,
+        T5,
+        T6,
+        T7,
+        T8,
+        T9,
+        T10,
+        T11,
+        T12,
+        T13,
+        T14,
+        T15,
+        T16,
+        T17,
+        T18,
+        T19,
+        T20,
+        T21,
+        T22
+      ]] {
       override type RepresentationK[A] = Finite[22]
 
       override def indexK[A[_], C](

@@ -9,7 +9,7 @@ trait RepresentableK[F[_[_], _]] extends MonadK[F] with DistributiveK[F] {
   def indexK[A[_], C](fa: F[A, C]): RepresentationK ~>: A
 
   def tabulateK[A[_], C](f: RepresentationK ~>: A): F[A, C]
-  
+
   def indices[C]: F[RepresentationK, C] =
     tabulateK(FunctionK.identity)
 

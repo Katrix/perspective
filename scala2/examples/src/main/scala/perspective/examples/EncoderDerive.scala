@@ -1,11 +1,11 @@
 package perspective.examples
 
 import cats.Id
+import io.circe._
+import io.circe.syntax._
 import perspective._
 import perspective.derivation._
 import perspective.syntax.all._
-import io.circe._
-import io.circe.syntax._
 
 object EncoderDerive {
 

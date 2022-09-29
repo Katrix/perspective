@@ -1,8 +1,8 @@
 package perspective.derivation
 
+import io.circe._
 import perspective._
 import perspective.syntax.all._
-import io.circe._
 
 object DecoderDerive {
 

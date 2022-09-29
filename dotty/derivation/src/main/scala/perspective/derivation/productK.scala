@@ -8,11 +8,24 @@ import cats.syntax.all.*
 import cats.{Applicative, Functor, Monoid}
 import perspective.*
 
+/**
+  * A structure allowing higher kinded operations over a normal tuple.
+  * Equivalent but easier to work with than [[Tuple.Map]]. Also supports getting
+  * given instances of itself provided instances for all the types exists..
+  * @tparam F
+  *   The current type constructor of the value.
+  * @tparam T
+  *   The tuple that we are working with.
+  */
 opaque type ProductK[F[_], T <: Tuple] = Tuple.Map[T, F]
-type ProductKPar[T <: Tuple]           = [F[_]] =>> ProductK[F, T]
+
+/** A partially applied [[ProductK]] */
+type ProductKPar[T <: Tuple] = [F[_]] =>> ProductK[F, T]
 object ProductK extends ProductKGather:
+  /** Construct a [[ProductK]] from a mapped tuple. */
   inline def of[F[_], T <: Tuple](t: Tuple.Map[T, F]): ProductK[F, T] = t
 
+  /** Access the mapped tuple.. */
   extension [F[_], T <: Tuple](p: ProductK[F, T]) inline def tuple: Tuple.Map[T, F] = p
 
   given productKInstance[T <: Tuple](

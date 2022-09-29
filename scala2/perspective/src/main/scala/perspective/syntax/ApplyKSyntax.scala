@@ -7,7 +7,8 @@ trait ApplyKSyntax {
 
   implicit def perspectiveApplyKCFOps[F[_[_]]: ApplyKC, A[_]](fa: F[A]): ApplyKCOps[F, A] = new ApplyKCOps[F, A](fa)
 
-  implicit def perspectiveApplyKFOps[F[_[_], _]: ApplyK, A[_], C](fa: F[A, C]): ApplyKOps[F, A, C] = new ApplyKOps[F, A, C](fa)
+  implicit def perspectiveApplyKFOps[F[_[_], _]: ApplyK, A[_], C](fa: F[A, C]): ApplyKOps[F, A, C] =
+    new ApplyKOps[F, A, C](fa)
 }
 
 final class ApplyKCOps[F[_[_]], A[_]](private val fa: F[A]) extends AnyVal {

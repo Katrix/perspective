@@ -10,32 +10,32 @@ trait HKDSumGeneric[A] { self =>
 
   def names: Gen[Const[String, *]]
 
-  //Preferably we would say type Index[X <: A], but we can't
-  def upcastIndexed[X](idx: Index[X], x: X): A  = x.asInstanceOf[A]
+  // Preferably we would say type Index[X <: A], but we can't
+  def upcastIndexed[X](idx: Index[X], x: X): A     = x.asInstanceOf[A]
   def upcastIndex[X](idx: Index[X]): Index[_ <: A] = idx.asInstanceOf[Index[_ <: A]]
 
   def nameToIndexMap: Map[String, Index[_ <: A]]
   def indexToNameMap: Map[Index[_ <: A], String]
-  
+
   def indexOf[X <: A](x: X): Index[X]
 
   def to(a: A): Gen[Option] = {
     val index = indexOf(a)
     representable.tabulateK(new FunctionK[Index, Option] {
       override def apply[Z](i: Index[Z]): Option[Z] =
-        if (i == index) Some(a.asInstanceOf[Z]) //This is safe as we know A = Z
+        if (i == index) Some(a.asInstanceOf[Z]) // This is safe as we know A = Z
         else None
     })
   }
 
   def from(a: Gen[Option]): Option[A] = {
-    //This is safe. We can't use the widen method as it can't know about the contents of Gen, we do
+    // This is safe. We can't use the widen method as it can't know about the contents of Gen, we do
     val aWiden = a.asInstanceOf[Gen[Const[Option[A], *]]]
     val asList = traverse.toListK[Option[A], Nothing](aWiden).flatten
     asList match {
-      case Nil      => None    //No values present
-      case a :: Nil => Some(a) //One value present
-      case _        => None    //More than one value present
+      case Nil      => None    // No values present
+      case a :: Nil => Some(a) // One value present
+      case _        => None    // More than one value present
     }
   }
 

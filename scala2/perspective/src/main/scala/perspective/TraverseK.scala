@@ -21,7 +21,7 @@ trait TraverseK[F[_[_], _]] extends FunctorK[F] with FoldableK[F] {
   def scanLeft[A, B[_], C](fa: F[Const[A, *], C])(zero: Unit #~>: B, f: Tuple2K[B, Const[A, *], *] ~>: B): F[B, C] =
     scanLeftK[Const[A, *], B, C](fa)(zero, f)
 
-  //Adapted from https://stackoverflow.com/questions/47911415/scala-cats-or-scalaz-typeclass-scanleft-like
+  // Adapted from https://stackoverflow.com/questions/47911415/scala-cats-or-scalaz-typeclass-scanleft-like
   def scanLeftK[A[_], B[_], C](fa: F[A, C])(zero: Unit #~>: B, f: Tuple2K[B, Const[A[_], *], *] ~>: B): F[B, C] = {
     val generate = new FunctionK[A, Compose2[State[Unit #~>: B, *], B, *]] {
       override def apply[Z](fa: A[Z]): Compose2[State[Unit #~>: B, *], B, Z] =

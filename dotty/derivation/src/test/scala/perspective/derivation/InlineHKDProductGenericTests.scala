@@ -102,7 +102,7 @@ class InlineHKDProductGenericTests extends AnyFunSuite {
   // noinspection TypeAnnotation
   val nonInlineInstance = summon[HKDProductGeneric[Foo]]
   import nonInlineInstance.given
-  
+
   case class W[A](a: A)
 
   def inlineTestFW[F1[_], F2[_], W[_]: Functor](
@@ -154,9 +154,9 @@ class InlineHKDProductGenericTests extends AnyFunSuite {
 
   inlineTestF[Const[String], Const[String]](
     "InlineHKDProductGeneric.names corresponds to HKDProductGeneric.names",
-    instance.mapK(instance.names)([X] => (name: instance.Names) => (name: String)), {
+    instance.mapK(instance.names)([X] => (name: instance.Names) => name: String), {
       given FunctorKC[nonInlineInstance.Gen] = nonInlineInstance.representable
-      nonInlineInstance.names.mapK([X] => (name: nonInlineInstance.Names) => (name: String))
+      nonInlineInstance.names.mapK([X] => (name: nonInlineInstance.Names) => name: String)
     }
   )(
     gen => gen,
@@ -165,9 +165,9 @@ class InlineHKDProductGenericTests extends AnyFunSuite {
 
   inlineTestA[Const[String], String](
     "InlineHKDProductGeneric.foldLeftK corresponds to HKDProductGeneric.foldLeftK",
-    instance.mapK(instance.names)([X] => (name: instance.Names) => (name: String)), {
+    instance.mapK(instance.names)([X] => (name: instance.Names) => name: String), {
       given FunctorKC[nonInlineInstance.Gen] = nonInlineInstance.representable
-      nonInlineInstance.names.mapK([X] => (name: nonInlineInstance.Names) => (name: String))
+      nonInlineInstance.names.mapK([X] => (name: nonInlineInstance.Names) => name: String)
     }
   )(
     gen => instance.foldLeftK(gen)("")(acc => [Z] => (name: String) => acc + "|" + name),
@@ -266,30 +266,44 @@ class InlineHKDProductGenericTests extends AnyFunSuite {
 
   // TabulateTraverse start
 
-  inlineTestFW[Id, W, Id]("InlineHKDProductGeneric.tabulateTraverseK[Id] corresponds to HKDProductGeneric.indicesK.traverseK[Id]")(
+  inlineTestFW[Id, W, Id](
+    "InlineHKDProductGeneric.tabulateTraverseK[Id] corresponds to HKDProductGeneric.indicesK.traverseK[Id]"
+  )(
     gen => instance.tabulateTraverseK[Id, W](idx => W(instance.indexK(gen)(idx))),
-    gen => nonInlineInstance.representable.indicesK.traverseK[Id, W]([X] => (x: nonInlineInstance.Index[X]) => W(gen.indexK(x)))
+    gen =>
+      nonInlineInstance.representable.indicesK.traverseK[Id, W](
+        [X] => (x: nonInlineInstance.Index[X]) => W(gen.indexK(x))
+      )
   )
 
   inlineTestFW[Id, W, Either[String, *]](
     "InlineHKDProductGeneric.tabulateTraverseK[Either(Right)] corresponds to HKDProductGeneric.indicesK.traverseK[Either(Right)]"
   )(
     gen => instance.tabulateTraverseK[Either[String, *], W](idx => Right(W(instance.indexK(gen)(idx)))),
-    gen => nonInlineInstance.representable.indicesK.traverseK[Either[String, *], W]([X] => (x: nonInlineInstance.Index[X]) => Right(W(gen.indexK(x))))
+    gen =>
+      nonInlineInstance.representable.indicesK.traverseK[Either[String, *], W](
+        [X] => (x: nonInlineInstance.Index[X]) => Right(W(gen.indexK(x)))
+      )
   )
 
   inlineTestFW[Id, W, Either[String, *]](
     "InlineHKDProductGeneric.tabulateTraverseK[Either(Left)] corresponds to HKDProductGeneric.indicesK.traverseK[Either(Left)]"
   )(
     gen => instance.tabulateTraverseK[Either[String, *], W](idx => Left("E")),
-    gen => nonInlineInstance.representable.indicesK.traverseK[Either[String, *], W]([X] => (x: nonInlineInstance.Index[X]) => Left("E"))
+    gen =>
+      nonInlineInstance.representable.indicesK.traverseK[Either[String, *], W](
+        [X] => (x: nonInlineInstance.Index[X]) => Left("E")
+      )
   )
 
   inlineTestFW[Id, W, Option](
     "InlineHKDProductGeneric.tabulateTraverseK[Option(Some)] corresponds to HKDProductGeneric.indicesK.traverseK[Option(Some)]"
   )(
     gen => instance.tabulateTraverseK[Option, W](idx => Some(W(instance.indexK(gen)(idx)))),
-    gen => nonInlineInstance.representable.indicesK.traverseK[Option, W]([X] => (x: nonInlineInstance.Index[X]) => Some(W(gen.indexK(x))))
+    gen =>
+      nonInlineInstance.representable.indicesK.traverseK[Option, W](
+        [X] => (x: nonInlineInstance.Index[X]) => Some(W(gen.indexK(x)))
+      )
   )
 
   inlineTestFW[Id, W, Option](

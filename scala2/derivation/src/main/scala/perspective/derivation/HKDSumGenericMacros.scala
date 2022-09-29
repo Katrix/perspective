@@ -1,6 +1,7 @@
 package perspective.derivation
 
 import scala.language.experimental.macros
+
 import scala.reflect.macros.whitebox
 
 trait HKDSumGenericMacros {
@@ -31,7 +32,7 @@ class HKDSumGenericMacrosImpl(val c: whitebox.Context) {
     val types = subclasses.map(_.asType.toType)
 
     val string = typeOf[String]
-    
+
     val indexMapValues = names.zipWithIndex.map { case (name, idx) =>
       q"($name, _root_.perspective.Finite($idx))"
     }
@@ -63,7 +64,9 @@ class HKDSumGenericMacrosImpl(val c: whitebox.Context) {
             nameToIndexMap.map(_.swap)
           
           override def indexOf[X <: $tpe](x: X): Index[X] = x match {
-            case ..${types.zipWithIndex.map { case (tpe, i) => cq"_: $tpe => _root_.perspective.Finite($i)" }}
+            case ..${types.zipWithIndex.map { case (tpe, i) =>
+          cq"_: $tpe => _root_.perspective.Finite($i)"
+        }}
           }
           
           private val instance: _root_.perspective.RepresentableKC.Aux[Gen, Index] with _root_.perspective.TraverseKC[Gen] =
@@ -101,7 +104,9 @@ class HKDSumGenericMacrosImpl(val c: whitebox.Context) {
           
           //Need cast to hide the index type
           override val representable: _root_.perspective.RepresentableKC.Aux[Gen, Index] =
-            $productKTermName.${TermName(s"product${n}KRepresentableTraverseInstance")}.asInstanceOf[_root_.perspective.RepresentableKC.Aux[Gen, Index]]
+            $productKTermName.${TermName(
+          s"product${n}KRepresentableTraverseInstance"
+        )}.asInstanceOf[_root_.perspective.RepresentableKC.Aux[Gen, Index]]
           override val traverse: _root_.perspective.TraverseKC[Gen] =
             $productKTermName.${TermName(s"product${n}KRepresentableTraverseInstance")}
         }"""

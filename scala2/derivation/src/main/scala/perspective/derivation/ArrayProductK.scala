@@ -28,7 +28,7 @@ object ArrayProductK {
           ArraySeq.tabulate[Any](n.value)(m => f(Finite(n.value, m))).asInstanceOf[ArraySeq[A[_]]]
         )
 
-      //TODO: Check correct
+      // TODO: Check correct
       override def traverseK[G[_]: Applicative, A[_], B[_], C](fa: ArrayProductK[A, N])(
           f: A ~>: Compose2[G, B, *]
       ): G[ArrayProductK[B, N]] = {

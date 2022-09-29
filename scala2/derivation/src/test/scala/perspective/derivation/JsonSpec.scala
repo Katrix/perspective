@@ -1,12 +1,13 @@
 package perspective.derivation
 
+import java.util.UUID
+
+import scala.reflect.ClassTag
+
 import io.circe._
 import io.circe.syntax._
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-
-import java.util.UUID
-import scala.reflect.ClassTag
 
 sealed trait Bar
 object Bar {

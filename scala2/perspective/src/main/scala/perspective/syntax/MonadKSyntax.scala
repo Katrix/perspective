@@ -1,8 +1,8 @@
 package perspective.syntax
 
-import perspective.{Const, MonadK, MonadKC, ~>:}
-
 import scala.language.implicitConversions
+
+import perspective.{Const, MonadK, MonadKC, ~>:}
 
 trait MonadKSyntax {
 
@@ -12,10 +12,12 @@ trait MonadKSyntax {
   implicit def perspectiveMonadKCFConstFAOps[F[_[_]]: MonadKC, A[_]](fa: F[Const[F[A], *]]): MonadKCFConstFAOps[F, A] =
     new MonadKCFConstFAOps[F, A](fa)
 
-  implicit def perspectiveMonadKFAOps[F[_[_], _] : MonadK, A[_], C](fa: F[A, C]): MonadKFAOps[F, A, C] =
+  implicit def perspectiveMonadKFAOps[F[_[_], _]: MonadK, A[_], C](fa: F[A, C]): MonadKFAOps[F, A, C] =
     new MonadKFAOps[F, A, C](fa)
 
-  implicit def perspectiveMonadKFConstFAOps[F[_[_], _] : MonadK, A[_], C](fa: F[F[A, *], C]): MonadKFConstFAOps[F, A, C] =
+  implicit def perspectiveMonadKFConstFAOps[F[_[_], _]: MonadK, A[_], C](
+      fa: F[F[A, *], C]
+  ): MonadKFConstFAOps[F, A, C] =
     new MonadKFConstFAOps[F, A, C](fa)
 }
 

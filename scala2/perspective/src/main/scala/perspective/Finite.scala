@@ -1,7 +1,8 @@
 package perspective
 
 /**
-  * A wrapper around an finite integer domain. Stores the size at the type level.
+  * A wrapper around an finite integer domain. Stores the size at the type
+  * level.
   */
 case class Finite[N <: Int with Singleton] private (value: Int) {
 
@@ -23,7 +24,7 @@ object Finite {
 trait NotZero[N <: Int with Singleton]
 object NotZero {
   implicit def notZeroN[N <: Int with Singleton]: NotZero[N] = new NotZero[N] {}
-  //Ambigous implicit from two definitions at 0
+  // Ambigous implicit from two definitions at 0
   implicit val notZeroZero1: NotZero[0] = new NotZero[0] {}
   implicit val notZeroZero2: NotZero[0] = new NotZero[0] {}
 }

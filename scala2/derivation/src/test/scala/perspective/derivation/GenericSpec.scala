@@ -1,11 +1,10 @@
 package perspective.derivation
 
-import perspective.syntax.all._
+import scala.reflect.ClassTag
 
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-
-import scala.reflect.ClassTag
+import perspective.syntax.all._
 
 class GenericSpec extends AnyFunSuite with Matchers {
 
@@ -17,10 +16,10 @@ class GenericSpec extends AnyFunSuite with Matchers {
   private val foo = HKDProductGeneric[Bar.Foo]
   private val baz = HKDProductGeneric[Bar.Baz]
   private val bar = HKDSumGeneric[Bar]
-  
-  import foo.implicits._
-  import baz.implicits._
+
   import bar.implicits._
+  import baz.implicits._
+  import foo.implicits._
 
   test("typeName") {
     foo.typeName should equal(scalaPath[Bar.Foo])
@@ -33,7 +32,7 @@ class GenericSpec extends AnyFunSuite with Matchers {
     baz.names.toListKC should equal(List("uuid", "name"))
     bar.names.toListKC.toSet should equal(Set(scalaPath[Bar.Foo], scalaPath[Bar.Baz], scalaPath[Bar.Quox]))
   }
-  
+
   test("nameToIndexMap") {
     bar.nameToIndexMap.keys.toSet should equal(Set(scalaPath[Bar.Foo], scalaPath[Bar.Baz], scalaPath[Bar.Quox]))
   }

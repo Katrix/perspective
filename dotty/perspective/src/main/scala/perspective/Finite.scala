@@ -7,7 +7,6 @@ import scala.compiletime.*
   * A wrapper around an finite integer domain. Stores the size at the type
   * level.
   */
-
 type Finite[N <: Int] = Finite.Finite[N]
 object Finite:
   opaque type Finite[N <: Int] = Int

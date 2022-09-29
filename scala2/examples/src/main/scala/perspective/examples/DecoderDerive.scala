@@ -1,9 +1,9 @@
 package perspective.examples
 
-import perspective._
-import perspective.syntax.all._
-import perspective.derivation._
 import io.circe._
+import perspective._
+import perspective.derivation._
+import perspective.syntax.all._
 
 object DecoderDerive {
 

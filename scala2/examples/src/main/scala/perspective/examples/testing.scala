@@ -32,17 +32,17 @@ case class Bar(
     i1_22: Int
 )
 object Foo {
-  //implicitly[Decoder[Foo]]
-  //implicitly[Encoder[Foo]]
+  // implicitly[Decoder[Foo]]
+  // implicitly[Encoder[Foo]]
 
-  //implicitly[Encoder[(String, Int)]]
+  // implicitly[Encoder[(String, Int)]]
 
-  //implicitly[Decoder[Bar]]
-  //HKDProductGeneric[Bar]
-  //HKDProductGeneric[Bar]
-  //HKDProductGeneric[Bar]
-  //HKDProductGeneric[Bar]
-  //HKDProductGeneric[Bar]
+  // implicitly[Decoder[Bar]]
+  // HKDProductGeneric[Bar]
+  // HKDProductGeneric[Bar]
+  // HKDProductGeneric[Bar]
+  // HKDProductGeneric[Bar]
+  // HKDProductGeneric[Bar]
 }
 
 sealed trait SumTest

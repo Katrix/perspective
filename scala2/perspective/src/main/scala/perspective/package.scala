@@ -94,7 +94,8 @@ package object perspective extends LowPriorityPackage1 {
 package perspective {
   trait LowPriorityPackage1 {
 
-    implicit def idInstanceC[T]: TraverseKC[IdFC[T]#λ] with RepresentableKC[IdFC[T]#λ] { type RepresentationK[_] = Finite[1] } =
+    implicit def idInstanceC[T]
+        : TraverseKC[IdFC[T]#λ] with RepresentableKC[IdFC[T]#λ] { type RepresentationK[_] = Finite[1] } =
       new TraverseKC[IdFC[T]#λ] with RepresentableKC[IdFC[T]#λ] {
         override def traverseK[G[_]: Applicative, A[_], B[_], C](fa: A[T])(f: A ~>: Compose2[G, B, *]): G[B[T]] = f(fa)
 

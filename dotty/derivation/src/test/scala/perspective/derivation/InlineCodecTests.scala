@@ -133,7 +133,6 @@ object InlineCodecTests {
 class InlineCodecTests extends AnyFunSuite {
   import InlineCodecTests.*
 
-
   test("Foo as json") {
     assert(Foo(5, "bar", 9L).asJson === Json.obj("i" -> 5.asJson, "s" -> "bar".asJson, "foobar" -> 9L.asJson))
   }

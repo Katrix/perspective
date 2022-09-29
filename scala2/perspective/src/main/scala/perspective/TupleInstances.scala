@@ -57,8 +57,9 @@ object TupleInstances {
   implicit def tuple3PerspectiveAllInstances[T1, T2, T3]: ApplicativeKC[Tuple3F[T1, T2, T3]#λ]
     with TraverseKC[Tuple3F[T1, T2, T3]#λ]
     with DistributiveKC[Tuple3F[T1, T2, T3]#λ] =
-    new ApplicativeKC[Tuple3F[T1, T2, T3]#λ] with TraverseKC[Tuple3F[T1, T2, T3]#λ]
-    with DistributiveKC[Tuple3F[T1, T2, T3]#λ] {
+    new ApplicativeKC[Tuple3F[T1, T2, T3]#λ]
+      with TraverseKC[Tuple3F[T1, T2, T3]#λ]
+      with DistributiveKC[Tuple3F[T1, T2, T3]#λ] {
       override def pureK[A[_], C](a: Unit #~>: A): Tuple3[A[T1], A[T2], A[T3]] = Tuple3(a(()), a(()), a(()))
 
       override def traverseK[G[_], A[_], B[_], C](fa: Tuple3[A[T1], A[T2], A[T3]])(
@@ -84,8 +85,9 @@ object TupleInstances {
   implicit def tuple4PerspectiveAllInstances[T1, T2, T3, T4]: ApplicativeKC[Tuple4F[T1, T2, T3, T4]#λ]
     with TraverseKC[Tuple4F[T1, T2, T3, T4]#λ]
     with DistributiveKC[Tuple4F[T1, T2, T3, T4]#λ] =
-    new ApplicativeKC[Tuple4F[T1, T2, T3, T4]#λ] with TraverseKC[Tuple4F[T1, T2, T3, T4]#λ]
-    with DistributiveKC[Tuple4F[T1, T2, T3, T4]#λ] {
+    new ApplicativeKC[Tuple4F[T1, T2, T3, T4]#λ]
+      with TraverseKC[Tuple4F[T1, T2, T3, T4]#λ]
+      with DistributiveKC[Tuple4F[T1, T2, T3, T4]#λ] {
       override def pureK[A[_], C](a: Unit #~>: A): Tuple4[A[T1], A[T2], A[T3], A[T4]] =
         Tuple4(a(()), a(()), a(()), a(()))
 
@@ -114,8 +116,9 @@ object TupleInstances {
   implicit def tuple5PerspectiveAllInstances[T1, T2, T3, T4, T5]: ApplicativeKC[Tuple5F[T1, T2, T3, T4, T5]#λ]
     with TraverseKC[Tuple5F[T1, T2, T3, T4, T5]#λ]
     with DistributiveKC[Tuple5F[T1, T2, T3, T4, T5]#λ] =
-    new ApplicativeKC[Tuple5F[T1, T2, T3, T4, T5]#λ] with TraverseKC[Tuple5F[T1, T2, T3, T4, T5]#λ]
-    with DistributiveKC[Tuple5F[T1, T2, T3, T4, T5]#λ] {
+    new ApplicativeKC[Tuple5F[T1, T2, T3, T4, T5]#λ]
+      with TraverseKC[Tuple5F[T1, T2, T3, T4, T5]#λ]
+      with DistributiveKC[Tuple5F[T1, T2, T3, T4, T5]#λ] {
       override def pureK[A[_], C](a: Unit #~>: A): Tuple5[A[T1], A[T2], A[T3], A[T4], A[T5]] =
         Tuple5(a(()), a(()), a(()), a(()), a(()))
 
@@ -144,8 +147,9 @@ object TupleInstances {
   implicit def tuple6PerspectiveAllInstances[T1, T2, T3, T4, T5, T6]: ApplicativeKC[Tuple6F[T1, T2, T3, T4, T5, T6]#λ]
     with TraverseKC[Tuple6F[T1, T2, T3, T4, T5, T6]#λ]
     with DistributiveKC[Tuple6F[T1, T2, T3, T4, T5, T6]#λ] =
-    new ApplicativeKC[Tuple6F[T1, T2, T3, T4, T5, T6]#λ] with TraverseKC[Tuple6F[T1, T2, T3, T4, T5, T6]#λ]
-    with DistributiveKC[Tuple6F[T1, T2, T3, T4, T5, T6]#λ] {
+    new ApplicativeKC[Tuple6F[T1, T2, T3, T4, T5, T6]#λ]
+      with TraverseKC[Tuple6F[T1, T2, T3, T4, T5, T6]#λ]
+      with DistributiveKC[Tuple6F[T1, T2, T3, T4, T5, T6]#λ] {
       override def pureK[A[_], C](a: Unit #~>: A): Tuple6[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6]] =
         Tuple6(a(()), a(()), a(()), a(()), a(()), a(()))
 
@@ -169,7 +173,11 @@ object TupleInstances {
           gfa: G[Tuple6[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6]]]
       )(
           implicit G: Functor[G]
-      ): Tuple6[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[G, A, T5], Compose2[
+      ): Tuple6[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[
+        G,
+        A,
+        T5
+      ], Compose2[
         G,
         A,
         T6
@@ -188,8 +196,9 @@ object TupleInstances {
       : ApplicativeKC[Tuple7F[T1, T2, T3, T4, T5, T6, T7]#λ]
         with TraverseKC[Tuple7F[T1, T2, T3, T4, T5, T6, T7]#λ]
         with DistributiveKC[Tuple7F[T1, T2, T3, T4, T5, T6, T7]#λ] =
-    new ApplicativeKC[Tuple7F[T1, T2, T3, T4, T5, T6, T7]#λ] with TraverseKC[Tuple7F[T1, T2, T3, T4, T5, T6, T7]#λ]
-    with DistributiveKC[Tuple7F[T1, T2, T3, T4, T5, T6, T7]#λ] {
+    new ApplicativeKC[Tuple7F[T1, T2, T3, T4, T5, T6, T7]#λ]
+      with TraverseKC[Tuple7F[T1, T2, T3, T4, T5, T6, T7]#λ]
+      with DistributiveKC[Tuple7F[T1, T2, T3, T4, T5, T6, T7]#λ] {
       override def pureK[A[_], C](a: Unit #~>: A): Tuple7[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7]] =
         Tuple7(a(()), a(()), a(()), a(()), a(()), a(()), a(()))
 
@@ -221,7 +230,11 @@ object TupleInstances {
           gfa: G[Tuple7[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7]]]
       )(
           implicit G: Functor[G]
-      ): Tuple7[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[G, A, T5], Compose2[
+      ): Tuple7[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[
+        G,
+        A,
+        T5
+      ], Compose2[
         G,
         A,
         T6
@@ -242,8 +255,8 @@ object TupleInstances {
         with TraverseKC[Tuple8F[T1, T2, T3, T4, T5, T6, T7, T8]#λ]
         with DistributiveKC[Tuple8F[T1, T2, T3, T4, T5, T6, T7, T8]#λ] =
     new ApplicativeKC[Tuple8F[T1, T2, T3, T4, T5, T6, T7, T8]#λ]
-    with TraverseKC[Tuple8F[T1, T2, T3, T4, T5, T6, T7, T8]#λ]
-    with DistributiveKC[Tuple8F[T1, T2, T3, T4, T5, T6, T7, T8]#λ] {
+      with TraverseKC[Tuple8F[T1, T2, T3, T4, T5, T6, T7, T8]#λ]
+      with DistributiveKC[Tuple8F[T1, T2, T3, T4, T5, T6, T7, T8]#λ] {
       override def pureK[A[_], C](a: Unit #~>: A): Tuple8[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7], A[T8]] =
         Tuple8(a(()), a(()), a(()), a(()), a(()), a(()), a(()), a(()))
 
@@ -276,7 +289,11 @@ object TupleInstances {
           gfa: G[Tuple8[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7], A[T8]]]
       )(
           implicit G: Functor[G]
-      ): Tuple8[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[G, A, T5], Compose2[
+      ): Tuple8[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[
+        G,
+        A,
+        T5
+      ], Compose2[
         G,
         A,
         T6
@@ -298,8 +315,8 @@ object TupleInstances {
         with TraverseKC[Tuple9F[T1, T2, T3, T4, T5, T6, T7, T8, T9]#λ]
         with DistributiveKC[Tuple9F[T1, T2, T3, T4, T5, T6, T7, T8, T9]#λ] =
     new ApplicativeKC[Tuple9F[T1, T2, T3, T4, T5, T6, T7, T8, T9]#λ]
-    with TraverseKC[Tuple9F[T1, T2, T3, T4, T5, T6, T7, T8, T9]#λ]
-    with DistributiveKC[Tuple9F[T1, T2, T3, T4, T5, T6, T7, T8, T9]#λ] {
+      with TraverseKC[Tuple9F[T1, T2, T3, T4, T5, T6, T7, T8, T9]#λ]
+      with DistributiveKC[Tuple9F[T1, T2, T3, T4, T5, T6, T7, T8, T9]#λ] {
       override def pureK[A[_], C](
           a: Unit #~>: A
       ): Tuple9[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7], A[T8], A[T9]] =
@@ -338,7 +355,11 @@ object TupleInstances {
           gfa: G[Tuple9[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7], A[T8], A[T9]]]
       )(
           implicit G: Functor[G]
-      ): Tuple9[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[G, A, T5], Compose2[
+      ): Tuple9[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[
+        G,
+        A,
+        T5
+      ], Compose2[
         G,
         A,
         T6
@@ -361,8 +382,8 @@ object TupleInstances {
         with TraverseKC[Tuple10F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]#λ]
         with DistributiveKC[Tuple10F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]#λ] =
     new ApplicativeKC[Tuple10F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]#λ]
-    with TraverseKC[Tuple10F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]#λ]
-    with DistributiveKC[Tuple10F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]#λ] {
+      with TraverseKC[Tuple10F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]#λ]
+      with DistributiveKC[Tuple10F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]#λ] {
       override def pureK[A[_], C](
           a: Unit #~>: A
       ): Tuple10[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7], A[T8], A[T9], A[T10]] =
@@ -404,7 +425,11 @@ object TupleInstances {
           gfa: G[Tuple10[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7], A[T8], A[T9], A[T10]]]
       )(
           implicit G: Functor[G]
-      ): Tuple10[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[G, A, T5], Compose2[
+      ): Tuple10[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[
+        G,
+        A,
+        T5
+      ], Compose2[
         G,
         A,
         T6
@@ -428,8 +453,8 @@ object TupleInstances {
         with TraverseKC[Tuple11F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]#λ]
         with DistributiveKC[Tuple11F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]#λ] =
     new ApplicativeKC[Tuple11F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]#λ]
-    with TraverseKC[Tuple11F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]#λ]
-    with DistributiveKC[Tuple11F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]#λ] {
+      with TraverseKC[Tuple11F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]#λ]
+      with DistributiveKC[Tuple11F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]#λ] {
       override def pureK[A[_], C](
           a: Unit #~>: A
       ): Tuple11[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7], A[T8], A[T9], A[T10], A[T11]] =
@@ -488,7 +513,11 @@ object TupleInstances {
           gfa: G[Tuple11[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7], A[T8], A[T9], A[T10], A[T11]]]
       )(
           implicit G: Functor[G]
-      ): Tuple11[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[G, A, T5], Compose2[
+      ): Tuple11[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[
+        G,
+        A,
+        T5
+      ], Compose2[
         G,
         A,
         T6
@@ -513,8 +542,8 @@ object TupleInstances {
         with TraverseKC[Tuple12F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]#λ]
         with DistributiveKC[Tuple12F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]#λ] =
     new ApplicativeKC[Tuple12F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]#λ]
-    with TraverseKC[Tuple12F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]#λ]
-    with DistributiveKC[Tuple12F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]#λ] {
+      with TraverseKC[Tuple12F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]#λ]
+      with DistributiveKC[Tuple12F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]#λ] {
       override def pureK[A[_], C](
           a: Unit #~>: A
       ): Tuple12[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7], A[T8], A[T9], A[T10], A[T11], A[T12]] =
@@ -577,7 +606,11 @@ object TupleInstances {
           gfa: G[Tuple12[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7], A[T8], A[T9], A[T10], A[T11], A[T12]]]
       )(
           implicit G: Functor[G]
-      ): Tuple12[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[G, A, T5], Compose2[
+      ): Tuple12[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[
+        G,
+        A,
+        T5
+      ], Compose2[
         G,
         A,
         T6
@@ -607,8 +640,8 @@ object TupleInstances {
         with TraverseKC[Tuple13F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]#λ]
         with DistributiveKC[Tuple13F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]#λ] =
     new ApplicativeKC[Tuple13F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]#λ]
-    with TraverseKC[Tuple13F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]#λ]
-    with DistributiveKC[Tuple13F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]#λ] {
+      with TraverseKC[Tuple13F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]#λ]
+      with DistributiveKC[Tuple13F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]#λ] {
       override def pureK[A[_], C](
           a: Unit #~>: A
       ): Tuple13[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7], A[T8], A[T9], A[T10], A[T11], A[T12], A[T13]] =
@@ -675,7 +708,11 @@ object TupleInstances {
           gfa: G[Tuple13[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7], A[T8], A[T9], A[T10], A[T11], A[T12], A[T13]]]
       )(
           implicit G: Functor[G]
-      ): Tuple13[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[G, A, T5], Compose2[
+      ): Tuple13[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[
+        G,
+        A,
+        T5
+      ], Compose2[
         G,
         A,
         T6
@@ -706,8 +743,8 @@ object TupleInstances {
         with TraverseKC[Tuple14F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]#λ]
         with DistributiveKC[Tuple14F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]#λ] =
     new ApplicativeKC[Tuple14F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]#λ]
-    with TraverseKC[Tuple14F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]#λ]
-    with DistributiveKC[Tuple14F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]#λ] {
+      with TraverseKC[Tuple14F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]#λ]
+      with DistributiveKC[Tuple14F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]#λ] {
       override def pureK[A[_], C](a: Unit #~>: A): Tuple14[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7], A[T8], A[
         T9
       ], A[T10], A[T11], A[T12], A[T13], A[T14]] =
@@ -790,7 +827,11 @@ object TupleInstances {
           ]
       )(
           implicit G: Functor[G]
-      ): Tuple14[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[G, A, T5], Compose2[
+      ): Tuple14[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[
+        G,
+        A,
+        T5
+      ], Compose2[
         G,
         A,
         T6
@@ -822,8 +863,8 @@ object TupleInstances {
         with TraverseKC[Tuple15F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]#λ]
         with DistributiveKC[Tuple15F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]#λ] =
     new ApplicativeKC[Tuple15F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]#λ]
-    with TraverseKC[Tuple15F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]#λ]
-    with DistributiveKC[Tuple15F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]#λ] {
+      with TraverseKC[Tuple15F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]#λ]
+      with DistributiveKC[Tuple15F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]#λ] {
       override def pureK[A[_], C](a: Unit #~>: A): Tuple15[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7], A[T8], A[
         T9
       ], A[T10], A[T11], A[T12], A[T13], A[T14], A[T15]] =
@@ -910,7 +951,11 @@ object TupleInstances {
           ]
       )(
           implicit G: Functor[G]
-      ): Tuple15[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[G, A, T5], Compose2[
+      ): Tuple15[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[
+        G,
+        A,
+        T5
+      ], Compose2[
         G,
         A,
         T6
@@ -943,8 +988,8 @@ object TupleInstances {
         with TraverseKC[Tuple16F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]#λ]
         with DistributiveKC[Tuple16F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]#λ] =
     new ApplicativeKC[Tuple16F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]#λ]
-    with TraverseKC[Tuple16F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]#λ]
-    with DistributiveKC[Tuple16F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]#λ] {
+      with TraverseKC[Tuple16F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]#λ]
+      with DistributiveKC[Tuple16F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]#λ] {
       override def pureK[A[_], C](a: Unit #~>: A): Tuple16[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7], A[T8], A[
         T9
       ], A[T10], A[T11], A[T12], A[T13], A[T14], A[T15], A[T16]] =
@@ -1054,7 +1099,11 @@ object TupleInstances {
           ]
       )(
           implicit G: Functor[G]
-      ): Tuple16[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[G, A, T5], Compose2[
+      ): Tuple16[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[
+        G,
+        A,
+        T5
+      ], Compose2[
         G,
         A,
         T6
@@ -1105,8 +1154,8 @@ object TupleInstances {
     with TraverseKC[Tuple17F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17]#λ]
     with DistributiveKC[Tuple17F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17]#λ] =
     new ApplicativeKC[Tuple17F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17]#λ]
-    with TraverseKC[Tuple17F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17]#λ]
-    with DistributiveKC[Tuple17F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17]#λ] {
+      with TraverseKC[Tuple17F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17]#λ]
+      with DistributiveKC[Tuple17F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17]#λ] {
       override def pureK[A[_], C](a: Unit #~>: A): Tuple17[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7], A[T8], A[
         T9
       ], A[T10], A[T11], A[T12], A[T13], A[T14], A[T15], A[T16], A[T17]] =
@@ -1221,7 +1270,11 @@ object TupleInstances {
           ]
       )(
           implicit G: Functor[G]
-      ): Tuple17[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[G, A, T5], Compose2[
+      ): Tuple17[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[
+        G,
+        A,
+        T5
+      ], Compose2[
         G,
         A,
         T6
@@ -1274,8 +1327,8 @@ object TupleInstances {
     with TraverseKC[Tuple18F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18]#λ]
     with DistributiveKC[Tuple18F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18]#λ] =
     new ApplicativeKC[Tuple18F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18]#λ]
-    with TraverseKC[Tuple18F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18]#λ]
-    with DistributiveKC[Tuple18F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18]#λ] {
+      with TraverseKC[Tuple18F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18]#λ]
+      with DistributiveKC[Tuple18F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18]#λ] {
       override def pureK[A[_], C](a: Unit #~>: A): Tuple18[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7], A[T8], A[
         T9
       ], A[T10], A[T11], A[T12], A[T13], A[T14], A[T15], A[T16], A[T17], A[T18]] =
@@ -1395,7 +1448,11 @@ object TupleInstances {
           ]
       )(
           implicit G: Functor[G]
-      ): Tuple18[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[G, A, T5], Compose2[
+      ): Tuple18[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[
+        G,
+        A,
+        T5
+      ], Compose2[
         G,
         A,
         T6
@@ -1403,7 +1460,11 @@ object TupleInstances {
         G,
         A,
         T12
-      ], Compose2[G, A, T13], Compose2[G, A, T14], Compose2[G, A, T15], Compose2[G, A, T16], Compose2[G, A, T17], Compose2[
+      ], Compose2[G, A, T13], Compose2[G, A, T14], Compose2[G, A, T15], Compose2[G, A, T16], Compose2[
+        G,
+        A,
+        T17
+      ], Compose2[
         G,
         A,
         T18
@@ -1456,10 +1517,10 @@ object TupleInstances {
       Tuple19F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19]#λ
     ] =
     new ApplicativeKC[Tuple19F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19]#λ]
-    with TraverseKC[Tuple19F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19]#λ]
-    with DistributiveKC[
-      Tuple19F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19]#λ
-    ] {
+      with TraverseKC[Tuple19F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19]#λ]
+      with DistributiveKC[
+        Tuple19F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19]#λ
+      ] {
       override def pureK[A[_], C](a: Unit #~>: A): Tuple19[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7], A[T8], A[
         T9
       ], A[T10], A[T11], A[T12], A[T13], A[T14], A[T15], A[T16], A[T17], A[T18], A[T19]] =
@@ -1584,7 +1645,11 @@ object TupleInstances {
           ]
       )(
           implicit G: Functor[G]
-      ): Tuple19[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[G, A, T5], Compose2[
+      ): Tuple19[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[
+        G,
+        A,
+        T5
+      ], Compose2[
         G,
         A,
         T6
@@ -1592,7 +1657,11 @@ object TupleInstances {
         G,
         A,
         T12
-      ], Compose2[G, A, T13], Compose2[G, A, T14], Compose2[G, A, T15], Compose2[G, A, T16], Compose2[G, A, T17], Compose2[
+      ], Compose2[G, A, T13], Compose2[G, A, T14], Compose2[G, A, T15], Compose2[G, A, T16], Compose2[
+        G,
+        A,
+        T17
+      ], Compose2[
         G,
         A,
         T18
@@ -1652,10 +1721,11 @@ object TupleInstances {
     new ApplicativeKC[
       Tuple20F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20]#λ
     ] with TraverseKC[
-      Tuple20F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20]#λ
-    ] with DistributiveKC[
-      Tuple20F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20]#λ
-    ] {
+        Tuple20F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20]#λ
+      ]
+      with DistributiveKC[
+        Tuple20F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20]#λ
+      ] {
       override def pureK[A[_], C](a: Unit #~>: A): Tuple20[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7], A[T8], A[
         T9
       ], A[T10], A[T11], A[T12], A[T13], A[T14], A[T15], A[T16], A[T17], A[T18], A[T19], A[T20]] =
@@ -1787,7 +1857,11 @@ object TupleInstances {
           ]
       )(
           implicit G: Functor[G]
-      ): Tuple20[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[G, A, T5], Compose2[
+      ): Tuple20[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[
+        G,
+        A,
+        T5
+      ], Compose2[
         G,
         A,
         T6
@@ -1795,7 +1869,11 @@ object TupleInstances {
         G,
         A,
         T12
-      ], Compose2[G, A, T13], Compose2[G, A, T14], Compose2[G, A, T15], Compose2[G, A, T16], Compose2[G, A, T17], Compose2[
+      ], Compose2[G, A, T13], Compose2[G, A, T14], Compose2[G, A, T15], Compose2[G, A, T16], Compose2[
+        G,
+        A,
+        T17
+      ], Compose2[
         G,
         A,
         T18
@@ -1857,10 +1935,11 @@ object TupleInstances {
     new ApplicativeKC[
       Tuple21F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21]#λ
     ] with TraverseKC[
-      Tuple21F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21]#λ
-    ] with DistributiveKC[
-      Tuple21F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21]#λ
-    ] {
+        Tuple21F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21]#λ
+      ]
+      with DistributiveKC[
+        Tuple21F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21]#λ
+      ] {
       override def pureK[A[_], C](a: Unit #~>: A): Tuple21[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7], A[T8], A[
         T9
       ], A[T10], A[T11], A[T12], A[T13], A[T14], A[T15], A[T16], A[T17], A[T18], A[T19], A[T20], A[T21]] =
@@ -1997,7 +2076,11 @@ object TupleInstances {
           ]
       )(
           implicit G: Functor[G]
-      ): Tuple21[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[G, A, T5], Compose2[
+      ): Tuple21[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[
+        G,
+        A,
+        T5
+      ], Compose2[
         G,
         A,
         T6
@@ -2005,7 +2088,11 @@ object TupleInstances {
         G,
         A,
         T12
-      ], Compose2[G, A, T13], Compose2[G, A, T14], Compose2[G, A, T15], Compose2[G, A, T16], Compose2[G, A, T17], Compose2[
+      ], Compose2[G, A, T13], Compose2[G, A, T14], Compose2[G, A, T15], Compose2[G, A, T16], Compose2[
+        G,
+        A,
+        T17
+      ], Compose2[
         G,
         A,
         T18
@@ -2069,10 +2156,11 @@ object TupleInstances {
     new ApplicativeKC[
       Tuple22F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22]#λ
     ] with TraverseKC[
-      Tuple22F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22]#λ
-    ] with DistributiveKC[
-      Tuple22F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22]#λ
-    ] {
+        Tuple22F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22]#λ
+      ]
+      with DistributiveKC[
+        Tuple22F[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22]#λ
+      ] {
       override def pureK[A[_], C](a: Unit #~>: A): Tuple22[A[T1], A[T2], A[T3], A[T4], A[T5], A[T6], A[T7], A[T8], A[
         T9
       ], A[T10], A[T11], A[T12], A[T13], A[T14], A[T15], A[T16], A[T17], A[T18], A[T19], A[T20], A[T21], A[T22]] =
@@ -2214,7 +2302,11 @@ object TupleInstances {
           ]
       )(
           implicit G: Functor[G]
-      ): Tuple22[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[G, A, T5], Compose2[
+      ): Tuple22[Compose2[G, A, T1], Compose2[G, A, T2], Compose2[G, A, T3], Compose2[G, A, T4], Compose2[
+        G,
+        A,
+        T5
+      ], Compose2[
         G,
         A,
         T6
@@ -2222,7 +2314,11 @@ object TupleInstances {
         G,
         A,
         T12
-      ], Compose2[G, A, T13], Compose2[G, A, T14], Compose2[G, A, T15], Compose2[G, A, T16], Compose2[G, A, T17], Compose2[
+      ], Compose2[G, A, T13], Compose2[G, A, T14], Compose2[G, A, T15], Compose2[G, A, T16], Compose2[
+        G,
+        A,
+        T17
+      ], Compose2[
         G,
         A,
         T18
@@ -2298,5 +2394,5 @@ object TupleInstances {
       println()
     }
   }
- */
+   */
 }

@@ -12,30 +12,66 @@ import cats.syntax.all.*
 import cats.{Applicative, Functor, Monoid}
 import perspective.*
 
+/**
+  * A type like [[HKDGeneric]] but where as much as possible is defined inline,
+  * and tries to generate as simple bytecode as possible. Might be more error
+  * prone, and produce bigger classes using this, but the bytecode is much
+  * simpler.
+  * @tparam A
+  *   The type being abstracted over.
+  */
 sealed trait InlineHKDGeneric[A]:
+  /** A representation of [[A]] supporting higher kinded types. */
   type Gen[_[_]]
+
+  /** The top type for the inner type of [[Index]] and [[Gen]]. */
   type ElemTop
+
+  /** The index of the [[Gen]] type. */
   type Index <: Any { type X <: ElemTop }
   type IndexAux[X0 <: ElemTop] = Index { type X = X0 }
 
+  /** A wrapper for [[Index]] where we want no bound on what [[X]] can be. */
   class IdxWrapper[X](val idx: IndexAux[X & ElemTop])
 
   given [X]: Conversion[IdxWrapper[X], IndexAux[X & ElemTop]] = _.idx
 
   given [X]: Conversion[IndexAux[X & ElemTop], IdxWrapper[X]] = new IdxWrapper(_)
 
+  /** The name of the [[A]] type. */
   type TypeName <: String
+
+  /** The name of the [[A]] type. */
   inline def typeName: TypeName
 
+  /**
+    * The name of the fields of [[A]] type. Field in this case can mean either
+    * the children of a sum type, or the fields of a product type.
+    */
   type Names <: String
+
+  /**
+    * The name of the fields of [[A]] type. Field in this case can mean either
+    * the children of a sum type, or the fields of a product type.
+    */
   inline def names: Gen[Const[Names]]
+
+  /** Validates a string as a name if it matches the name of a field. */
   inline def stringToName(s: String): Option[Names]
 
+  /** Returns the type of a field given its name. */
   type FieldOf[Name <: Names] <: ElemTop
+
+  /** Returns the index of the field a name corresponds to. */
   inline def nameToIndex[Name <: Names](name: Name): IndexAux[FieldOf[Name]]
 
+  /** A tuple representation of [[A]]. */
   type TupleRep <: Tuple
+
+  /** Converts [[Gen]] to the tuple representation. */
   inline def genToTuple[F[_]](gen: Gen[F]): Tuple.Map[TupleRep, F]
+
+  /** Converts the tuple representation to Gen. */
   inline def tupleToGen[F[_]](tuple: Tuple.Map[TupleRep, F]): Gen[F]
 
   inline given summonInstances[F[_]]: Gen[F]
@@ -92,7 +128,9 @@ sealed trait InlineHKDGeneric[A]:
 
   // Traverse
   extension [A[_]](fa: Gen[A])
-    inline def traverseK[G[_], B[_]](inline f: A ~>: Compose2[G, B])(using inline G: Applicative[G], classTag: ClassTag[B[ElemTop]]): G[Gen[B]]
+    inline def traverseK[G[_], B[_]](
+        inline f: A ~>: Compose2[G, B]
+    )(using inline G: Applicative[G], classTag: ClassTag[B[ElemTop]]): G[Gen[B]]
 
     inline def traverseIdK[G[_]](inline f: A ~>: G)(using inline G: Applicative[G]): G[Gen[Id]] =
       traverseK(f)
@@ -128,7 +166,9 @@ sealed trait InlineHKDGeneric[A]:
 
   inline def tabulateFoldLeft[B](inline start: B)(inline f: (B, Index) => B): B
 
-  inline def tabulateTraverseK[G[_], B[_]](inline f: (i: Index) => G[B[i.X]])(using inline G: Applicative[G], classTag: ClassTag[B[ElemTop]]): G[Gen[B]]
+  inline def tabulateTraverseK[G[_], B[_]](
+      inline f: (i: Index) => G[B[i.X]]
+  )(using inline G: Applicative[G], classTag: ClassTag[B[ElemTop]]): G[Gen[B]]
 
   inline def tabulateTraverseIdK[G[_]](inline f: (i: Index) => G[i.X])(using inline G: Applicative[G]): G[Gen[Id]] =
     tabulateTraverseK(f)
@@ -163,7 +203,8 @@ object InlineHKDGeneric:
       case m: Mirror.ProductOf[A] =>
         InlineHKDProductGeneric.derived[A](using m, summonInline[ClassTag[Tuple.Union[m.MirroredElemTypes]]])
       case m: Mirror.SumOf[A] =>
-        InlineHKDSumGeneric.derived[A](using m, summonInline[ClassTag[InlineHKDGeneric.TupleUnionLub[m.MirroredElemTypes, A, Nothing]]])
+        InlineHKDSumGeneric
+          .derived[A](using m, summonInline[ClassTag[InlineHKDGeneric.TupleUnionLub[m.MirroredElemTypes, A, Nothing]]])
   end derived
 
   extension [A](arr: IArray[A])
@@ -175,7 +216,7 @@ object InlineHKDGeneric:
   private[derivation] inline def iteratorToArray[A[_], ElemTop](inline itIn: Iterator[A[ElemTop]], inline size: Int)(
       using ClassTag[A[ElemTop]]
   ): Array[A[ElemTop]] = {
-    val it = itIn
+    val it                     = itIn
     val arr: Array[A[ElemTop]] = new Array[A[ElemTop]](size)
     var i: Int                 = 0
     while (it.hasNext) {
@@ -276,11 +317,10 @@ object InlineHKDGeneric:
 
       var error: E = defaultValue[E]
       var gotError = false
-      val arr = new Array[B[ElemTop]]($sizeExpr)
-      var i: Int = 0
+      val arr      = new Array[B[ElemTop]]($sizeExpr)
+      var i: Int   = 0
       while (i < $sizeExpr && !gotError) {
-        val res = $
-          {fElem('i)}.asInstanceOf[Either[E, B[ElemTop]]]
+        val res = ${ fElem('i) }.asInstanceOf[Either[E, B[ElemTop]]]
         res match {
           case Left(e) =>
             gotError = true
@@ -298,9 +338,9 @@ object InlineHKDGeneric:
 
     def traverseOption = '{
       given scala.reflect.ClassTag[B[ElemTop]] = $classTagExpr
-      var gotError = false
-      val arr      = new Array[B[ElemTop]]($sizeExpr)
-      var i: Int   = 0
+      var gotError                             = false
+      val arr                                  = new Array[B[ElemTop]]($sizeExpr)
+      var i: Int                               = 0
       while (i < $sizeExpr && !gotError) {
         val res = ${ fElem('i) }.asInstanceOf[Option[B[ElemTop]]]
         if (res.isEmpty) {
@@ -338,14 +378,18 @@ object InlineHKDGeneric:
     }
   end traverseKImpl
 
-  def tabulateTraverseKImpl[ElemTop: Type, T <: Tuple: Type, G[_]: Type, B[_]: Type](
+  private def tabulateTraverseKImpl[ElemTop: Type, T <: Tuple: Type, G[_]: Type, B[_]: Type](
       f: Expr[(i: IntIdx[Tuple.Size[T], ElemTop]) => G[B[i.X]]],
       G: Expr[Applicative[G]],
       sizeExpr: Expr[Tuple.Size[T]],
       classTagExpr: Expr[ClassTag[B[ElemTop]]]
   )(using q: Quotes): Expr[G[IArray[B[ElemTop]]]] =
     def traverseId =
-      tabulateKImpl[B, T, ElemTop](sizeExpr, f.asInstanceOf[Expr[(i: IntIdx[Tuple.Size[T], ElemTop]) => B[i.X]]], classTagExpr)
+      tabulateKImpl[B, T, ElemTop](
+        sizeExpr,
+        f.asInstanceOf[Expr[(i: IntIdx[Tuple.Size[T], ElemTop]) => B[i.X]]],
+        classTagExpr
+      )
         .asInstanceOf[Expr[G[IArray[B[ElemTop]]]]]
 
     def fApply(i: Expr[Int]): Expr[G[B[ElemTop]]] =
@@ -356,10 +400,10 @@ object InlineHKDGeneric:
 
       var error: E = defaultValue[E]
       var gotError = false
-      val arr = new Array[B[ElemTop]]($sizeExpr)
-      var i: Int = 0
+      val arr      = new Array[B[ElemTop]]($sizeExpr)
+      var i: Int   = 0
       while (i < $sizeExpr && !gotError) {
-        val res = ${fApply('i)}.asInstanceOf[Either[E, B[ElemTop]]]
+        val res = ${ fApply('i) }.asInstanceOf[Either[E, B[ElemTop]]]
         res match {
           case Left(e) =>
             gotError = true
@@ -379,10 +423,10 @@ object InlineHKDGeneric:
       given scala.reflect.ClassTag[B[ElemTop]] = $classTagExpr
 
       var gotError = false
-      val arr = new Array[B[ElemTop]]($sizeExpr)
-      var i: Int = 0
+      val arr      = new Array[B[ElemTop]]($sizeExpr)
+      var i: Int   = 0
       while (i < $sizeExpr && !gotError) {
-        val res = ${fApply('i)}.asInstanceOf[Option[B[ElemTop]]]
+        val res = ${ fApply('i) }.asInstanceOf[Option[B[ElemTop]]]
         if (res.isEmpty) {
           gotError = true
         } else {
@@ -417,16 +461,25 @@ object InlineHKDGeneric:
     }
   end tabulateTraverseKImpl
 
-  class IntIdx[N <: Int, Bound](val value: Finite[N]) extends AnyVal {
-    type X <: Bound
-  }
-  object IntIdx {
-    inline def of[N <: Int, Bound, X0 <: Bound](v: Finite[N]): IntIdx[N, Bound] { type X = X0 } =
-      new IntIdx[N, Bound](v).asInstanceOf[IntIdx[N, Bound] { type X = X0 }]
-    private[perspective] inline def unsafeOfInt[N <: Int, Bound, X0 <: Bound](
-        v: Int
-    ): IntIdx[N, Bound] { type X = X0 } =
-      of[N, Bound, X0](v.asInstanceOf[Finite[N]])
+  export IntIdxDefs.IntIdx
+  object IntIdxDefs {
+
+    /** The type of the Index in the [[InlineHKDGeneric]] implementations. */
+    opaque type IntIdx[N <: Int, Bound] <: Any {
+      type X <: Bound
+    } = Finite[N] & Any { type X <: Bound }
+
+    object IntIdx {
+      inline def of[N <: Int, Bound, X0 <: Bound](v: Finite[N]): IntIdx[N, Bound] { type X = X0 } =
+        v.asInstanceOf[IntIdx[N, Bound] { type X = X0 }]
+
+      private[perspective] inline def unsafeOfInt[N <: Int, Bound, X0 <: Bound](
+          v: Int
+      ): IntIdx[N, Bound] { type X = X0 } =
+        of[N, Bound, X0](v.asInstanceOf[Finite[N]])
+
+      extension [N <: Int, Bound](i: IntIdx[N, Bound]) inline def value: Finite[N] = i
+    }
   }
 
   sealed trait InlineHKDGenericTypeclassOps[A, T <: Tuple] extends InlineHKDGeneric[A]:
@@ -540,8 +593,19 @@ object InlineHKDGeneric:
 
 end InlineHKDGeneric
 
+/**
+  * A type like [[HKDProductGeneric]] but where as much as possible is defined
+  * inline, and tries to generate as simple bytecode as possible. Might be more
+  * error prone, and produce bigger classes using this, but the bytecode is much
+  * simpler.
+  * @tparam A
+  *   The type being abstracted over.
+  */
 trait InlineHKDProductGeneric[A] extends InlineHKDGeneric[A]:
+  /** Convert a value of [[A]] to the higher kinded representation. */
   inline def to(a: A): Gen[Id]
+
+  /** Convert a value of the higher kinded representation to [[A]]. */
   inline def from(gen: Gen[Id]): A
 
 object InlineHKDProductGeneric:
@@ -611,30 +675,65 @@ object InlineHKDProductGeneric:
       Helpers.summonAllToIArray[Tuple.Map[ElemTypes, F]].asInstanceOf[Gen[F]]
   end DerivedImpl
 
+/**
+  * A type like [[HKDSumGeneric]] but where as much as possible is defined
+  * inline, and tries to generate as simple bytecode as possible. Might be more
+  * error prone, and produce bigger classes using this, but the bytecode is much
+  * simpler.
+  * @tparam A
+  *   The type being abstracted over.
+  */
 trait InlineHKDSumGeneric[A] extends InlineHKDGeneric[A]:
   self =>
 
   override type ElemTop <: A
 
+  /** Returns the name of a field given the type of the field. */
   type NameOf[X <: ElemTop] <: Names
 
+  /**
+    * Returns the index of a value. Because of soundness, this method can not be
+    * used if X = A. In that case, use [[indexOfA]] instead.
+    */
   inline def indexOf[X <: ElemTop](x: X): IndexAux[X]
 
+  /** Same as [[indexOf]] but also works for values of type A. */
   inline def indexOfA(a: A): Index = indexOf(a.asInstanceOf[ElemTop])
 
+  /**
+    * Same as [[indexOfA]] but also essentially cats the value to the unknown
+    * type, allowing further operations on it that requires that it is a subtype
+    * of A.
+    */
   inline def indexOfACasting(a: A): InlineHKDSumGeneric.IndexOfACasting[Index, ElemTop]
 
+  /** Given a index, return the name of the index. */
   inline def indexToName(idx: Index): NameOf[idx.X]
 
+  /**
+    * Widen the higher kinded representation to a [[Const]] type of the top
+    * type.
+    */
   extension [F[+_]](gen: Gen[F])
     inline def widenConst: Gen[Const[F[A]]] =
       // This is safe. We can't use the widen method as it can't know about the contents of Gen, we do
       gen.asInstanceOf[Gen[Const[F[A]]]]
 
+  /**
+    * Convert a value of [[A]] to the higher kinded representation. It will be
+    * Some in only one field, corresponding to the subtype passed in, and None
+    * in all the others.
+    */
   inline def to(a: A): Gen[Option] =
     val index = indexOfA(a)
     // This cast is safe as we know A = Z
     tabulateK(i => if i == index then Some(a.asInstanceOf[i.X]) else None)
+
+  /**
+    * Convert a value of the higher kinded representation to [[A]]. Will only
+    * return Some if only one of the fields is Some and the rest is None.
+    */
+  inline def from(a: Gen[Option]): Option[A]
 
 object InlineHKDSumGeneric:
 

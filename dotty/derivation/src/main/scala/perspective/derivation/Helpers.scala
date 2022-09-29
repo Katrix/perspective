@@ -6,30 +6,47 @@ import scala.quoted.*
 
 object Helpers {
 
+  /** A type returning if two types are equal as under =:=. */
   type Eq[A, B] <: Boolean = A =:= B match {
     case B =:= A => true
     case _       => false
   }
 
+  /** A optimized value of [[constValueTuple]]. */
   inline def constValueTupleOptimized[T <: Tuple]: T =
     ${ constValueTupleOptimizedImpl[T] }
 
+  /**
+    * A version of [[constValueTuple]] that instead returns a list of the
+    * result.
+    */
   inline def constValueTupleToList[T <: Tuple]: List[Tuple.Union[T]] =
     ${ constValueTupleToListImpl[T] }
 
+  /**
+    * A version of [[constValueTuple]] that instead returns a set of the result.
+    */
   inline def constValueTupleToSet[T <: Tuple]: Set[Tuple.Union[T]] =
     ${ constValueTupleToSetImpl[T] }
 
+  /**
+    * A version of [[constValueTuple]] that instead returns an IArray of the
+    * result.
+    */
   inline def constValueTupleToIArray[T <: Tuple]: IArray[Tuple.Union[T]] =
     ${ constValueTupleToIArrayImpl[T] }
 
+  /** A optimized value of [[summonAll]]. */
   inline def summonAllOptimized[T <: Tuple]: T =
     ${ summonAllOptimizedImpl[T] }
 
+  /**
+    * A version of [[summonAll]] that instead returns an IArray of the result.
+    */
   inline def summonAllToIArray[T <: Tuple]: IArray[Tuple.Union[T]] =
     ${ summonAllToIArrayImpl[T] }
 
-  def constValueTupleOptimizedImpl[T <: Tuple: Type](using q: Quotes): Expr[T] = {
+  private def constValueTupleOptimizedImpl[T <: Tuple: Type](using q: Quotes): Expr[T] = {
     import q.reflect.*
 
     val values =
@@ -51,17 +68,17 @@ object Helpers {
     if values.isEmpty then ifEmpty else f(Expr.ofSeq(values.asInstanceOf[List[Expr[Tuple.Union[T]]]]))
   }
 
-  def constValueTupleToListImpl[T <: Tuple: Type](using q: Quotes): Expr[List[Tuple.Union[T]]] = {
+  private def constValueTupleToListImpl[T <: Tuple: Type](using q: Quotes): Expr[List[Tuple.Union[T]]] = {
     import q.reflect.*
     constValueTupleTo[T, List[Tuple.Union[T]]]('{ List.empty }, args => '{ List($args: _*) })
   }
 
-  def constValueTupleToSetImpl[T <: Tuple: Type](using q: Quotes): Expr[Set[Tuple.Union[T]]] = {
+  private def constValueTupleToSetImpl[T <: Tuple: Type](using q: Quotes): Expr[Set[Tuple.Union[T]]] = {
     import q.reflect.*
     constValueTupleTo[T, Set[Tuple.Union[T]]]('{ Set.empty }, args => '{ Set($args: _*) })
   }
 
-  def constValueTupleToIArrayImpl[T <: Tuple: Type](using q: Quotes): Expr[IArray[Tuple.Union[T]]] = {
+  private def constValueTupleToIArrayImpl[T <: Tuple: Type](using q: Quotes): Expr[IArray[Tuple.Union[T]]] = {
     import q.reflect.*
     constValueTupleTo[T, IArray[Tuple.Union[T]]](
       '{ IArray.empty[Tuple.Union[T]](using summonInline[scala.reflect.ClassTag[Tuple.Union[T]]]) },
@@ -69,7 +86,7 @@ object Helpers {
     )
   }
 
-  def summonAllOptimizedImpl[T <: Tuple: Type](using q: Quotes): Expr[T] = {
+  private def summonAllOptimizedImpl[T <: Tuple: Type](using q: Quotes): Expr[T] = {
     import q.reflect.*
 
     Expr
@@ -82,7 +99,7 @@ object Helpers {
       .asInstanceOf[Expr[T]]
   }
 
-  def summonAllToIArrayImpl[T <: Tuple: Type](using q: Quotes): Expr[IArray[Tuple.Union[T]]] = {
+  private def summonAllToIArrayImpl[T <: Tuple: Type](using q: Quotes): Expr[IArray[Tuple.Union[T]]] = {
     import q.reflect.*
 
     val args = Varargs[Tuple.Union[T]](
@@ -101,7 +118,9 @@ object Helpers {
   }
 
   @tailrec
-  def typesOfTuple(using q: Quotes)(tpe: q.reflect.TypeRepr, acc: List[q.reflect.TypeRepr]): List[q.reflect.TypeRepr] =
+  private def typesOfTuple(
+      using q: Quotes
+  )(tpe: q.reflect.TypeRepr, acc: List[q.reflect.TypeRepr]): List[q.reflect.TypeRepr] =
     import q.reflect.*
     val cons = Symbol.classSymbol("scala.*:")
     tpe.widenTermRefByName.dealias match

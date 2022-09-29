@@ -1,9 +1,9 @@
 package perspective
 package syntax
 
-import cats.{Functor, Monad}
-
 import scala.language.implicitConversions
+
+import cats.{Functor, Monad}
 
 trait DistributiveKSyntax {
 

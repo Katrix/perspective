@@ -8,30 +8,65 @@ import scala.quoted._
 
 import perspective._
 
+/**
+  * A type somewhat like [[Mirror.Of]] allowing manipulating a type as if it was
+  * defined as a higher kinded type.
+  * @tparam A
+  *   The type being abstracted over.
+  */
 sealed trait HKDGeneric[A]:
+  /** A representation of [[A]] supporting higher kinded types. */
   type Gen[_[_]]
+
+  /** The index of the [[Gen]] type. */
   type Index[A]
+
+  /** The top type for the inner type of [[Index]] and [[Gen]]. */
   type ElemTop
 
+  /** A wrapper for [[Index]] where we want wildcards of it. */
   class IdxWrapper[X](val idx: Index[X])
   given [X]: Conversion[IdxWrapper[X], Index[X]] = _.idx
   given [X]: Conversion[Index[X], IdxWrapper[X]] = new IdxWrapper(_)
 
+  /** Upcast an index to its bound. */
   inline def upcastIndex[X](idx: Index[X]): IdxWrapper[_ <: ElemTop] =
     new IdxWrapper(idx).asInstanceOf[IdxWrapper[_ <: ElemTop]]
 
+  /** The name of the [[A]] type. */
   type TypeName <: String
+
+  /** The name of the [[A]] type. */
   def typeName: TypeName
 
+  /**
+    * The name of the fields of [[A]] type. Field in this case can mean either
+    * the children of a sum type, or the fields of a product type.
+    */
   type Names <: String
+
+  /**
+    * The name of the fields of [[A]] type. Field in this case can mean either
+    * the children of a sum type, or the fields of a product type.
+    */
   def names: Gen[Const[Names]]
+
+  /** Validates a string as a name if it matches the name of a field. */
   def stringToName(s: String): Option[Names]
 
+  /** Returns the type of a field given its name. */
   type FieldOf[Name <: Names] <: ElemTop
+
+  /** Returns the index of the field a name corresponds to. */
   def nameToIndex[Name <: Names](name: Name): Index[FieldOf[Name]]
 
+  /** A tuple representation of [[A]]. */
   type TupleRep <: Tuple
+
+  /** Converts [[Gen]] to the tuple representation. */
   def genToTuple[F[_]](gen: Gen[F]): Tuple.Map[TupleRep, F]
+
+  /** Converts the tuple representation to Gen. */
   def tupleToGen[F[_]](tuple: Tuple.Map[TupleRep, F]): Gen[F]
 
   lazy val representable: RepresentableKC.Aux[Gen, Index]
@@ -70,8 +105,18 @@ object HKDGeneric:
       HKDSumGeneric.derived[A](using m)
 end HKDGeneric
 
+/**
+  * A type somewhat like [[Mirror.ProductOf]] allowing manipulating a product
+  * type as if it was defined as a higher kinded type.
+  * @tparam A
+  *   The type being abstracted over.
+  */
 trait HKDProductGeneric[A] extends HKDGeneric[A]:
+
+  /** Convert a value of [[A]] to the higher kinded representation. */
   def to(a: A): Gen[Id]
+
+  /** Convert a value of the higher kinded representation to [[A]]. */
   def from(gen: Gen[Id]): A
 
 object HKDProductGeneric:
@@ -152,27 +197,59 @@ object HKDProductGeneric:
       override lazy val representable: RepresentableKC.Aux[Gen, Index] = instance
       override lazy val traverse: TraverseKC[Gen]                      = instance
 
+/**
+  * A type somewhat like [[Mirror.SumOf]] allowing manipulating a sum type as if
+  * it was defined as a higher kinded type.
+  * @tparam A
+  *   The type being abstracted over.
+  */
 trait HKDSumGeneric[A] extends HKDGeneric[A]:
   override type ElemTop <: A
+
+  /** Returns the name of a field given the type of the field. */
   type NameOf[X <: ElemTop] <: Names
 
+  /**
+    * Returns the index of a value. Because of soundness, this method can not be
+    * used if X = A. In that case, use [[indexOfA]] instead.
+    */
   def indexOf[X <: ElemTop](x: X): Index[X]
 
+  /** Same as [[indexOf]] but also works for values of type A. */
   def indexOfA(a: A): IdxWrapper[_ <: ElemTop] = indexOf(a.asInstanceOf[ElemTop])
 
+  /**
+    * Same as [[indexOfA]] but also essentially cats the value to the unknown
+    * type, allowing further operations on it that requires that it is a subtype
+    * of A.
+    */
   def indexOfACasting(a: A): HKDSumGeneric.IndexOfACasting[Index, ElemTop]
 
+  /** Given a index, return the name of the index. */
   def indexToName[X <: ElemTop](idx: Index[X]): NameOf[X]
 
+  /**
+    * Widen the higher kinded representation to a [[Const]] type of the top
+    * type.
+    */
   inline def widenConst[F[+_]](gen: Gen[F]): Gen[Const[F[A]]] =
     // This is safe. We can't use the widen method as it can't know about the contents of Gen, we do
     gen.asInstanceOf[Gen[Const[F[A]]]]
 
+  /**
+    * Convert a value of [[A]] to the higher kinded representation. It will be
+    * Some in only one field, corresponding to the subtype passed in, and None
+    * in all the others.
+    */
   def to(a: A): Gen[Option] =
     val index = indexOfA(a)
     // This cast is safe as we know A = Z
     representable.tabulateK([Z] => (i: Index[Z]) => if i == index.idx then Some(a.asInstanceOf[Z]) else None)
 
+  /**
+    * Convert a value of the higher kinded representation to [[A]]. Will only
+    * return Some if only one of the fields is Some and the rest is None.
+    */
   def from(a: Gen[Option]): Option[A] =
     traverse.toListK(widenConst(a)).flatten match
       case Nil      => None    // No values present

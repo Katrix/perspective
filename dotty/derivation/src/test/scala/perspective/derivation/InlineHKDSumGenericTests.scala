@@ -187,10 +187,10 @@ class InlineHKDSumGenericTests extends AnyFunSuite {
 
   inlineTestF[Const[String], Const[String]](
     "InlineHKDSumGeneric.names corresponds to HKDSumGeneric.names",
-    _ => instance.mapK(instance.names)([X] => (name: instance.Names) => (name: String)),
+    _ => instance.mapK(instance.names)([X] => (name: instance.Names) => name: String),
     _ => {
       given FunctorKC[nonInlineInstance.Gen] = nonInlineInstance.representable
-      nonInlineInstance.names.mapK([X] => (name: nonInlineInstance.Names) => (name: String))
+      nonInlineInstance.names.mapK([X] => (name: nonInlineInstance.Names) => name: String)
     }
   )(
     gen => gen,
@@ -199,10 +199,10 @@ class InlineHKDSumGenericTests extends AnyFunSuite {
 
   inlineTestA[Const[String], String](
     "InlineHKDSumGeneric.foldLeftK corresponds to HKDSumGeneric.foldLeftK",
-    _ => instance.mapK(instance.names)([X] => (name: instance.Names) => (name: String)),
+    _ => instance.mapK(instance.names)([X] => (name: instance.Names) => name: String),
     _ => {
       given FunctorKC[nonInlineInstance.Gen] = nonInlineInstance.representable
-      nonInlineInstance.names.mapK([X] => (name: nonInlineInstance.Names) => (name: String))
+      nonInlineInstance.names.mapK([X] => (name: nonInlineInstance.Names) => name: String)
     }
   )(
     gen => instance.foldLeftK(gen)("")(acc => [Z] => (name: String) => acc + "|" + name),

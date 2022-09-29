@@ -15,7 +15,7 @@ private[perspective] class PerspectiveAnnotationMacros(override val c: whitebox.
     val (rawClassDef, optCompanionDef) = annottees match {
       case (clazz: ClassDef) :: (companion: ModuleDef) :: Nil => clazz -> Some(companion)
       case (clazz: ClassDef) :: Nil                           => clazz -> None
-      case _                                                  => c.abort(c.enclosingPosition, "@hkd can only be used on classes")
+      case _ => c.abort(c.enclosingPosition, "@hkd can only be used on classes")
     }
 
     val moduleDef = optCompanionDef.getOrElse(q"object ${rawClassDef.name.toTermName}": ModuleDef)
@@ -58,9 +58,8 @@ private[perspective] class PerspectiveAnnotationMacros(override val c: whitebox.
       }
       val argValues = allParams(tpe).map(_.map(_ => TermName(c.freshName())))
 
-      val parameters = argValues.zip(classTypes).flatMap {
-        case (args, types) =>
-          args.zip(types).map { case (arg, tpe) => q"$arg: $tpe" }
+      val parameters = argValues.zip(classTypes).flatMap { case (args, types) =>
+        args.zip(types).map { case (arg, tpe) => q"$arg: $tpe" }
       }
 
       q"""implicit def ${TermName(c.freshName("gatherImplicits"))}[F[_]](

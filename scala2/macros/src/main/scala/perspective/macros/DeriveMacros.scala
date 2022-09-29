@@ -1,10 +1,10 @@
 package perspective.macros
 
-import cats.tagless.{DeriveMacros => CatsDeriveMacros}
-import perspective._
-
 import scala.annotation.tailrec
 import scala.reflect.macros.whitebox
+
+import cats.tagless.{DeriveMacros => CatsDeriveMacros}
+import perspective._
 
 private[macros] class DeriveMacros(override val c: whitebox.Context) extends CatsDeriveMacros(c) {
   import c.internal._
@@ -88,53 +88,51 @@ private[macros] class DeriveMacros(override val c: whitebox.Context) extends Cat
   def typeParamsForAlgebraFromSymbols(algebra: Type)(types: Symbol*): Seq[Type] =
     types.map(_.asType.toTypeConstructor).take(algebra.typeParams.length)
 
-  //def mapK[A[_], B[_], C](fa: F[A, C])(f: A ~>: B): F[B, C]
+  // def mapK[A[_], B[_], C](fa: F[A, C])(f: A ~>: B): F[B, C]
   def perspectiveMapK(algebra: Type): (String, Type => Tree) = "mapK" -> {
     case PolyType(List(a, b, c), MethodType(List(fa), MethodType(List(f), _))) =>
       val Fa = singleType(NoPrefix, fa)
 
       val parameters = transformParameters(q"$fa", Fa) {
         case param if occursIn(param.tpe)(a) =>
-          param.transform(fa, a -> b) {
-            case accessor =>
-              val F = summon[FunctorK[Any]](polyType(a :: c :: Nil, param.tpe))
-              q"$F.mapK[$a, $b, $c]($accessor)($f)"
+          param.transform(fa, a -> b) { case accessor =>
+            val F = summon[FunctorK[Any]](polyType(a :: c :: Nil, param.tpe))
+            q"$F.mapK[$a, $b, $c]($accessor)($f)"
           }
       }
 
       newClass(algebra)(typeParamsForAlgebraFromSymbols(algebra)(b, c): _*)(parameters)
   }
 
-  //def map2K[A[_], B[_], Z[_], C](fa: F[A, C], fb: F[B, C])(f: Tuple2K[A, B]#λ ~>: Z): F[Z, C]
+  // def map2K[A[_], B[_], Z[_], C](fa: F[A, C], fb: F[B, C])(f: Tuple2K[A, B]#λ ~>: Z): F[Z, C]
   def map2K(algebra: Type): (String, Type => Tree) = {
     val Tuple2K = symbolOf[Tuple2K[Any, Any, Any]]
-    "map2K" -> {
-      case PolyType(List(a, b, z, c), MethodType(List(fa, fb), MethodType(List(f), _))) =>
-        val A   = a.asType.toTypeConstructor
-        val B   = b.asType.toTypeConstructor
-        val t2k = polyType(A.typeParams, appliedType(Tuple2K, A :: B :: A.typeParams.map(_.asType.toType)))
-        val Fa  = singleType(NoPrefix, fa)
+    "map2K" -> { case PolyType(List(a, b, z, c), MethodType(List(fa, fb), MethodType(List(f), _))) =>
+      val A   = a.asType.toTypeConstructor
+      val B   = b.asType.toTypeConstructor
+      val t2k = polyType(A.typeParams, appliedType(Tuple2K, A :: B :: A.typeParams.map(_.asType.toType)))
+      val Fa  = singleType(NoPrefix, fa)
 
-        val parameters = transformParameters(q"$fa", Fa) {
-          case param if occursIn(param.tpe)(a) =>
-            val tpe = param.tpe.map(t => if (t.typeSymbol == a) appliedType(t2k, t.typeArgs) else t)
-            val F   = summon[ApplyK[Any]](polyType(a :: c :: Nil, param.tpe))
+      val parameters = transformParameters(q"$fa", Fa) {
+        case param if occursIn(param.tpe)(a) =>
+          val tpe = param.tpe.map(t => if (t.typeSymbol == a) appliedType(t2k, t.typeArgs) else t)
+          val F   = summon[ApplyK[Any]](polyType(a :: c :: Nil, param.tpe))
 
-            param.copy(
-              tpe = tpe,
-              body = q"$F.map2K[$a, $b, $z, $c](${param.accessor(q"$fa")}, ${param.accessor(q"$fb")})($f)"
-            )
-        }
-        newClass(algebra)(typeParamsForAlgebraFromSymbols(algebra)(z, c): _*)(parameters)
+          param.copy(
+            tpe = tpe,
+            body = q"$F.map2K[$a, $b, $z, $c](${param.accessor(q"$fa")}, ${param.accessor(q"$fb")})($f)"
+          )
+      }
+      newClass(algebra)(typeParamsForAlgebraFromSymbols(algebra)(z, c): _*)(parameters)
     }
   }
 
-  //def pureK[A[_], C](a: Unit #~>: A): F[A, C]
+  // def pureK[A[_], C](a: Unit #~>: A): F[A, C]
   def pureK(algebra: Type): (String, Type => Tree) = "pureK" -> {
     case PolyType(List(at, c), MethodType(List(av), fa)) =>
       val Fa = fa
 
-      //Can't do occursIn because we don't have a value to insert if the type isn't A[B] for some B
+      // Can't do occursIn because we don't have a value to insert if the type isn't A[B] for some B
       val parameters = createParameters(q"$NoSymbol", Fa).map(_.map { param =>
         val F = summon[ApplicativeK[Any]](polyType(at :: c :: Nil, param.tpe))
         q"$F.pureK[$at, $c]($av)"
@@ -143,7 +141,7 @@ private[macros] class DeriveMacros(override val c: whitebox.Context) extends Cat
       newClass(algebra)(typeParamsForAlgebraFromSymbols(algebra)(at, c): _*)(parameters)
   }
 
-  //def foldLeftK[A[_], B, C](fa: F[A, C], b: B)(f: B => A ~>#: B): B
+  // def foldLeftK[A[_], B, C](fa: F[A, C], b: B)(f: B => A ~>#: B): B
   def foldLeftK(algebra: Type): (String, Type => Tree) = "foldLeftK" -> {
     case PolyType(List(a, bt, c), MethodType(List(fa, bv), MethodType(List(f), _))) =>
       val Fa = singleType(NoPrefix, fa)
@@ -155,13 +153,13 @@ private[macros] class DeriveMacros(override val c: whitebox.Context) extends Cat
       }
   }
 
-  //def traverseK[G[_]: Applicative, A[_], B[_], C](fa: F[A, C])(f: A ~>: Compose[G, B, *]): G[F[B, C]]
+  // def traverseK[G[_]: Applicative, A[_], B[_], C](fa: F[A, C])(f: A ~>: Compose[G, B, *]): G[F[B, C]]
   def traverseKFunc(algebra: Type): (String, Type => Tree) = "traverseK" -> {
     case PolyType(List(g, a, b, c), MethodType(List(fa), MethodType(List(f), MethodType(List(gApp), _)))) =>
       val Fa = singleType(NoPrefix, fa)
       val G  = gApp
 
-      //TODO: occursIn?
+      // TODO: occursIn?
 
       val paramLists = createParameters(q"$fa", Fa).toVector
 
@@ -195,12 +193,11 @@ private[macros] class DeriveMacros(override val c: whitebox.Context) extends Cat
             ValDef(Modifiers(Flag.PARAM), TermName(this.c.freshName(i.toString)), tupleParamType, EmptyTree)
           }
 
-          val params = funcParams.zipWithIndex.map {
-            case (param, idx) =>
-              (1 to sizes(idx)).map { i =>
-                val tupleAccessor = TermName(s"_$i")
-                q"${param.name}.$tupleAccessor"
-              }
+          val params = funcParams.zipWithIndex.map { case (param, idx) =>
+            (1 to sizes(idx)).map { i =>
+              val tupleAccessor = TermName(s"_$i")
+              q"${param.name}.$tupleAccessor"
+            }
           }
 
           q"(..$funcParams) => ${newClass(algebra)(typeParamsForAlgebraFromSymbols(algebra)(b, c): _*)(params)}"
@@ -233,7 +230,7 @@ private[macros] class DeriveMacros(override val c: whitebox.Context) extends Cat
       }
   }
 
-  //def cosequenceK[G[_]: Functor, A[_], C](gfa: G[F[A, C]]): F[Compose[G, A, *], C]
+  // def cosequenceK[G[_]: Functor, A[_], C](gfa: G[F[A, C]]): F[Compose[G, A, *], C]
   def cosequenceK(algebra: Type): (String, Type => Tree) = "cosequenceK" -> {
     case PolyType(List(g, a, c), MethodType(List(gfa), MethodType(List(gImp), _))) =>
       val Compose = symbolOf[Compose2[Any, Any, Any]]
@@ -263,15 +260,15 @@ private[macros] class DeriveMacros(override val c: whitebox.Context) extends Cat
 
   def newFunctionK(tpe: Type, body: Method => Tree) = {
     val members = overridableMembersOf(tpe).filter(_.isAbstract)
-    val stubs = delegateMethods(tpe, members, NoSymbol) {
-      case m => m.copy(body = body(m))
+    val stubs = delegateMethods(tpe, members, NoSymbol) { case m =>
+      m.copy(body = body(m))
     }
     val apply = stubs.head
 
     q"""new $tpe { $apply }"""
   }
 
-  //def indexK[A[_], C](fa: F[A, C]): RepresentationK ~>: A
+  // def indexK[A[_], C](fa: F[A, C]): RepresentationK ~>: A
   def indexK(algebra: Type): (String, Type => Tree) = "indexK" -> {
     case PolyType(List(at, c), MethodType(List(fa), functionK @ TypeRef(_, _, List(from, to)))) =>
       val Fa = singleType(NoPrefix, fa)
@@ -279,22 +276,21 @@ private[macros] class DeriveMacros(override val c: whitebox.Context) extends Cat
       def cases(returnType: Type) =
         createParameters(q"$fa", Fa).flatten
           .zip(hkdParamSize(algebra).flatten)
-          .foldLeft((0, List.empty[Tree])) {
-            case ((n, acc), (param, size)) =>
-              if (isMaybeHKD(param.tpe)) {
-                val fullType =
-                  tq"_root_.perspective.RepresentableK[${polyType(at :: c :: Nil, param.tpe)}] { type RepresentationK[_] = _root_.perspective.Finite[$size]}"
-                val F = this.c
-                  .inferImplicitValue(this.c.typecheck(fullType, mode = this.c.TYPEmode).tpe)
-                  .orElse(abort(s"could not find implicit value of type $fullType"))
+          .foldLeft((0, List.empty[Tree])) { case ((n, acc), (param, size)) =>
+            if (isMaybeHKD(param.tpe)) {
+              val fullType =
+                tq"_root_.perspective.RepresentableK[${polyType(at :: c :: Nil, param.tpe)}] { type RepresentationK[_] = _root_.perspective.Finite[$size]}"
+              val F = this.c
+                .inferImplicitValue(this.c.typecheck(fullType, mode = this.c.TYPEmode).tpe)
+                .orElse(abort(s"could not find implicit value of type $fullType"))
 
-                (
-                  n + size,
-                  cq"i if i >= $n && i < $n + $size => $F.indexK(${param.body})(_root_.perspective.Finite($size, i - $n))" :: acc
-                )
-              } else {
-                (n + 1, cq"$n => ${param.body}.asInstanceOf[$returnType]" :: acc)
-              }
+              (
+                n + size,
+                cq"i if i >= $n && i < $n + $size => $F.indexK(${param.body})(_root_.perspective.Finite($size, i - $n))" :: acc
+              )
+            } else {
+              (n + 1, cq"$n => ${param.body}.asInstanceOf[$returnType]" :: acc)
+            }
           }
           ._2
           .reverse
@@ -302,50 +298,49 @@ private[macros] class DeriveMacros(override val c: whitebox.Context) extends Cat
       newFunctionK(functionK, m => q"fa.value match { case ..${cases(m.returnType)} }")
   }
 
-  //def tabulateK[A[_], C](f: RepresentationK ~>: A): F[A, C]
+  // def tabulateK[A[_], C](f: RepresentationK ~>: A): F[A, C]
   def tabulateK(algebra: Type): (String, Type => Tree) = "tabulateK" -> {
     case PolyType(List(at, c), MethodType(List(functionK), fa)) =>
       val Fa = fa
 
       val n = hkdSize(algebra)
 
-      //Can't do occursIn because we don't have a value to insert if the type isn't A[B] for some B
+      // Can't do occursIn because we don't have a value to insert if the type isn't A[B] for some B
       val parameters = createParameters(q"$NoSymbol", Fa)
         .zip(hkdParamSize(algebra))
-        .foldLeft((0, List.empty[List[Tree]])) {
-          case ((topI, topAcc), (params, sizes)) =>
-            val (newI, paramBlock) = params.zip(sizes).foldLeft((topI, List.empty[Tree])) {
-              case ((i, acc), (param, size)) =>
-                if (isMaybeHKD(param.tpe)) {
-                  val finiteSize = tq"_root_.perspective.Finite[$size]"
-                  val fullType =
-                    tq"_root_.perspective.RepresentableK[${polyType(at :: c :: Nil, param.tpe)}] { type RepresentationK[_] = $finiteSize}"
-                  val F = this.c
-                    .inferImplicitValue(this.c.typecheck(fullType, mode = this.c.TYPEmode).tpe)
-                    .orElse(abort(s"could not find implicit value of type $fullType"))
+        .foldLeft((0, List.empty[List[Tree]])) { case ((topI, topAcc), (params, sizes)) =>
+          val (newI, paramBlock) =
+            params.zip(sizes).foldLeft((topI, List.empty[Tree])) { case ((i, acc), (param, size)) =>
+              if (isMaybeHKD(param.tpe)) {
+                val finiteSize = tq"_root_.perspective.Finite[$size]"
+                val fullType =
+                  tq"_root_.perspective.RepresentableK[${polyType(at :: c :: Nil, param.tpe)}] { type RepresentationK[_] = $finiteSize}"
+                val F = this.c
+                  .inferImplicitValue(this.c.typecheck(fullType, mode = this.c.TYPEmode).tpe)
+                  .orElse(abort(s"could not find implicit value of type $fullType"))
 
-                  val newFunctionKTpe = this.c
-                    .typecheck(
-                      tq"_root_.perspective.FunctionK[({type L[Z] = $finiteSize})#L, $at]",
-                      mode = this.c.TYPEmode
-                    )
-                    .tpe
-
-                  val createdFunctionK = newFunctionK(
-                    newFunctionKTpe,
-                    m => q"$functionK(_root_.perspective.Finite($n, $i + ${m.paramLists.flatten.head.name}.value))"
+                val newFunctionKTpe = this.c
+                  .typecheck(
+                    tq"_root_.perspective.FunctionK[({type L[Z] = $finiteSize})#L, $at]",
+                    mode = this.c.TYPEmode
                   )
+                  .tpe
 
-                  (
-                    i + size,
-                    q"$F.tabulateK($createdFunctionK)" :: acc
-                  )
-                } else {
-                  (i + 1, q"$functionK(_root_.perspective.Finite($n, $i))" :: acc)
-                }
+                val createdFunctionK = newFunctionK(
+                  newFunctionKTpe,
+                  m => q"$functionK(_root_.perspective.Finite($n, $i + ${m.paramLists.flatten.head.name}.value))"
+                )
+
+                (
+                  i + size,
+                  q"$F.tabulateK($createdFunctionK)" :: acc
+                )
+              } else {
+                (i + 1, q"$functionK(_root_.perspective.Finite($n, $i))" :: acc)
+              }
             }
 
-            (newI, paramBlock.reverse :: topAcc)
+          (newI, paramBlock.reverse :: topAcc)
         }
         ._2
         .reverse
@@ -428,8 +423,8 @@ private[macros] class DeriveMacros(override val c: whitebox.Context) extends Cat
     )
   }
 
-  //Same as instantiate but takes the symbol explicitly as it sometimes doesn't work otherwise
-  //Also runs the implementation logic multiple times if for some reason Scalac changes it's mind
+  // Same as instantiate but takes the symbol explicitly as it sometimes doesn't work otherwise
+  // Also runs the implementation logic multiple times if for some reason Scalac changes it's mind
   def instantiate2(
       tag: WeakTypeTag[_],
       symbol: TypeSymbol,
@@ -478,12 +473,11 @@ private[macros] class DeriveMacros(override val c: whitebox.Context) extends Cat
     }
 
     val members = overridableMembersOf(instance).filter(m => m.isAbstract && !extraSymbols(m)).toSeq
-    val methodStubs = delegateMethods(instance, members, NoSymbol) {
-      case m => m.copy(body = q"_root_.scala.Predef.???")
+    val methodStubs = delegateMethods(instance, members, NoSymbol) { case m =>
+      m.copy(body = q"_root_.scala.Predef.???")
     }
-    val typeStubs = delegateTypes(instance, members)((tpe, args) => typeOf[Nothing]).map {
-      case td: TypeDef =>
-        TypeDef(Modifiers(td.mods.flags | Flag.OVERRIDE), td.name, td.tparams, td.rhs)
+    val typeStubs = delegateTypes(instance, members)((tpe, args) => typeOf[Nothing]).map { case td: TypeDef =>
+      TypeDef(Modifiers(td.mods.flags | Flag.OVERRIDE), td.name, td.tparams, td.rhs)
     }
     val stubs                       = typeStubs ++ methodStubs ++ extraMembers.map(_._2)
     val Block(List(declaration), _) = typeCheckWithFreshTypeParams(q"new $classType { ..$stubs }")
@@ -570,7 +564,7 @@ private[macros] class DeriveMacros(override val c: whitebox.Context) extends Cat
   )(
       step: Seq[Param] => (Tree, Tree)
   ): Tree = {
-    val Tuple2K = symbolOf[Tuple2K[Any, Any, Any]]
+    val Tuple2K      = symbolOf[Tuple2K[Any, Any, Any]]
     val tupleApplied = appliedType(Tuple2K, tuple1Type, tuple2Type, Tuple2K.typeParams.last.asType.toType)
     val tupleK       = polyType(List(Tuple2K.typeParams.last), tupleApplied).typeConstructor.etaExpand.dealias
     instantiateHKD(tpe, Nil)(tupleK +: constructTypes: _*)(typeStep) { params =>

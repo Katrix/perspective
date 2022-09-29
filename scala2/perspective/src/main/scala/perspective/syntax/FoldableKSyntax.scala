@@ -1,9 +1,9 @@
 package perspective
 package syntax
 
-import cats.kernel.Monoid
-
 import scala.language.implicitConversions
+
+import cats.kernel.Monoid
 
 trait FoldableKSyntax {
 
@@ -13,10 +13,12 @@ trait FoldableKSyntax {
   implicit def perspectiveFoldableConstKCFOps[F[_[_]]: FoldableKC, A](fa: F[Const[A, *]]): FoldableConstKCOps[F, A] =
     new FoldableConstKCOps[F, A](fa)
 
-  implicit def perspectiveFoldableKFOps[F[_[_], _] : FoldableK, A[_], C](fa: F[A, C]): FoldableKOps[F, A, C] =
+  implicit def perspectiveFoldableKFOps[F[_[_], _]: FoldableK, A[_], C](fa: F[A, C]): FoldableKOps[F, A, C] =
     new FoldableKOps[F, A, C](fa)
 
-  implicit def perspectiveFoldableConstKFOps[F[_[_], _] : FoldableK, A, C](fa: F[Const[A, *], C]): FoldableConstKOps[F, A, C] =
+  implicit def perspectiveFoldableConstKFOps[F[_[_], _]: FoldableK, A, C](
+      fa: F[Const[A, *], C]
+  ): FoldableConstKOps[F, A, C] =
     new FoldableConstKOps[F, A, C](fa)
 }
 

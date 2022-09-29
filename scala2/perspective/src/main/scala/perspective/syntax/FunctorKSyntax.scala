@@ -8,7 +8,7 @@ trait FunctorKSyntax {
   implicit def perspectiveFunctorKCFOps[F[_[_]]: FunctorKC, A[_]](fa: F[A]): FunctorKCOps[F, A] =
     new FunctorKCOps[F, A](fa)
 
-  implicit def perspectiveFunctorKFOps[F[_[_], _] : FunctorK, A[_], C](fa: F[A, C]): FunctorKOps[F, A, C] =
+  implicit def perspectiveFunctorKFOps[F[_[_], _]: FunctorK, A[_], C](fa: F[A, C]): FunctorKOps[F, A, C] =
     new FunctorKOps[F, A, C](fa)
 }
 

@@ -1,7 +1,7 @@
 package perspective.examples
 
-import perspective.derivation._
 import io.circe._
+import perspective.derivation._
 
 object CodecDeriver {
   def deriver[A] = new CodecDeriver[A]
