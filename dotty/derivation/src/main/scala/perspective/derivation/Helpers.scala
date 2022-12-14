@@ -118,7 +118,7 @@ object Helpers {
   }
 
   @tailrec
-  private def typesOfTuple(
+  private[derivation] def typesOfTuple(
       using q: Quotes
   )(tpe: q.reflect.TypeRepr, acc: List[q.reflect.TypeRepr]): List[q.reflect.TypeRepr] =
     import q.reflect.*
@@ -134,7 +134,7 @@ object Helpers {
 
   // Modified version of Type.valueOfTuple
   @tailrec
-  private def valuesOfConstantTuple(
+  private[derivation] def valuesOfConstantTuple(
       using q: Quotes
   )(tpe: q.reflect.TypeRepr, acc: List[Expr[Any]]): Option[List[Expr[Any]]] =
     import q.reflect.*

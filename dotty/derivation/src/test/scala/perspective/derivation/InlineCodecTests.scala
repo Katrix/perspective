@@ -76,10 +76,8 @@ object InlineCodecTests {
         private val encoders = gen.summonInstances[Encoder]
 
         override def apply(a: A): Json =
-          val obj = gen.to(a)
-
           val list = gen.tabulateFoldLeft(Nil: List[(String, Json)])((acc, idx) =>
-            val field   = obj.indexK(idx)
+            val field   = a.productElementId(idx)
             val name    = names.indexK(idx)
             val encoder = encoders.indexK(idx)
 
@@ -89,13 +87,13 @@ object InlineCodecTests {
           Json.obj(list: _*)
 
     inline def derivedSumEncoder[A](using gen: InlineHKDSumGeneric[A]): PerspectiveInlineEncoder[A] =
-      val encoders = summonFrom {
-        case encoders: gen.Gen[Encoder] => encoders
-        case _                          => gen.tupleToGen(caseEncoders[gen.TupleRep])
-      }
-      val names = gen.names
-
       new PerspectiveInlineEncoder[A]:
+        private val encoders = summonFrom {
+          case encoders: gen.Gen[Encoder] => encoders
+          case _                          => gen.tupleToGen(caseEncoders[gen.TupleRep])
+        }
+        private val names = gen.names
+
         override def apply(a: A): Json =
           val casted       = gen.indexOfACasting(a)
           val idx          = casted.index
@@ -113,8 +111,8 @@ object InlineCodecTests {
       case _: EmptyTuple => EmptyTuple
       case _: (h *: t) =>
         val headEncoder: Encoder[h] = summonFrom {
-          case e: Encoder[`h`]            => e
-          case gen: InlineHKDGeneric[`h`] => derived[h]
+          case e: Encoder[`h`]             => e
+          case given InlineHKDGeneric[`h`] => derived[h]
         }
         headEncoder *: caseEncoders[t]
 

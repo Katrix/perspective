@@ -1,6 +1,7 @@
 package perspective.derivation
 
-import perspective.{Const, FunctionK, RepresentableKC, TraverseKC}
+import cats.Applicative
+import perspective._
 
 trait HKDSumGeneric[A] { self =>
   type Gen[_[_]]
@@ -39,17 +40,25 @@ trait HKDSumGeneric[A] { self =>
     }
   }
 
+  def tabulateFoldLeft[B](start: B)(f: B => Index ~>: Const[B, *]): B
+
+  def tabulateTraverseK[G[_], B[_]](f: Index ~>: Compose2[G, B, *])(implicit G: Applicative[G]): G[Gen[B]]
+
+  def tabulateTraverseKOption[B[_]](f: Index ~>: Compose2[Option, B, *]): Option[Gen[B]]
+
+  def tabulateTraverseKEither[E, B[_]](f: Index ~>: Compose2[Either[E, *], B, *]): Either[E, Gen[B]]
+
   def representable: RepresentableKC.Aux[Gen, Index]
   def traverse: TraverseKC[Gen]
 
-  object implicits extends SumImplicitsLowPriority[A, Gen] {
+  object implicits extends SumImplicitsLowPriority[A, Gen, Index] {
     implicit def representable: RepresentableKC.Aux[Gen, Index] = self.representable
 
-    override private[derivation] def sumInstance: HKDSumGeneric.Aux[A, Gen] = self
+    override private[derivation] def sumInstance: HKDSumGeneric.Aux[A, Gen] { type Index[A] = self.Index[A] } = self
   }
 }
-abstract private[derivation] class SumImplicitsLowPriority[A, Gen[_[_]]] {
-  private[derivation] def sumInstance: HKDSumGeneric.Aux[A, Gen]
+abstract private[derivation] class SumImplicitsLowPriority[A, Gen[_[_]], Index0[_]] {
+  private[derivation] def sumInstance: HKDSumGeneric.Aux[A, Gen] { type Index[A] = Index0[A] }
 
   implicit def traverse: TraverseKC[Gen] = sumInstance.traverse
 }

@@ -8,7 +8,6 @@ import perspective.{Compose2, Const, Finite, RepresentableKC, TraverseKC, ~>#:, 
 
 case class ArrayProductK[F[_], N <: Int with Singleton](arr: ArraySeq[F[_]])
 object ArrayProductK {
-  case class Foo(a: Int, b: String)
 
   object NewTypes extends ArrayProductKNewtypes
 

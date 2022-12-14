@@ -26,7 +26,7 @@ trait RepresentableK[F[_[_], _]] extends MonadK[F] with DistributiveK[F]:
 
   extension [A[_], C](fa: F[A, C])
     /** A higher kinded equivalent of [[cats.Representable.index]]. */
-    def indexK: RepresentationK ~>: A
+    def indexK[Z](i: RepresentationK[Z]): A[Z]
 
     override def mapK[B[_]](f: A ~>: B): F[B, C] =
       tabulateK([Z] => (r: RepresentationK[Z]) => f(fa.indexK(r)))

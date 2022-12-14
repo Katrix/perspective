@@ -63,7 +63,7 @@ class HKDProductGenericTests extends AnyFunSuite {
 
   test("HKDProductGeneric.genFromTuple(tupleFromGen(_)) roundtrip is unchanged") {
     val v = instance.to(Foo.value1)
-    assert(instance.tupleToGen(instance.genToTuple(v)) === v)
+    assert(instance.from(instance.tupleToGen(instance.genToTuple(instance.to(Foo.value1)))) === Foo.value1)
   }
 
   test("HKDProductGeneric.Gen[TC] is correct") {
@@ -78,6 +78,65 @@ class HKDProductGenericTests extends AnyFunSuite {
       summon[TC[String]]
     )
     assert(instanceTcs === tupleTcs)
+  }
+
+  test(
+    "HKDProductGeneric.productElementId(a)(idx) corresponds to HKDProductGeneric.indexK(HKDProductGeneric.to(a))(idx)"
+  ) {
+    val a  = Foo.value1
+    val to = instance.to(a)
+    val fromProductElement = instance.representable.tabulateK[Id, Nothing](
+      [X] => (i: instance.Index[X]) => instance.productElementId(a)(i)
+    )
+    val fromIndexK = instance.representable.tabulateK[Id, Nothing]([X] => (i: instance.Index[X]) => to.indexK(i))
+
+    assert(fromProductElement === fromIndexK)
+  }
+
+  test("HKDProductGeneric.tabulateFoldLeft corresponds to HKDProductGeneric.traverse.foldLeftK(instance.representable.indicesK)") {
+    val names = instance.names
+
+    val normal = instance.traverse.foldLeftK(instance.representable.indicesK)("")(b =>
+      [X] => (i: instance.Index[X]) => b + names.indexK(i)
+    )
+    val quick = instance.tabulateFoldLeft("")(b => [X] => (i: instance.Index[X]) => b + names.indexK(i))
+
+    assert(normal === quick)
+  }
+
+  case class W[A](a: A)
+
+  test("HKDProductGeneric.tabulateTraverseK corresponds to HKDProductGeneric.traverse.traverseK(instance.representable.indicesK)") {
+    val values = instance.to(Foo.value1)
+
+    val normal = instance.traverse.traverseK(instance.representable.indicesK)(
+      [X] => (i: instance.Index[X]) => Some(W(values.indexK(i))): Option[W[X]]
+    )
+    val quick = instance.tabulateTraverseK([X] => (i: instance.Index[X]) => Some(W(values.indexK(i))): Option[W[X]])
+
+    assert(normal === quick)
+  }
+
+  test("HKDProductGeneric.tabulateTraverseKOption corresponds to HKDProductGeneric.traverse.traverseK(instance.representable.indicesK)") {
+    val values = instance.to(Foo.value1)
+
+    val normal = instance.traverse.traverseK(instance.representable.indicesK)(
+      [X] => (i: instance.Index[X]) => Some(W(values.indexK(i))): Option[W[X]]
+    )
+    val quick = instance.tabulateTraverseKOption([X] => (i: instance.Index[X]) => Some(W(values.indexK(i))): Option[W[X]])
+
+    assert(normal === quick)
+  }
+
+  test("HKDProductGeneric.tabulateTraverseKEither corresponds to HKDProductGeneric.traverse.traverseK(instance.representable.indicesK)") {
+    val values = instance.to(Foo.value1)
+
+    val normal = instance.traverse.traverseK(instance.representable.indicesK)(
+      [X] => (i: instance.Index[X]) => Right(W(values.indexK(i))): Either[String, W[X]]
+    )
+    val quick = instance.tabulateTraverseKEither([X] => (i: instance.Index[X]) => Right(W(values.indexK(i))): Either[String, W[X]])
+
+    assert(normal === quick)
   }
 
   //

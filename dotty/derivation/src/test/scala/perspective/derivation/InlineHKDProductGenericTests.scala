@@ -314,4 +314,13 @@ class InlineHKDProductGenericTests extends AnyFunSuite {
   )
 
   // TabulateTraverse end
+
+  test(
+    "InlineHKDProductGeneric.productElementId(a)(idx) corresponds to InlineHKDProductGeneric.indexK(InlineHKDProductGeneric.to(a))(idx)"
+  ) {
+    val a  = Foo.value1
+    val to = instance.to(a)
+
+    assert(instance.tabulateK[Id](i => instance.productElementId(a)(i)) === instance.tabulateK[Id](i => to.indexK(i)))
+  }
 }

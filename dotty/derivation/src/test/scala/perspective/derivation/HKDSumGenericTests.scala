@@ -84,8 +84,7 @@ class HKDSumGenericTests extends AnyFunSuite {
 
   test("HKDSumGeneric.genFromTuple(tupleFromGen(_)) roundtrip is unchanged") {
     Foo.values.foreach { fooValue =>
-      val v = instance.to(fooValue)
-      assert(instance.tupleToGen(instance.genToTuple(v)) === v)
+      assert(instance.from(instance.tupleToGen(instance.genToTuple(instance.to(fooValue)))) === Some(fooValue))
     }
   }
 
@@ -101,6 +100,56 @@ class HKDSumGenericTests extends AnyFunSuite {
       summon[TC[Foo.G]]
     )
     assert(instanceTcs === tupleTcs)
+  }
+
+  test("HKDSumGeneric.tabulateFoldLeft corresponds to HKDSumGeneric.traverse.foldLeftK(instance.representable.indicesK)") {
+    val names = instance.names
+
+    val normal = instance.traverse.foldLeftK(instance.representable.indicesK)("")(b =>
+      [X] => (i: instance.Index[X]) => b + names.indexK(i)
+    )
+    val quick = instance.tabulateFoldLeft("")(b => [X] => (i: instance.Index[X]) => b + names.indexK(i))
+
+    assert(normal === quick)
+  }
+
+  test("HKDSumGeneric.tabulateTraverseK corresponds to HKDSumGeneric.traverse.traverseK(instance.representable.indicesK)") {
+    Foo.values.foreach { value =>
+      val values = instance.to(value)
+
+      val normal = instance.traverse.traverseK(instance.representable.indicesK)(
+        [X] => (i: instance.Index[X]) => Some(values.indexK(i)): Option[Option[X]]
+      )
+      val quick = instance.tabulateTraverseK([X] => (i: instance.Index[X]) => Some(values.indexK(i)): Option[Option[X]])
+
+      assert(normal === quick)
+    }
+  }
+
+  test("HKDSumGeneric.tabulateTraverseKOption corresponds to HKDSumGeneric.traverse.traverseK(instance.representable.indicesK)") {
+    Foo.values.foreach { value =>
+      val values = instance.to(value)
+
+      val normal = instance.traverse.traverseK(instance.representable.indicesK)(
+        [X] => (i: instance.Index[X]) => Some(values.indexK(i)): Option[Option[X]]
+      )
+      val quick = instance.tabulateTraverseKOption([X] => (i: instance.Index[X]) => Some(values.indexK(i)): Option[Option[X]])
+
+      assert(normal === quick)
+    }
+  }
+
+  test("HKDSumGeneric.tabulateTraverseKEither corresponds to HKDSumGeneric.traverse.traverseK(instance.representable.indicesK)") {
+    Foo.values.foreach { value =>
+      val values = instance.to(value)
+
+      val normal = instance.traverse.traverseK(instance.representable.indicesK)(
+        [X] => (i: instance.Index[X]) => Right(values.indexK(i)): Either[String, Option[X]]
+      )
+      val quick = instance.tabulateTraverseKEither([X] => (i: instance.Index[X]) => Right(values.indexK(i)): Either[String, Option[X]])
+
+      assert(normal === quick)
+    }
   }
 
   //

@@ -2,7 +2,7 @@ package perspective.derivation
 
 import scala.language.implicitConversions
 
-import scala.annotation.tailrec
+import scala.annotation.{compileTimeOnly, tailrec}
 import scala.compiletime.*
 import scala.deriving.*
 import scala.quoted.*
@@ -17,9 +17,11 @@ import perspective.*
   * and tries to generate as simple bytecode as possible. Might be more error
   * prone, and produce bigger classes using this, but the bytecode is much
   * simpler.
+  *
   * @tparam A
   *   The type being abstracted over.
   */
+//noinspection ScalaUnusedSymbol
 sealed trait InlineHKDGeneric[A]:
   /** A representation of [[A]] supporting higher kinded types. */
   type Gen[_[_]]
@@ -160,14 +162,17 @@ sealed trait InlineHKDGeneric[A]:
   extension [A[_]](fa: Gen[A]) inline def flatMapK[B[_]](inline f: A ~>#: Gen[B]): Gen[B]
 
   // Representable
-  inline def tabulateK[B[_]](inline f: (i: Index) => B[i.X])(using classTag: ClassTag[B[ElemTop]]): Gen[B]
+  inline def tabulateK[B[_]](inline f: (i: Index) => B[i.X], inline unrolling: Boolean = false)(
+      using classTag: ClassTag[B[ElemTop]]
+  ): Gen[B]
 
   inline def tabulateConst[B](inline f: Index => B)(using ClassTag[B]): Gen[Const[B]] = tabulateK(f)
 
-  inline def tabulateFoldLeft[B](inline start: B)(inline f: (B, Index) => B): B
+  inline def tabulateFoldLeft[B](inline start: B, inline unrolling: Boolean = false)(inline f: (B, Index) => B): B
 
   inline def tabulateTraverseK[G[_], B[_]](
-      inline f: (i: Index) => G[B[i.X]]
+      inline f: (i: Index) => G[B[i.X]],
+      inline unrolling: Boolean = false
   )(using inline G: Applicative[G], classTag: ClassTag[B[ElemTop]]): G[Gen[B]]
 
   inline def tabulateTraverseIdK[G[_]](inline f: (i: Index) => G[i.X])(using inline G: Applicative[G]): G[Gen[Id]] =
@@ -177,6 +182,7 @@ sealed trait InlineHKDGeneric[A]:
 
   extension [B[_]](fa: Gen[B]) inline def indexK(rep: Index): B[rep.X]
 
+//noinspection ScalaUnusedSymbol,DuplicatedCode
 object InlineHKDGeneric:
   type Aux[A, Gen0[_[_]]] = InlineHKDGeneric[A] {
     type Gen[B[_]] = Gen0[B]
@@ -211,6 +217,12 @@ object InlineHKDGeneric:
     private inline def quickArrayIndex(i: Int): A =
       arr.asInstanceOf[Array[A]](i)
 
+  @compileTimeOnly("lateInlineMatch must be used within a supported InlineHKDGeneric method")
+  def lateInlineMatch[A](a: A): A = sys.error("impossible")
+
+  @compileTimeOnly("productElementIdExact must be used within a supported InlineHKDGeneric method")
+  def productElementIdExact[A, ElemTop](a: A, idx: Int { type X <: ElemTop }): idx.X = sys.error("impossible")
+
   extension [A](arr: Array[A]) private[derivation] inline def asIArray: IArray[A] = arr.asInstanceOf[IArray[A]]
 
   private[derivation] inline def iteratorToArray[A[_], ElemTop](inline itIn: Iterator[A[ElemTop]], inline size: Int)(
@@ -226,47 +238,207 @@ object InlineHKDGeneric:
     arr
   }
 
-  private def tabulateKImpl[A[_]: Type, T <: Tuple: Type, ElemTop: Type](
-      sizeExpr: Expr[Tuple.Size[T]],
-      f: Expr[(i: IntIdx[Tuple.Size[T], ElemTop]) => A[i.X]],
+  private class ProductElementIdExactExpander[Q <: Quotes, Types <: Tuple: Type, Fields <: Tuple: Type](using val q: Q)
+      extends q.reflect.TreeMap {
+    import q.reflect.*
+
+    override def transformTerm(tree: Term)(owner: Symbol): Term =
+      try {
+        tree.asExpr match {
+          case '{ InlineHKDGeneric.productElementIdExact[a2, elemTop]($a, $idx) } =>
+            transformExact(a, idx)
+          case _ =>
+            super.transformTerm(tree)(owner)
+        }
+      } catch {
+        case e: Exception =>
+          // Tried to convert partially applied type to Expr. Ignoring it
+          tree
+      }
+
+    def transformExact[A](a: Expr[A], idxExpr: Expr[Int]): Term = {
+      def findConstantIdx(tpe: TypeRepr): Option[Int] = tpe match {
+        case AndType(a, b)                => findConstantIdx(a).orElse(findConstantIdx(b))
+        case ConstantType(IntConstant(i)) => Some(i)
+        case Refinement(a, _, _)          => findConstantIdx(a)
+        case t                            => None
+      }
+
+      val idx = findConstantIdx(idxExpr.asTerm.tpe.widenTermRefByName).getOrElse(idxExpr.valueOrAbort)
+
+      val tpe = Helpers.typesOfTuple(TypeRepr.of[Types], Nil)(idx)
+      val field = Helpers.valuesOfConstantTuple(TypeRepr.of[Fields], Nil) match {
+        case Some(seq) => seq(idx).asInstanceOf[Expr[String]].valueOrAbort
+        case None      => report.errorAndAbort("productElementIdExactImpl1 called with non constant fields type")
+      }
+
+      tpe.asType match {
+        case '[t] => Select.unique(a.asTerm, field)
+      }
+    }
+  }
+
+  private class RefReplacer[Q <: Quotes](using val q: Q)(oldRef: q.reflect.Symbol, newRef: q.reflect.Ref)
+      extends q.reflect.TreeMap {
+    import q.reflect.*
+
+    override def transformTerm(tree: Term)(owner: Symbol): Term =
+      tree match {
+        case Ident(id) if id == oldRef.name => newRef
+        case _                              => super.transformTerm(tree)(owner)
+      }
+  }
+
+  private class LateInlineMatchExpander[Q <: Quotes]()(using val q: Q) extends q.reflect.TreeMap {
+    import q.reflect.*
+
+    override def transformTerm(tree: Term)(owner: Symbol): Term = {
+      tree.asExpr match {
+        case '{ InlineHKDGeneric.lateInlineMatch[a]($a) } =>
+          transformMatch(a, owner)
+        case _ =>
+          val res =
+            try {
+              super.transformTerm(tree)(owner)
+            } catch {
+              case _: Exception =>
+                // FIXME: Have no idea why this happens. Just ignoring it for now.
+                tree
+            }
+
+          res
+      }
+    }
+
+    def transformMatch[A: Type](aExpr: Expr[A], owner: Symbol): Term = aExpr.asTerm match {
+      case m @ Match(scrutinee, cases) =>
+        val tpe = scrutinee.tpe.widenTermRefByName
+
+        cases.foreach {
+          case CaseDef(_, Some(_), _)                     => report.errorAndAbort("Cases in match can not have guards")
+          case CaseDef(Bind(_, Typed(Ident(_), _)), _, _) =>
+          case CaseDef(Bind(_, Ident(_)), _, _)           =>
+          case caseDef => report.errorAndAbort("Invalid case in match inside lateInlineMatch", caseDef.pos)
+        }
+
+        val hasDefaultCase = cases.exists {
+          case CaseDef(Bind(_, Ident(_)), _, _) => true
+          case _                                => false
+        }
+        if !hasDefaultCase then report.errorAndAbort("Match must have a default case", m.pos)
+
+        val (bind, rhs) = cases
+          .collectFirst {
+            case CaseDef(bind @ Bind(_, typed @ Typed(Ident(_), _)), _, rhs) if tpe <:< typed.symbol.typeRef =>
+              (bind, rhs)
+          }
+          .getOrElse {
+            cases.collectFirst { case CaseDef(bind @ Bind(_, Ident(_)), _, rhs) =>
+              (bind, rhs)
+            }.get
+          }
+
+        val res = ValDef.let(owner, bind.name + "Replaced", scrutinee) { newRef =>
+          val replacer = new RefReplacer[q.type](bind.symbol, newRef)
+          replacer.transformTerm(rhs)(owner)
+        }
+
+        res
+      case _ => report.errorAndAbort("Body of lateInlineMatch must be a match", aExpr)
+    }
+  }
+
+  private def processUnrollingDefs[Types <: Tuple: Type, Fields <: Tuple: Type, A: Type](e: Expr[A])(
+      using q: Quotes
+  ): Expr[A] =
+    import q.reflect.*
+
+    val productElementIdExactExpander = new ProductElementIdExactExpander[q.type, Types, Fields]()
+    val lateInlineMatchExpander       = new LateInlineMatchExpander[q.type]()
+
+    val r1 = productElementIdExactExpander.transformTerm(e.asTerm)(Symbol.spliceOwner)
+    val r2 = lateInlineMatchExpander.transformTerm(r1)(Symbol.spliceOwner)
+    r2.asExprOf[A]
+  end processUnrollingDefs
+
+  private def tabulateKImpl[A[_]: Type, Types <: Tuple: Type, ElemTop: Type, Fields <: Tuple: Type](
+      sizeExpr: Expr[Tuple.Size[Types]],
+      f: Expr[(i: Int { type X <: ElemTop }) => A[i.X]],
+      unrolling: Expr[Boolean],
       classTagExpr: Expr[ClassTag[A[ElemTop]]]
   )(
       using q: Quotes
   ): Expr[IArray[A[ElemTop]]] = {
+    import q.reflect.*
 
-    '{
+    val doUnrolling = unrolling.valueOrAbort
+
+    val noUnrolling = '{
       given ClassTag[A[ElemTop]] = $classTagExpr
 
       val arr    = new Array[A[ElemTop]]($sizeExpr)
       var i: Int = 0
       while (i < $sizeExpr) {
-        arr(i) = ${ Expr.betaReduce('{ $f(IntIdx.unsafeOfInt[Tuple.Size[T], ElemTop, ElemTop](i)) }) }
+        arr(i) = ${ Expr.betaReduce('{ $f(i.asInstanceOf[Int { type X = ElemTop }]) }) }
         i += 1
       }
 
       arr.asIArray
     }
+
+    val tpes = Helpers.typesOfTuple(TypeRepr.of[Types], Nil)
+
+    val assigns = Seq.tabulate(sizeExpr.valueOrAbort)(i => Expr(i)).zip(tpes.map(_.asType)).map { case (i, '[t]) =>
+      (arr: Expr[Array[A[ElemTop]]]) =>
+        '{
+          $arr($i) = ${
+            Expr.betaReduce('{ $f($i.asInstanceOf[Int { type X = t & ElemTop }]).asInstanceOf[A[ElemTop]] })
+          }
+        }
+    }
+
+    val withUnrolling = '{
+      given ClassTag[A[ElemTop]] = $classTagExpr
+      val arr                    = new Array[A[ElemTop]]($sizeExpr)
+
+      ${ Expr.block(assigns.map(f => f('arr)).toList, '{ arr.asIArray }) }
+    }
+
+    if doUnrolling then processUnrollingDefs[Types, Fields, IArray[A[ElemTop]]](withUnrolling) else noUnrolling
   }
 
-  private def tabulateFoldLeftImpl[B: Type, T <: Tuple: Type, ElemTop: Type](
-      sizeExpr: Expr[Tuple.Size[T]],
+  private def tabulateFoldLeftImpl[B: Type, Types <: Tuple: Type, Fields <: Tuple: Type, ElemTop: Type](
+      sizeExpr: Expr[Tuple.Size[Types]],
       startExpr: Expr[B],
-      f: Expr[(B, IntIdx[Tuple.Size[T], ElemTop]) => B]
+      unrolling: Expr[Boolean],
+      f: Expr[(B, Int { type X <: ElemTop }) => B]
   )(using q: Quotes): Expr[B] = {
     import q.reflect.*
 
-    '{
+    val doUnrolling = unrolling.valueOrAbort
+
+    val noUnrolling = '{
       var res: B = $startExpr
       var i: Int = 0
       while (i < $sizeExpr) {
         res = ${
-          Expr.betaReduce('{ $f(res, IntIdx.unsafeOfInt[Tuple.Size[T], ElemTop, ElemTop](i)) })
+          Expr.betaReduce('{ $f(res, i.asInstanceOf[Int { type X <: ElemTop }]) })
         }
         i += 1
       }
 
       res
     }
+
+    val tpes = Helpers.typesOfTuple(TypeRepr.of[Types], Nil)
+    val withUnrolling = Seq.tabulate(sizeExpr.valueOrAbort)(identity).zip(tpes.map(_.asType)).foldLeft(startExpr) {
+      case (acc, (i, '[t])) =>
+        ConstantType(IntConstant(i)).asType match {
+          case '[n] => Expr.betaReduce('{ $f($acc, ${ Expr(i) }.asInstanceOf[Int & n { type X = t & ElemTop }]) })
+        }
+    }
+
+    if doUnrolling then processUnrollingDefs[Types, Fields, B](withUnrolling) else noUnrolling
   }
 
   private inline def defaultValue[A]: A =
@@ -284,7 +456,7 @@ object InlineHKDGeneric:
     }
     default.asInstanceOf[A]
 
-  private def traverseKImpl[ElemTop: Type, T <: Tuple: Type, A[_]: Type, G[_]: Type, B[_]: Type](
+  private def traverseKImpl[ElemTop: Type, T <: Tuple: Type, F <: Tuple: Type, A[_]: Type, G[_]: Type, B[_]: Type](
       fa: Expr[IArray[A[ElemTop]]],
       f: Expr[A ~>: Compose2[G, B]],
       G: Expr[Applicative[G]],
@@ -306,10 +478,11 @@ object InlineHKDGeneric:
       fIfNotIdentity('{ $fa.quickArrayIndex($i) })
 
     def traverseId = {
-      val mapFun = '{ (i: IntIdx[Tuple.Size[T], ElemTop]) =>
-        ${ fElem('{ i.value.value }) }.asInstanceOf[B[i.X]]
+      val mapFun = '{ (i: Int { type X <: ElemTop }) =>
+        ${ fElem('{ i }) }.asInstanceOf[B[i.X]]
       }
-      tabulateKImpl[B, T, ElemTop](sizeExpr, mapFun, classTagExpr).asInstanceOf[Expr[G[IArray[B[ElemTop]]]]]
+      tabulateKImpl[B, T, ElemTop, F](sizeExpr, mapFun, Expr(false), classTagExpr)
+        .asInstanceOf[Expr[G[IArray[B[ElemTop]]]]]
     }
 
     def traverseEither[E: Type] = '{
@@ -322,11 +495,11 @@ object InlineHKDGeneric:
       while (i < $sizeExpr && !gotError) {
         val res = ${ fElem('i) }.asInstanceOf[Either[E, B[ElemTop]]]
         res match {
+          case Right(v) =>
+            arr(i) = v
           case Left(e) =>
             gotError = true
             error = e
-          case Right(v) =>
-            arr(i) = v
         }
 
         i += 1
@@ -378,66 +551,121 @@ object InlineHKDGeneric:
     }
   end traverseKImpl
 
-  private def tabulateTraverseKImpl[ElemTop: Type, T <: Tuple: Type, G[_]: Type, B[_]: Type](
-      f: Expr[(i: IntIdx[Tuple.Size[T], ElemTop]) => G[B[i.X]]],
+  private def tabulateTraverseKImpl[ElemTop: Type, Types <: Tuple: Type, Fields <: Tuple: Type, G[_]: Type, B[_]: Type](
+      f: Expr[(i: Int { type X <: ElemTop }) => G[B[i.X]]],
+      unrolling: Expr[Boolean],
       G: Expr[Applicative[G]],
-      sizeExpr: Expr[Tuple.Size[T]],
+      sizeExpr: Expr[Tuple.Size[Types]],
       classTagExpr: Expr[ClassTag[B[ElemTop]]]
   )(using q: Quotes): Expr[G[IArray[B[ElemTop]]]] =
+    import q.reflect.*
+
+    val doUnrolling = unrolling.valueOrAbort
+    val size        = sizeExpr.valueOrAbort
+
     def traverseId =
-      tabulateKImpl[B, T, ElemTop](
+      tabulateKImpl[B, Types, ElemTop, Fields](
         sizeExpr,
-        f.asInstanceOf[Expr[(i: IntIdx[Tuple.Size[T], ElemTop]) => B[i.X]]],
+        f.asInstanceOf[Expr[(i: Int { type X <: ElemTop }) => B[i.X]]],
+        unrolling,
         classTagExpr
-      )
-        .asInstanceOf[Expr[G[IArray[B[ElemTop]]]]]
+      ).asInstanceOf[Expr[G[IArray[B[ElemTop]]]]]
 
     def fApply(i: Expr[Int]): Expr[G[B[ElemTop]]] =
-      Expr.betaReduce('{ $f(IntIdx.unsafeOfInt[Tuple.Size[T], ElemTop, ElemTop]($i)) })
+      Expr.betaReduce('{ $f($i.asInstanceOf[Int { type X = ElemTop }]) })
 
-    def traverseEither[E: Type] = '{
-      given scala.reflect.ClassTag[B[ElemTop]] = $classTagExpr
+    def traverseEither[E: Type] = {
+      val withoutUnrolling = '{
+        given scala.reflect.ClassTag[B[ElemTop]] = $classTagExpr
 
-      var error: E = defaultValue[E]
-      var gotError = false
-      val arr      = new Array[B[ElemTop]]($sizeExpr)
-      var i: Int   = 0
-      while (i < $sizeExpr && !gotError) {
-        val res = ${ fApply('i) }.asInstanceOf[Either[E, B[ElemTop]]]
-        res match {
-          case Left(e) =>
-            gotError = true
-            error = e
-          case Right(v) =>
-            arr(i) = v
+        var error: E = defaultValue[E]
+        var gotError = false
+        val arr      = new Array[B[ElemTop]]($sizeExpr)
+        var i: Int   = 0
+        while (i < $sizeExpr && !gotError) {
+          val res = ${ fApply('i) }.asInstanceOf[Either[E, B[ElemTop]]]
+          res match {
+            case Right(v) =>
+              arr(i) = v
+            case Left(e) =>
+              gotError = true
+              error = e
+          }
+
+          i += 1
         }
 
-        i += 1
+        val ret: Either[E, IArray[B[ElemTop]]] = if gotError then Left(error) else Right(arr.asIArray)
+        ret.asInstanceOf[G[IArray[B[ElemTop]]]]
       }
 
-      val ret: Either[E, IArray[B[ElemTop]]] = if gotError then Left(error) else Right(arr.asIArray)
-      ret.asInstanceOf[G[IArray[B[ElemTop]]]]
+      val withUnrolling = '{
+        val arr = new Array[B[ElemTop]]($sizeExpr)
+
+        val ret = ${
+          List.tabulate(size)(i => Expr(i)).foldRight('{ Right(arr.asIArray): Either[E, IArray[B[ElemTop]]] }) { (i, acc) =>
+            '{
+              ${ fApply(i) }.asInstanceOf[Either[E, B[ElemTop]]] match {
+                case Right(v) =>
+                  arr($i) = v
+                  $acc
+                case Left(e) =>
+                  Left(e)
+              }
+            }
+          }
+        }
+
+        ret.asInstanceOf[G[IArray[B[ElemTop]]]]
+      }
+
+      if doUnrolling then processUnrollingDefs[Types, Fields, G[IArray[B[ElemTop]]]](withUnrolling)
+      else withoutUnrolling
     }
 
-    def traverseOption = '{
-      given scala.reflect.ClassTag[B[ElemTop]] = $classTagExpr
+    def traverseOption = {
+      val withoutUnrolling = '{
+        given scala.reflect.ClassTag[B[ElemTop]] = $classTagExpr
 
-      var gotError = false
-      val arr      = new Array[B[ElemTop]]($sizeExpr)
-      var i: Int   = 0
-      while (i < $sizeExpr && !gotError) {
-        val res = ${ fApply('i) }.asInstanceOf[Option[B[ElemTop]]]
-        if (res.isEmpty) {
-          gotError = true
-        } else {
-          arr(i) = res.get
+        var gotError = false
+        val arr      = new Array[B[ElemTop]]($sizeExpr)
+        var i: Int   = 0
+        while (i < $sizeExpr && !gotError) {
+          val res = ${ fApply('i) }.asInstanceOf[Option[B[ElemTop]]]
+          if (res.isEmpty) {
+            gotError = true
+          } else {
+            arr(i) = res.get
+          }
+
+          i += 1
         }
 
-        i += 1
+        val ret: Option[IArray[B[ElemTop]]] = if gotError then None else Some(arr.asIArray)
+        ret.asInstanceOf[G[IArray[B[ElemTop]]]]
       }
 
-      val ret: Option[IArray[B[ElemTop]]] = if gotError then None else Some(arr.asIArray)
-      ret.asInstanceOf[G[IArray[B[ElemTop]]]]
+      val withUnrolling = '{
+        val arr = new Array[B[ElemTop]]($sizeExpr)
+
+        val ret = ${
+          List.tabulate(size)(i => Expr(i)).foldRight('{ Some(arr.asIArray): Option[IArray[B[ElemTop]]] }) { (i, acc) =>
+            '{
+              ${ fApply(i) }.asInstanceOf[Option[B[ElemTop]]] match {
+                case Some(v) =>
+                  arr($i) = v
+                  $acc
+                case None => None
+              }
+            }
+          }
+        }
+
+        ret.asInstanceOf[G[IArray[B[ElemTop]]]]
+      }
+
+      if doUnrolling then processUnrollingDefs[Types, Fields, G[IArray[B[ElemTop]]]](withUnrolling)
+      else withoutUnrolling
     }
 
     G match {
@@ -448,7 +676,7 @@ object InlineHKDGeneric:
       case '{ cats.instances.option.catsStdInstancesForOption }    => traverseOption
       case '{ cats.Invariant.catsInstancesForOption }              => traverseOption
       case _ =>
-        '{
+        val withoutUnrolling = '{
           var acc: G[List[B[ElemTop]]] = $G.pure(List.empty[B[ElemTop]])
           var i: Int                   = 0
           while (i < $sizeExpr) {
@@ -458,33 +686,23 @@ object InlineHKDGeneric:
 
           $G.map(acc)(a => iteratorToArray(a.reverseIterator, $sizeExpr)(using $classTagExpr).asIArray)
         }
+
+        val withUnrolling = {
+          val mapped = List.tabulate(size)(i => Expr(i)).foldLeft('{ $G.pure(List.empty[B[ElemTop]]) }) { (acc, i) =>
+            '{ $G.map2(${ fApply(i) }, $acc)((v, a) => v :: a) }
+          }
+
+          '{ $G.map($mapped)(a => iteratorToArray(a.reverseIterator, $sizeExpr)(using $classTagExpr).asIArray) }
+        }
+
+        if doUnrolling then processUnrollingDefs[Types, Fields, G[IArray[B[ElemTop]]]](withUnrolling)
+        else withoutUnrolling
     }
   end tabulateTraverseKImpl
 
-  export IntIdxDefs.IntIdx
-  object IntIdxDefs {
-
-    /** The type of the Index in the [[InlineHKDGeneric]] implementations. */
-    opaque type IntIdx[N <: Int, Bound] <: Any {
-      type X <: Bound
-    } = Finite[N] & Any { type X <: Bound }
-
-    object IntIdx {
-      inline def of[N <: Int, Bound, X0 <: Bound](v: Finite[N]): IntIdx[N, Bound] { type X = X0 } =
-        v.asInstanceOf[IntIdx[N, Bound] { type X = X0 }]
-
-      private[perspective] inline def unsafeOfInt[N <: Int, Bound, X0 <: Bound](
-          v: Int
-      ): IntIdx[N, Bound] { type X = X0 } =
-        of[N, Bound, X0](v.asInstanceOf[Finite[N]])
-
-      extension [N <: Int, Bound](i: IntIdx[N, Bound]) inline def value: Finite[N] = i
-    }
-  }
-
-  sealed trait InlineHKDGenericTypeclassOps[A, T <: Tuple] extends InlineHKDGeneric[A]:
+  sealed trait InlineHKDGenericTypeclassOps[A, T <: Tuple, F <: Tuple] extends InlineHKDGeneric[A]:
     override type Gen[F[_]] = IArray[F[ElemTop]]
-    override type Index     = IntIdx[Tuple.Size[T], ElemTop]
+    override type Index     = Int { type X <: ElemTop }
 
     override inline def nameToIndex[Name <: this.Names](name: Name): IndexAux[this.FieldOf[Name]] =
       // TODO: Macro match
@@ -525,7 +743,7 @@ object InlineHKDGeneric:
           using inline G: Applicative[G],
           classTag: ClassTag[B[ElemTop]]
       ): G[Gen[B]] =
-        ${ traverseKImpl[ElemTop, T, A, G, B]('fa, 'f, 'G, 'size, 'classTag) }
+        ${ traverseKImpl[ElemTop, T, F, A, G, B]('fa, 'f, 'G, 'size, 'classTag) }
       end traverseK
 
     extension [G[_], A[_]](fga: Gen[Compose2[G, A]])
@@ -536,21 +754,23 @@ object InlineHKDGeneric:
       // Representable
 
       override inline def indexK(rep: Index): A[rep.X] =
-        fa.quickArrayIndex(rep.value.value).asInstanceOf[A[rep.X]]
+        fa.quickArrayIndex(rep).asInstanceOf[A[rep.X]]
 
-    override inline def tabulateK[A[_]](inline f: (i: Index) => A[i.X])(using classTag: ClassTag[A[ElemTop]]): Gen[A] =
-      ${ tabulateKImpl[A, T, ElemTop]('size, 'f, 'classTag) }
+    override inline def tabulateK[A[_]](inline f: (i: Index) => A[i.X], inline unrolling: Boolean)(
+        using classTag: ClassTag[A[ElemTop]]
+    ): Gen[A] =
+      ${ tabulateKImpl[A, T, ElemTop, F]('size, 'f, 'unrolling, 'classTag) }
     end tabulateK
 
-    override inline def tabulateFoldLeft[B](inline start: B)(inline f: (B, Index) => B): B =
-      ${ tabulateFoldLeftImpl[B, T, ElemTop]('size, 'start, 'f) }
+    override inline def tabulateFoldLeft[B](inline start: B, inline unrolling: Boolean)(inline f: (B, Index) => B): B =
+      ${ tabulateFoldLeftImpl[B, T, F, ElemTop]('size, 'start, 'unrolling, 'f) }
     end tabulateFoldLeft
 
-    override inline def tabulateTraverseK[G[_], B[_]](inline f: (i: Index) => G[B[i.X]])(
+    override inline def tabulateTraverseK[G[_], B[_]](inline f: (i: Index) => G[B[i.X]], inline unrolling: Boolean)(
         using inline G: Applicative[G],
         classTag: ClassTag[B[ElemTop]]
     ): G[Gen[B]] =
-      ${ tabulateTraverseKImpl[ElemTop, T, G, B]('f, 'G, 'size, 'classTag) }
+      ${ tabulateTraverseKImpl[ElemTop, T, F, G, B]('f, 'unrolling, 'G, 'size, 'classTag) }
 
     // Monad
 
@@ -608,6 +828,23 @@ trait InlineHKDProductGeneric[A] extends InlineHKDGeneric[A]:
   /** Convert a value of the higher kinded representation to [[A]]. */
   inline def from(gen: Gen[Id]): A
 
+  extension (a: A)
+
+    /** Equivalent to `to(a).indexK(index)`, but faster. */
+    inline def productElementId(index: Index): index.X
+
+    /**
+      * Like [[productElementId]], but gives back the exact type. Can only be
+      * used in unrolled calls.
+      */
+    transparent inline def productElementIdExact(inline idx: Index): idx.X
+
+  /**
+    * Like an inline match, but delays the expansion slightly. The value inside
+    * must be a normal match. Can only be used in unrolled calls.
+    */
+  inline def lateInlineMatch[A](inline a: A): A = InlineHKDGeneric.lateInlineMatch(a)
+
 object InlineHKDProductGeneric:
   transparent inline def apply[A](using gen: InlineHKDProductGeneric[A]): InlineHKDProductGeneric.Aux[A, gen.Gen] = gen
 
@@ -633,10 +870,10 @@ object InlineHKDProductGeneric:
       },
       val idClassTag: ClassTag[Tuple.Union[ElemTypes]]
   ) extends InlineHKDProductGeneric[A]
-      with InlineHKDGeneric.InlineHKDGenericTypeclassOps[A, ElemTypes]:
+      with InlineHKDGeneric.InlineHKDGenericTypeclassOps[A, ElemTypes, ElemLabels]:
     override type Gen[F[_]] = IArray[F[ElemTop]]
-    override type Index     = InlineHKDGeneric.IntIdx[Tuple.Size[ElemTypes], ElemTop]
-    override type ElemTop   = Tuple.Union[ElemTypes]
+    // override opaque type Index = Int { type X <: ElemTop }
+    override type ElemTop = Tuple.Union[ElemTypes]
 
     override type TypeName = m.MirroredLabel
     override inline def typeName: TypeName = constValue[m.MirroredLabel]
@@ -653,8 +890,10 @@ object InlineHKDProductGeneric:
     override type FieldOf[Name <: Names] = InlineHKDGeneric.FieldOfImpl[Name, ElemTop, ElemTypes, ElemLabels]
 
     override type TupleRep = ElemTypes
+
     override inline def genToTuple[F[_]](gen: Gen[F]): Tuple.Map[TupleRep, F] =
       Tuple.fromIArray(gen).asInstanceOf[Tuple.Map[TupleRep, F]]
+
     override inline def tupleToGen[F[_]](tuple: Tuple.Map[TupleRep, F]): Gen[F] =
       InlineHKDGeneric.asIArray(
         InlineHKDGeneric.iteratorToArray(tuple.productIterator.asInstanceOf[Iterator[F[ElemTop]]], size)
@@ -669,7 +908,16 @@ object InlineHKDProductGeneric:
       )
 
     override inline def from(a: Gen[Id]): A =
-      m.fromProduct(Tuple.fromIArray(a))
+      inline a match
+        case arr: IArray[Object] => m.fromProduct(ArrayProduct(arr))
+        case _                   => m.fromProduct(ArrayProduct(a.map(_.asInstanceOf[Object])))
+
+    extension (a: A)
+      override inline def productElementId(index: Index): index.X =
+        a.asInstanceOf[Product].productElement(index).asInstanceOf[index.X]
+
+      override transparent inline def productElementIdExact(inline idx: Index): idx.X =
+        InlineHKDGeneric.productElementIdExact[A, ElemTop](a, idx)
 
     override inline given summonInstances[F[_]]: Gen[F] =
       Helpers.summonAllToIArray[Tuple.Map[ElemTypes, F]].asInstanceOf[Gen[F]]
@@ -684,7 +932,6 @@ object InlineHKDProductGeneric:
   *   The type being abstracted over.
   */
 trait InlineHKDSumGeneric[A] extends InlineHKDGeneric[A]:
-  self =>
 
   override type ElemTop <: A
 
@@ -735,10 +982,11 @@ trait InlineHKDSumGeneric[A] extends InlineHKDGeneric[A]:
     */
   inline def from(a: Gen[Option]): Option[A]
 
+//noinspection ScalaUnusedSymbol,DuplicatedCode
 object InlineHKDSumGeneric:
 
   trait IndexOfACasting[Index <: Any { type X <: ElemTop }, ElemTop] {
-    type X0
+    type X0 <: ElemTop
     val index: Index { type X = X0 }
     val value: X0
   }
@@ -779,9 +1027,8 @@ object InlineHKDSumGeneric:
       },
       val idClassTag: ClassTag[InlineHKDGeneric.TupleUnionLub[ElemTypes, A, Nothing]]
   ) extends InlineHKDSumGeneric[A]
-      with InlineHKDGeneric.InlineHKDGenericTypeclassOps[A, ElemTypes]:
+      with InlineHKDGeneric.InlineHKDGenericTypeclassOps[A, ElemTypes, ElemLabels]:
     override type Gen[F[_]] = IArray[F[ElemTop]]
-    override type Index     = InlineHKDGeneric.IntIdx[Tuple.Size[ElemTypes], ElemTop]
     override type ElemTop   = InlineHKDGeneric.TupleUnionLub[ElemTypes, A, Nothing]
 
     override type TypeName = m.MirroredLabel
@@ -817,14 +1064,14 @@ object InlineHKDSumGeneric:
     end from
 
     inline def indexOf[X <: ElemTop](x: X): IndexAux[X] =
-      InlineHKDGeneric.IntIdx.unsafeOfInt[Tuple.Size[ElemTypes], ElemTop, X](m.ordinal(x))
+      m.ordinal(x).asInstanceOf[IndexAux[X]]
 
     inline def indexOfACasting(a: A): InlineHKDSumGeneric.IndexOfACasting[Index, ElemTop] =
       val idx = indexOfA(a)
       new InlineHKDSumGeneric.IndexOfACasting.IndexOfACastingImpl[Index, ElemTop, idx.X](idx, a.asInstanceOf[idx.X])
 
     inline def indexToName(idx: Index): NameOf[idx.X] =
-      names(idx.value.value).asInstanceOf[NameOf[idx.X]]
+      names(idx).asInstanceOf[NameOf[idx.X]]
 
     override inline given summonInstances[F[_]]: Gen[F] =
       Helpers.summonAllToIArray[Tuple.Map[ElemTypes, F]].asInstanceOf[Gen[F]]
