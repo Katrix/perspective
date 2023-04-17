@@ -24,7 +24,10 @@ opaque type ProductK[F[_], T <: Tuple] = Product
 type ProductKPar[T <: Tuple] = [F[_]] =>> ProductK[F, T]
 object ProductK:
   /** Construct a [[ProductK]] from a mapped tuple. */
-  inline def ofTuple[F[_], T <: Tuple](t: Tuple.Map[T, F]): ProductK[F, T] = t
+  inline def ofTuple[F[_], T <: Tuple](t: Helpers.TupleMap[T, F]): ProductK[F, T] = t
+
+  /** Construct a [[ProductK]] from a scala mapped tuple. */
+  inline def ofScalaTuple[F[_], T <: Tuple](t: Tuple.Map[T, F]): ProductK[F, T] = t
 
   /** Construct a [[ProductK]] from a product, with no checks. Unsafe!! */
   inline def ofProductUnsafe[F[_], T <: Tuple](p: Product): ProductK[F, T] = p
@@ -34,9 +37,11 @@ object ProductK:
 
   /** Access the mapped tuple. */
   extension [F[_], T <: Tuple](p: ProductK[F, T])
-    def tuple: Tuple.Map[T, F] = p match
-      case tuple: Tuple     => tuple.asInstanceOf[Tuple.Map[T, F]]
-      case product: Product => Tuple.fromProduct(product).asInstanceOf[Tuple.Map[T, F]]
+    def tuple: Helpers.TupleMap[T, F] = p match
+      case tuple: Tuple     => tuple.asInstanceOf[Helpers.TupleMap[T, F]]
+      case product: Product => Tuple.fromProduct(product).asInstanceOf[Helpers.TupleMap[T, F]]
+
+    def scalaTuple: Tuple.Map[T, F] = tuple.asInstanceOf[Tuple.Map[T, F]]
 
     inline def product: Product = p
 
@@ -90,4 +95,4 @@ object ProductK:
   end productKInstance
 
   inline given gatherImplicits[F[_], T <: Tuple]: ProductK[F, T] =
-    ofTuple(Helpers.summonAllOptimized[Tuple.Map[T, F]].asInstanceOf[Tuple.Map[T, F]])
+    ofTuple(Helpers.summonAllOptimized[Helpers.TupleMap[T, F]].asInstanceOf[Helpers.TupleMap[T, F]])

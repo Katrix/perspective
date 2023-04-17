@@ -13,11 +13,11 @@ type ArrayProductKPar[T <: Tuple]           = [F[_]] =>> ArrayProductK[F, T]
 object ArrayProductK {
 
   /** Construct an [[ArrayProductK]] from a mapped tuple. */
-  inline def of[F[_], T <: Tuple](t: Tuple.Map[T, F]): ArrayProductK[F, T] = t.toIArray
+  inline def of[F[_], T <: Tuple](t: Helpers.TupleMap[T, F]): ArrayProductK[F, T] = t.toIArray
 
   /** Access the mapped tuple. */
   extension [F[_], T <: Tuple](p: ArrayProductK[F, T])
-    inline def tuple: Tuple.Map[T, F] = Tuple.fromIArray(p).asInstanceOf[Tuple.Map[T, F]]
+    inline def tuple: Helpers.TupleMap[T, F] = Tuple.fromIArray(p).asInstanceOf[Helpers.TupleMap[T, F]]
 
   private inline def iArrayOf(inline size: Int)(inline f: Int => Object): IArray[Object] = {
     val arr = new Array[Object](size)
@@ -70,7 +70,7 @@ object ArrayProductK {
   end arrayProductKInstance
 
   inline given gatherImplicits[F[_], T <: Tuple]: ArrayProductK[F, T] =
-    inline Helpers.summonAllToIArray[Tuple.Map[T, F]] match {
+    inline Helpers.summonAllToIArray[T, F] match {
       case res: Array[Object] => res.asInstanceOf[IArray[Object]]
       case other              => iArrayOf(other.length)(i => other(i).asInstanceOf[Object])
     }

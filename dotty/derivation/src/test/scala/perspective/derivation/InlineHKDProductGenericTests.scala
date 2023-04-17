@@ -52,12 +52,13 @@ class InlineHKDProductGenericTests extends AnyFunSuite {
         // Need the Any type here so that correct bytecode is generated
         .map[Any] { (name: instance.Names) =>
           val idx: instance.IndexAux[instance.FieldOf[name.type]] = instance.nameToIndex(name)
-          val res: instance.FieldOf[name.type]                    = value.indexK(idx)
+          val res: instance.FieldOf[name.type]                    = instance.indexK(value)(idx)
+
           res
         }
     )
 
-    assert(fromNamesValues === Some(instance.toListK(value.mapConst[Any]([X] => (x: X) => x))))
+    assert(fromNamesValues === Some(instance.toListK(instance.mapConst(value)[Any]([X] => (x: X) => x))))
   }
 
   test("InlineHKDProductGeneric.genFromTuple(tupleFromGen(_)) roundtrip is unchanged") {
@@ -321,6 +322,6 @@ class InlineHKDProductGenericTests extends AnyFunSuite {
     val a  = Foo.value1
     val to = instance.to(a)
 
-    assert(instance.tabulateK[Id](i => instance.productElementId(a)(i)) === instance.tabulateK[Id](i => to.indexK(i)))
+    assert(instance.tabulateK[Id](i => instance.productElementId(a)(i)) === instance.tabulateK[Id](i => instance.indexK(to)(i)))
   }
 }

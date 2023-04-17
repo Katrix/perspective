@@ -12,6 +12,68 @@ object Helpers {
     case _       => false
   }
 
+  type TupleUnionLub[T <: Tuple, Lub, Acc <: Lub] <: Lub = T match {
+    case (h & Lub) *: t => TupleUnionLub[t, Lub, Acc | h]
+    case EmptyTuple     => Acc
+  }
+
+  type TupleUnion[T <: Tuple, Acc] = T match {
+    case h *: t     => TupleUnion[t, Acc | h]
+    case EmptyTuple => Acc
+  }
+
+  // TODO: Expand this to 22
+  // TODO: Check performance with this compared to just Tuple.Map
+  type TupleMap[T <: Tuple, F[_]] <: Tuple = T match {
+    case Tuple1[t1]                           => Tuple1[F[t1]]
+    case (t1, t2)                             => (F[t1], F[t2])
+    case (t1, t2, t3)                         => (F[t1], F[t2], F[t3])
+    case (t1, t2, t3, t4)                     => (F[t1], F[t2], F[t3], F[t4])
+    case (t1, t2, t3, t4, t5)                 => (F[t1], F[t2], F[t3], F[t4], F[t5])
+    case (t1, t2, t3, t4, t5, t6)             => (F[t1], F[t2], F[t3], F[t4], F[t5], F[t6])
+    case (t1, t2, t3, t4, t5, t6, t7)         => (F[t1], F[t2], F[t3], F[t4], F[t5], F[t6], F[t7])
+    case (t1, t2, t3, t4, t5, t6, t7, t8)     => (F[t1], F[t2], F[t3], F[t4], F[t5], F[t6], F[t7], F[t8])
+    case (t1, t2, t3, t4, t5, t6, t7, t8, t9) => (F[t1], F[t2], F[t3], F[t4], F[t5], F[t6], F[t7], F[t8], F[t9])
+    case _                                    => Tuple.Map[T, F]
+  }
+
+  type TupleUnionMap[T <: Tuple, F[_], Acc] = T match {
+    case h *: t     => TupleUnionMap[t, F, F[h] | Acc]
+    case EmptyTuple => Acc
+  }
+
+  trait TupleBuilder[T <: Tuple]:
+    def +=(a: Any): this.type
+
+    def result: T
+  object TupleBuilder:
+    inline def mkFor[T <: Tuple]: TupleBuilder[T] =
+      val size = constValue[Tuple.Size[T]]
+      new TupleBuilderWithLub[T, TupleUnion[T, Nothing]](
+        size,
+        new Array[TupleUnion[T, Nothing]](size),
+        0
+      )
+
+  class TupleBuilderWithLub[T <: Tuple, Lub](size: Int, values: Array[Lub], private var i: Int)
+      extends TupleBuilder[T] {
+    override def +=(a: Any): this.type =
+      values(i) = a.asInstanceOf[Lub]
+      i += 1
+      this
+
+    override def result: T =
+      if i != size then throw new IllegalStateException("Added the wrong amount of values to the tuple builder")
+      else Tuple.fromArray(values).asInstanceOf[T]
+  }
+
+  /** Show a dealiased version of a type. */
+  inline def showType[T]: String = ${ showTypeImpl[T] }
+
+  def showTypeImpl[T: Type](using q: Quotes): Expr[String] =
+    import q.reflect.*
+    Expr(TypeRepr.of[T].dealias.show)
+
   /** A optimized value of [[constValueTuple]]. */
   inline def constValueTupleOptimized[T <: Tuple]: T =
     ${ constValueTupleOptimizedImpl[T] }
@@ -20,21 +82,21 @@ object Helpers {
     * A version of [[constValueTuple]] that instead returns a list of the
     * result.
     */
-  inline def constValueTupleToList[T <: Tuple]: List[Tuple.Union[T]] =
-    ${ constValueTupleToListImpl[T] }
+  inline def constValueTupleToList[T <: Tuple, Lub]: List[Lub] =
+    ${ constValueTupleToListImpl[T, Lub] }
 
   /**
     * A version of [[constValueTuple]] that instead returns a set of the result.
     */
-  inline def constValueTupleToSet[T <: Tuple]: Set[Tuple.Union[T]] =
-    ${ constValueTupleToSetImpl[T] }
+  inline def constValueTupleToSet[T <: Tuple, Lub]: Set[Lub] =
+    ${ constValueTupleToSetImpl[T, Lub] }
 
   /**
     * A version of [[constValueTuple]] that instead returns an IArray of the
     * result.
     */
-  inline def constValueTupleToIArray[T <: Tuple]: IArray[Tuple.Union[T]] =
-    ${ constValueTupleToIArrayImpl[T] }
+  inline def constValueTupleToIArray[T <: Tuple, Lub]: IArray[Lub] =
+    ${ constValueTupleToIArrayImpl[T, Lub] }
 
   /** A optimized value of [[summonAll]]. */
   inline def summonAllOptimized[T <: Tuple]: T =
@@ -43,8 +105,12 @@ object Helpers {
   /**
     * A version of [[summonAll]] that instead returns an IArray of the result.
     */
-  inline def summonAllToIArray[T <: Tuple]: IArray[Tuple.Union[T]] =
-    ${ summonAllToIArrayImpl[T] }
+  inline def summonAllToIArray[T <: Tuple, F[_]]: IArray[TupleUnionMap[T, F, Nothing]] =
+    ${ summonAllToIArrayImpl[T, F] }
+
+  extension (e: Expr[Any])
+    private def safeAsExprOf[B: Type](size: Int)(using Quotes): Expr[B] =
+      if size > 22 then e.asInstanceOf[Expr[B]] else e.asExprOf[B]
 
   private def constValueTupleOptimizedImpl[T <: Tuple: Type](using q: Quotes): Expr[T] = {
     import q.reflect.*
@@ -53,10 +119,10 @@ object Helpers {
       valuesOfConstantTuple(TypeRepr.of[T], Nil)
         .getOrElse(report.errorAndAbort(s"${Type.show[T]} is not a constant tuple type"))
 
-    Expr.ofTupleFromSeq(values).asInstanceOf[Expr[T]]
+    Expr.ofTupleFromSeq(values).safeAsExprOf[T](values.length)
   }
 
-  private def constValueTupleTo[T <: Tuple: Type, B](ifEmpty: Expr[B], f: Expr[Seq[Tuple.Union[T]]] => Expr[B])(
+  private def constValueTupleTo[T <: Tuple: Type, Lub: Type, B](ifEmpty: Expr[B], f: Expr[Seq[Lub]] => Expr[B])(
       using q: Quotes
   ): Expr[B] = {
     import q.reflect.*
@@ -65,56 +131,60 @@ object Helpers {
       valuesOfConstantTuple(TypeRepr.of[T], Nil)
         .getOrElse(report.errorAndAbort(s"${Type.show[T]} is not a constant tuple type"))
 
-    if values.isEmpty then ifEmpty else f(Expr.ofSeq(values.asInstanceOf[List[Expr[Tuple.Union[T]]]]))
+    if values.isEmpty then ifEmpty else f(Expr.ofSeq(values.asInstanceOf[List[Expr[Lub]]]))
   }
 
-  private def constValueTupleToListImpl[T <: Tuple: Type](using q: Quotes): Expr[List[Tuple.Union[T]]] = {
+  private def constValueTupleToListImpl[T <: Tuple: Type, Lub: Type](using q: Quotes): Expr[List[Lub]] = {
     import q.reflect.*
-    constValueTupleTo[T, List[Tuple.Union[T]]]('{ List.empty }, args => '{ List($args: _*) })
+    constValueTupleTo[T, Lub, List[Lub]]('{ List.empty }, args => '{ List($args: _*) })
   }
 
-  private def constValueTupleToSetImpl[T <: Tuple: Type](using q: Quotes): Expr[Set[Tuple.Union[T]]] = {
+  private def constValueTupleToSetImpl[T <: Tuple: Type, Lub: Type](using q: Quotes): Expr[Set[Lub]] = {
     import q.reflect.*
-    constValueTupleTo[T, Set[Tuple.Union[T]]]('{ Set.empty }, args => '{ Set($args: _*) })
+    constValueTupleTo[T, Lub, Set[Lub]]('{ Set.empty }, args => '{ Set($args: _*) })
   }
 
-  private def constValueTupleToIArrayImpl[T <: Tuple: Type](using q: Quotes): Expr[IArray[Tuple.Union[T]]] = {
+  private def constValueTupleToIArrayImpl[T <: Tuple: Type, Lub: Type](using q: Quotes): Expr[IArray[Lub]] = {
     import q.reflect.*
-    constValueTupleTo[T, IArray[Tuple.Union[T]]](
-      '{ IArray.empty[Tuple.Union[T]](using summonInline[scala.reflect.ClassTag[Tuple.Union[T]]]) },
-      args => '{ IArray($args: _*)(using summonInline[scala.reflect.ClassTag[Tuple.Union[T]]]) }
+    constValueTupleTo[T, Lub, IArray[Lub]](
+      '{ IArray.empty[Lub](using summonInline[scala.reflect.ClassTag[Lub]]) },
+      args => '{ IArray($args: _*)(using summonInline[scala.reflect.ClassTag[Lub]]) }
     )
   }
 
   private def summonAllOptimizedImpl[T <: Tuple: Type](using q: Quotes): Expr[T] = {
     import q.reflect.*
 
+    val types = typesOfTuple(TypeRepr.of[T], Nil)
     Expr
-      .ofTupleFromSeq(typesOfTuple(TypeRepr.of[T], Nil).map { tpe =>
+      .ofTupleFromSeq(types.map { tpe =>
         tpe.asType match {
           case '[t] =>
             Expr.summon[t].getOrElse(report.errorAndAbort(s"Unable to to find implicit instance for ${tpe.show}"))
         }
       })
-      .asInstanceOf[Expr[T]]
+      .safeAsExprOf[T](types.length)
   }
 
-  private def summonAllToIArrayImpl[T <: Tuple: Type](using q: Quotes): Expr[IArray[Tuple.Union[T]]] = {
+  private def summonAllToIArrayImpl[T <: Tuple: Type, F[_]: Type](
+      using q: Quotes
+  ): Expr[IArray[TupleUnionMap[T, F, Nothing]]] = {
     import q.reflect.*
 
-    val args = Varargs[Tuple.Union[T]](
-      typesOfTuple(TypeRepr.of[T], Nil).map { tpe =>
+    val types = typesOfTuple(TypeRepr.of[T], Nil)
+    val args = Varargs[TupleUnionMap[T, F, Nothing]](
+      types.map { tpe =>
         tpe.asType match {
           case '[t] =>
             Expr
-              .summon[t]
+              .summon[F[t]]
               .getOrElse(report.errorAndAbort(s"Unable to to find implicit instance for ${tpe.show}"))
-              .asInstanceOf[Expr[Tuple.Union[T]]]
+              .safeAsExprOf[TupleUnionMap[T, F, Nothing]](types.length)
         }
       }
     )
 
-    '{ IArray($args: _*)(using summonInline[scala.reflect.ClassTag[Tuple.Union[T]]]) }
+    '{ IArray($args: _*)(using summonInline[scala.reflect.ClassTag[TupleUnionMap[T, F, Nothing]]]) }
   }
 
   @tailrec

@@ -90,6 +90,7 @@ class HKDSumGenericTests extends AnyFunSuite {
 
   test("HKDSumGeneric.Gen[TC] is correct") {
     val instanceTcs = instance.genToTuple(summon[instance.Gen[TC]])
+
     val tupleTcs = (
       summon[TC[Foo.A]],
       summon[TC[Foo.B]],
