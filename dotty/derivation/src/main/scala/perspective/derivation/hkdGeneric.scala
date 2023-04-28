@@ -218,16 +218,16 @@ object HKDProductGeneric:
   transparent inline given derived[A](using m: Mirror.ProductOf[A])(
       using ValueOf[Tuple.Size[m.MirroredElemTypes]]
   ): HKDProductGeneric[A] =
-    val labels = Helpers.constValueTupleOptimized[m.MirroredElemLabels]
+    val labels = Helpers.constValueTupleToIArray[m.MirroredElemLabels, String]
     derivedImpl[A, m.MirroredElemTypes, m.MirroredLabel, m.MirroredElemLabels](
       constValue[m.MirroredLabel],
       labels,
-      labels.productIterator.toList.toSet.asInstanceOf[Set[String]]
+      labels.toSet
     )
 
   def derivedImpl[A, ElemTypes <: Tuple, Label <: String, Labels <: Tuple](
       label: Label,
-      namesTuple: Labels,
+      namesArr: IArray[String],
       namesSet: Set[String]
   )(
       using m: Mirror.ProductOf[A] {
@@ -253,7 +253,7 @@ object HKDProductGeneric:
 
       override type Names = Helpers.TupleUnionLub[m.MirroredElemLabels, String, Nothing]
       override def names: Gen[Const[Names]] =
-        ProductK.ofTuple[Const[Names], ElemTypes](namesTuple.asInstanceOf[Helpers.TupleMap[ElemTypes, Const[Names]]])
+        ProductK.ofProductUnsafe[Const[Names], ElemTypes](ArrayProduct(namesArr))
 
       override def stringToName(s: String): Option[Names] =
         Option.when(namesSet(s))(s.asInstanceOf[Names])
@@ -348,7 +348,7 @@ trait HKDSumGeneric[A] extends HKDGeneric[A]:
     * in all the others.
     */
   def to(a: A): Gen[Option] =
-    val index = indexOfA(a)
+    val index = indexOf(a.asInstanceOf[ElemTop])
     // This cast is safe as we know A = Z
     representable.tabulateK([Z] => (i: Index[Z]) => if i == index.idx then Some(a.asInstanceOf[Z]) else None)
 
@@ -396,16 +396,16 @@ object HKDSumGeneric:
       using ValueOf[Tuple.Size[m.MirroredElemTypes]],
       Finite.NotZero[Tuple.Size[m.MirroredElemTypes]] =:= true
   ): HKDSumGeneric[A] =
-    val labels = Helpers.constValueTupleOptimized[m.MirroredElemLabels]
+    val labels = Helpers.constValueTupleToIArray[m.MirroredElemLabels, String]
     derivedImpl[A, m.MirroredElemTypes, m.MirroredLabel, m.MirroredElemLabels](
       constValue[m.MirroredLabel],
       labels,
-      labels.productIterator.toList.toSet.asInstanceOf[Set[String]]
+      labels.toSet
     )
 
   def derivedImpl[A, ElemTypes <: Tuple, Label <: String, Labels <: Tuple](
       label: Label,
-      namesTuple: Labels,
+      namesArr: IArray[String],
       namesSet: Set[String]
   )(
       using m: Mirror.SumOf[A] {
@@ -433,7 +433,7 @@ object HKDSumGeneric:
 
       override type Names = Helpers.TupleUnionLub[m.MirroredElemLabels, String, Nothing]
       override def names: Gen[Const[Names]] =
-        ProductK.ofTuple[Const[Names], ElemTypes](namesTuple.asInstanceOf[Helpers.TupleMap[ElemTypes, Const[Names]]])
+        ProductK.ofProductUnsafe(ArrayProduct(namesArr))
 
       override def stringToName(s: String): Option[Names] =
         Option.when(namesSet(s))(s.asInstanceOf[Names])

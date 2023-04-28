@@ -59,8 +59,8 @@ object PerspectiveDecoder:
 
   inline given derived[A](using gen: HKDGeneric[A]): PerspectiveDecoder[A] = inline gen match
     case gen: HKDProductGeneric.Aux[A, gen.Gen] =>
-      given gen.Gen[Decoder] = summonInline[gen.Gen[Decoder]]
-      derivedProductDecoder(using gen)
+      val decoders = summonInline[gen.Gen[Decoder]]
+      derivedProductDecoder(using gen, decoders)
     case gen: HKDSumGeneric.Aux[A, gen.Gen] =>
       summonFrom {
         case decoders: gen.Gen[Decoder] => derivedSumDecoder(using gen, decoders)

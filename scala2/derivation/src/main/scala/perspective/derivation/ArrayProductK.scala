@@ -38,7 +38,7 @@ object ArrayProductK {
           else
             Applicative[G].map(acc)(a => ArrayProductK(a))
 
-        inner(0, Applicative[G].pure(ArraySeq.empty[Any].asInstanceOf[ArraySeq[B[Any]]]))
+        inner(0, Applicative[G].pure(ArraySeq.fill[Any](fa.arr.length)(null).asInstanceOf[ArraySeq[B[Any]]]))
       }
 
       override def foldLeftK[A[_], B, C](fa: ArrayProductK[A, N], b: B)(f: B => A ~>#: B): B =

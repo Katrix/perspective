@@ -7,7 +7,7 @@ trait HKDProductGeneric[A] {
   type Gen[_[_]]
   type Index[A]
 
-  def typeName: String = ???
+  def typeName: String
 
   def names: Gen[Const[String, *]]
 

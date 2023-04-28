@@ -106,7 +106,13 @@ object Helpers {
     * A version of [[summonAll]] that instead returns an IArray of the result.
     */
   inline def summonAllToIArray[T <: Tuple, F[_]]: IArray[TupleUnionMap[T, F, Nothing]] =
-    ${ summonAllToIArrayImpl[T, F] }
+    ${ summonAllToIArrayImpl[T, F, TupleUnionMap[T, F, Nothing]] }
+
+  /**
+   * A version of [[summonAllToIArray]] which returns an IArray[Object].
+   */
+  inline def summonAllToObjectIArray[T <: Tuple, F[_]]: IArray[Object] =
+    ${ summonAllToIArrayImpl[T, F, Object] }
 
   extension (e: Expr[Any])
     private def safeAsExprOf[B: Type](size: Int)(using Quotes): Expr[B] =
@@ -166,25 +172,25 @@ object Helpers {
       .safeAsExprOf[T](types.length)
   }
 
-  private def summonAllToIArrayImpl[T <: Tuple: Type, F[_]: Type](
+  private def summonAllToIArrayImpl[T <: Tuple: Type, F[_]: Type, Res: Type](
       using q: Quotes
-  ): Expr[IArray[TupleUnionMap[T, F, Nothing]]] = {
+  ): Expr[IArray[Res]] = {
     import q.reflect.*
 
     val types = typesOfTuple(TypeRepr.of[T], Nil)
-    val args = Varargs[TupleUnionMap[T, F, Nothing]](
+    val args = Varargs[Res](
       types.map { tpe =>
         tpe.asType match {
           case '[t] =>
             Expr
               .summon[F[t]]
               .getOrElse(report.errorAndAbort(s"Unable to to find implicit instance for ${tpe.show}"))
-              .safeAsExprOf[TupleUnionMap[T, F, Nothing]](types.length)
+              .safeAsExprOf[Res](types.length)
         }
       }
     )
 
-    '{ IArray($args: _*)(using summonInline[scala.reflect.ClassTag[TupleUnionMap[T, F, Nothing]]]) }
+    '{ IArray($args: _*)(using summonInline[scala.reflect.ClassTag[Res]]) }
   }
 
   @tailrec

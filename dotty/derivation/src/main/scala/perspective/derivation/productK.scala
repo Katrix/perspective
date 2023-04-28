@@ -95,4 +95,4 @@ object ProductK:
   end productKInstance
 
   inline given gatherImplicits[F[_], T <: Tuple]: ProductK[F, T] =
-    ofTuple(Helpers.summonAllOptimized[Helpers.TupleMap[T, F]].asInstanceOf[Helpers.TupleMap[T, F]])
+    ofProductUnsafe(ArrayProduct(Helpers.summonAllToObjectIArray[T, F]))
