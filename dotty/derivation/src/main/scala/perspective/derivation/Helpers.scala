@@ -13,8 +13,12 @@ object Helpers {
   }
 
   type TupleUnionLub[T <: Tuple, Lub, Acc <: Lub] <: Lub = T match {
-    case (h & Lub) *: t => TupleUnionLub[t, Lub, Acc | h]
-    case EmptyTuple     => Acc
+    case h *: t =>
+      h match {
+        case Lub => TupleUnionLub[t, Lub, Acc | (h & Lub)]
+      }
+    case EmptyTuple =>
+      Acc
   }
 
   type TupleUnion[T <: Tuple, Acc] = T match {
