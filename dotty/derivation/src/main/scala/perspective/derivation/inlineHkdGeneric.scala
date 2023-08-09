@@ -828,7 +828,7 @@ trait InlineHKDProductGeneric[A] extends InlineHKDGeneric[A]:
       * Like [[productElementId]], but gives back the exact type. Can only be
       * used in unrolled calls.
       */
-    transparent inline def productElementIdExact(inline idx: Index): idx.X
+    transparent inline def productElementIdExact(idx: Index): idx.X
 
   /**
     * Like an inline match, but delays the expansion slightly. The value inside
@@ -930,7 +930,7 @@ object InlineHKDProductGeneric:
       override inline def productElementId(index: Index): index.X =
         a.asInstanceOf[Product].productElement(index).asInstanceOf[index.X]
 
-      override transparent inline def productElementIdExact(inline idx: Index): idx.X =
+      override transparent inline def productElementIdExact(idx: Index): idx.X =
         InlineHKDGeneric.productElementIdExact[A, ElemTop](a, idx)
 
     override inline def summonInstances[F[_]]: Gen[F] =
