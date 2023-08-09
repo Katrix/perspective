@@ -136,12 +136,7 @@ object PerspectiveEncoder:
           derivedSumEncoder(using gen, encoders)
       }
 
-case class Foo(i: Int, s: String, foobar: Long) //derives PersepctiveEncoder//, PersepctiveDecoder
-object Foo {
-  given PerspectiveEncoder[Foo] = summon[PerspectiveEncoder[Foo]]
-  given PerspectiveDecoder[Foo] = summon[PerspectiveDecoder[Foo]]
-
-}
+case class Foo(i: Int, s: String, foobar: Long) derives PerspectiveEncoder, PerspectiveDecoder
 
 extension [A](a: A)(using gen: HKDProductGeneric[A]) {
   def foo[X <: gen.Names](x: X): gen.FieldOf[X] =
