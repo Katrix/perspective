@@ -560,7 +560,7 @@ object InlineHKDGeneric:
         classTagExpr
       ).asExprOf[G[IArray[B[ElemTop]]]]
 
-    def fApply(i: Expr[Int]): Expr[G[B[ElemTop]]] =
+    def fApply(i: Expr[Int])(using q: Quotes): Expr[G[B[ElemTop]]] =
       Expr.betaReduce('{ $f($i.asInstanceOf[Int { type X = ElemTop }]) })
 
     def traverseEither[E: Type] = {
