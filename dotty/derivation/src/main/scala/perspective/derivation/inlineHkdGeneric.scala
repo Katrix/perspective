@@ -245,105 +245,101 @@ object InlineHKDGeneric:
     arr
   }
 
-  private class ProductElementIdExactExpander[Q <: Quotes, Fields <: Tuple: Type](using val q: Q)
-      extends q.reflect.TreeMap {
+  private class TreeMaps[Q <: Quotes](using val q: Q) {
     import q.reflect.*
 
-    override def transformTerm(tree: Term)(owner: Symbol): Term =
-      try {
+    class ProductElementIdExactExpander[Fields <: Tuple: Type] extends TreeMap {
+      override def transformTerm(tree: Term)(owner: Symbol): Term =
+        try {
+          tree.asExpr match {
+            case '{ InlineHKDGeneric.productElementIdExact[a2, elemTop]($a, $idx) } =>
+              transformExact(a, idx)
+            case _ =>
+              super.transformTerm(tree)(owner)
+          }
+        } catch {
+          case e: Exception =>
+            // Tried to convert partially applied type to Expr. Ignoring it
+            tree
+        }
+
+      def transformExact[A](a: Expr[A], idxExpr: Expr[Int]): Term = {
+        def findConstantIdx(tpe: TypeRepr): Option[Int] = tpe match {
+          case AndType(a, b)                => findConstantIdx(a).orElse(findConstantIdx(b))
+          case ConstantType(IntConstant(i)) => Some(i)
+          case Refinement(a, _, _)          => findConstantIdx(a)
+          case t                            => None
+        }
+
+        val idx = findConstantIdx(idxExpr.asTerm.tpe.widenTermRefByName).getOrElse(idxExpr.valueOrAbort)
+
+        val field = Helpers.valuesOfConstantTuple(TypeRepr.of[Fields], Nil) match {
+          case Some(seq) => seq(idx).asExprOf[String].valueOrAbort
+          case None      => report.errorAndAbort("productElementIdExact called with non constant fields type")
+        }
+
+        Select.unique(a.asTerm, field)
+      }
+    }
+
+    class RefReplacer(oldRef: q.reflect.Symbol, newRef: q.reflect.Ref) extends TreeMap {
+      override def transformTerm(tree: Term)(owner: Symbol): Term =
+        tree match {
+          case Ident(id) if id == oldRef.name => newRef
+          case _                              => super.transformTerm(tree)(owner)
+        }
+    }
+
+    class LateInlineMatchExpander extends TreeMap {
+      override def transformTerm(tree: Term)(owner: Symbol): Term = {
         tree.asExpr match {
-          case '{ InlineHKDGeneric.productElementIdExact[a2, elemTop]($a, $idx) } =>
-            transformExact(a, idx)
+          case '{ InlineHKDGeneric.lateInlineMatch[a]($a) } =>
+            transformMatch(a, owner)
           case _ =>
-            super.transformTerm(tree)(owner)
+            try {
+              super.transformTerm(tree)(owner)
+            } catch {
+              case _: Exception =>
+                // FIXME: Have no idea why this happens. Just ignoring it for now.
+                tree
+            }
         }
-      } catch {
-        case e: Exception =>
-          // Tried to convert partially applied type to Expr. Ignoring it
-          tree
       }
 
-    def transformExact[A](a: Expr[A], idxExpr: Expr[Int]): Term = {
-      def findConstantIdx(tpe: TypeRepr): Option[Int] = tpe match {
-        case AndType(a, b)                => findConstantIdx(a).orElse(findConstantIdx(b))
-        case ConstantType(IntConstant(i)) => Some(i)
-        case Refinement(a, _, _)          => findConstantIdx(a)
-        case t                            => None
-      }
+      def transformMatch[A: Type](aExpr: Expr[A], owner: Symbol): Term = aExpr.asTerm match {
+        case m @ Match(scrutinee, cases) =>
+          val tpe = scrutinee.tpe.widenTermRefByName
 
-      val idx = findConstantIdx(idxExpr.asTerm.tpe.widenTermRefByName).getOrElse(idxExpr.valueOrAbort)
-
-      val field = Helpers.valuesOfConstantTuple(TypeRepr.of[Fields], Nil) match {
-        case Some(seq) => seq(idx).asExprOf[String].valueOrAbort
-        case None      => report.errorAndAbort("productElementIdExact called with non constant fields type")
-      }
-
-      Select.unique(a.asTerm, field)
-    }
-  }
-
-  private class RefReplacer[Q <: Quotes](using val q: Q)(oldRef: q.reflect.Symbol, newRef: q.reflect.Ref)
-      extends q.reflect.TreeMap {
-    import q.reflect.*
-
-    override def transformTerm(tree: Term)(owner: Symbol): Term =
-      tree match {
-        case Ident(id) if id == oldRef.name => newRef
-        case _                              => super.transformTerm(tree)(owner)
-      }
-  }
-
-  private class LateInlineMatchExpander[Q <: Quotes]()(using val q: Q) extends q.reflect.TreeMap {
-    import q.reflect.*
-
-    override def transformTerm(tree: Term)(owner: Symbol): Term = {
-      tree.asExpr match {
-        case '{ InlineHKDGeneric.lateInlineMatch[a]($a) } =>
-          transformMatch(a, owner)
-        case _ =>
-          try {
-            super.transformTerm(tree)(owner)
-          } catch {
-            case _: Exception =>
-              // FIXME: Have no idea why this happens. Just ignoring it for now.
-              tree
-          }
-      }
-    }
-
-    def transformMatch[A: Type](aExpr: Expr[A], owner: Symbol): Term = aExpr.asTerm match {
-      case m @ Match(scrutinee, cases) =>
-        val tpe = scrutinee.tpe.widenTermRefByName
-
-        cases.foreach {
-          case CaseDef(_, Some(_), _)                     => report.errorAndAbort("Cases in match can not have guards")
-          case CaseDef(Bind(_, Typed(Ident(_), _)), _, _) =>
-          case CaseDef(Bind(_, Ident(_)), _, _)           =>
-          case caseDef => report.errorAndAbort("Invalid case in match inside lateInlineMatch", caseDef.pos)
-        }
-
-        val hasDefaultCase = cases.exists {
-          case CaseDef(Bind(_, Ident(_)), _, _) => true
-          case _                                => false
-        }
-        if !hasDefaultCase then report.errorAndAbort("Match must have a default case", m.pos)
-
-        val (bind, rhs) = cases
-          .collectFirst {
-            case CaseDef(bind @ Bind(_, typed @ Typed(Ident(_), _)), _, rhs) if tpe <:< typed.symbol.typeRef =>
-              (bind, rhs)
-          }
-          .getOrElse {
-            cases.collectFirst { case CaseDef(bind @ Bind(_, Ident(_)), _, rhs) =>
-              (bind, rhs)
-            }.get
+          cases.foreach {
+            case CaseDef(_, Some(_), _)                     => report.errorAndAbort("Cases in match can not have guards")
+            case CaseDef(Bind(_, Typed(Ident(_), _)), _, _) =>
+            case CaseDef(Bind(_, Ident(_)), _, _)           =>
+            case caseDef => report.errorAndAbort("Invalid case in match inside lateInlineMatch", caseDef.pos)
           }
 
-        ValDef.let(owner, bind.name + "Replaced", scrutinee) { newRef =>
-          val replacer = new RefReplacer[q.type](bind.symbol, newRef)
-          replacer.transformTerm(rhs)(owner)
-        }
-      case _ => report.errorAndAbort("Body of lateInlineMatch must be a match", aExpr)
+          val hasDefaultCase = cases.exists {
+            case CaseDef(Bind(_, Ident(_)), _, _) => true
+            case _                                => false
+          }
+          if !hasDefaultCase then report.errorAndAbort("Match must have a default case", m.pos)
+
+          val (bind, rhs) = cases
+            .collectFirst {
+              case CaseDef(bind @ Bind(_, typed @ Typed(Ident(_), _)), _, rhs) if tpe <:< typed.symbol.typeRef =>
+                (bind, rhs)
+            }
+            .getOrElse {
+              cases.collectFirst { case CaseDef(bind @ Bind(_, Ident(_)), _, rhs) =>
+                (bind, rhs)
+              }.get
+            }
+
+          ValDef.let(owner, bind.name + "Replaced", scrutinee) { newRef =>
+            val replacer = new RefReplacer(bind.symbol, newRef)
+            replacer.transformTerm(rhs)(owner)
+          }
+        case _ => report.errorAndAbort("Body of lateInlineMatch must be a match", aExpr)
+      }
     }
   }
 
@@ -352,8 +348,9 @@ object InlineHKDGeneric:
   ): Expr[A] =
     import q.reflect.*
 
-    val productElementIdExactExpander = new ProductElementIdExactExpander[q.type, Fields]()
-    val lateInlineMatchExpander       = new LateInlineMatchExpander[q.type]()
+    val treeMaps                      = new TreeMaps[q.type]()
+    val productElementIdExactExpander = new treeMaps.ProductElementIdExactExpander[Fields]()
+    val lateInlineMatchExpander       = new treeMaps.LateInlineMatchExpander()
 
     val r1 = productElementIdExactExpander.transformTerm(e.asTerm)(Symbol.spliceOwner)
     val r2 = lateInlineMatchExpander.transformTerm(r1)(Symbol.spliceOwner)
@@ -563,7 +560,7 @@ object InlineHKDGeneric:
         classTagExpr
       ).asExprOf[G[IArray[B[ElemTop]]]]
 
-    def fApply(i: Expr[Int]): Expr[G[B[ElemTop]]] =
+    def fApply(i: Expr[Int])(using q: Quotes): Expr[G[B[ElemTop]]] =
       Expr.betaReduce('{ $f($i.asInstanceOf[Int { type X = ElemTop }]) })
 
     def traverseEither[E: Type] = {
@@ -828,7 +825,7 @@ trait InlineHKDProductGeneric[A] extends InlineHKDGeneric[A]:
       * Like [[productElementId]], but gives back the exact type. Can only be
       * used in unrolled calls.
       */
-    transparent inline def productElementIdExact(inline idx: Index): idx.X
+    transparent inline def productElementIdExact(idx: Index): idx.X
 
   /**
     * Like an inline match, but delays the expansion slightly. The value inside
@@ -930,7 +927,7 @@ object InlineHKDProductGeneric:
       override inline def productElementId(index: Index): index.X =
         a.asInstanceOf[Product].productElement(index).asInstanceOf[index.X]
 
-      override transparent inline def productElementIdExact(inline idx: Index): idx.X =
+      override transparent inline def productElementIdExact(idx: Index): idx.X =
         InlineHKDGeneric.productElementIdExact[A, ElemTop](a, idx)
 
     override inline def summonInstances[F[_]]: Gen[F] =

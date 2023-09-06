@@ -20,7 +20,7 @@ lazy val commonScala2Settings = commonSettings ++ Seq(
 )
 
 lazy val commonDottySettings = commonSettings ++ Seq(
-  scalaVersion := "3.2.0",
+  scalaVersion := "3.3.1",
   moduleName := {
     val old = moduleName.value
     if (old == "perspective") old
