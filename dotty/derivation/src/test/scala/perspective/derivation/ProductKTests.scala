@@ -3,6 +3,7 @@ package perspective.derivation
 import scala.compiletime.constValue
 import scala.deriving.Mirror
 
+import cats.data.State
 import cats.syntax.all.*
 import org.scalatest.funsuite.AnyFunSuite
 import perspective.*
@@ -73,6 +74,17 @@ class ProductKTests extends AnyFunSuite {
     assert(
       tcInstancesK.traverseConst([X] => (tc: TC[X]) => Some(tc): Option[TC[_]]).map(_.toListK) ===
         tcInstancesList.traverse(tc => Some(tc): Option[TC[_]])
+    )
+  }
+
+  test("ProductK.traverseK order corresponds to List.traverse order") {
+    assert(
+      tcInstancesK
+        .traverseK[[X] =>> State[Int, X], Tuple2K[Const[Int], Const[TC[Any]]]]([X] => (tc: TC[X]) => State((acc: Int) => (acc + 1, (acc, tc.asInstanceOf[TC[Any]]))))
+        .runA(1)
+        .value
+        .toListK ===
+        tcInstancesList.traverse(tc => State((acc: Int) => (acc + 1, (acc, tc)))).runA(1).value
     )
   }
 }

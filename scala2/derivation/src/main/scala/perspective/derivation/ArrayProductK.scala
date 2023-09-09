@@ -34,7 +34,7 @@ object ArrayProductK {
         @tailrec
         def inner(i: Int, acc: G[ArraySeq[B[Any]]]): G[ArrayProductK[B, N]] =
           if (fa.arr.isDefinedAt(i))
-            inner(i + 1, Applicative[G].map2(f(fa.arr(i)), acc)((v, a) => a.updated(i, v.asInstanceOf[B[Any]])))
+            inner(i + 1, Applicative[G].map2(acc, f(fa.arr(i)))((a, v) => a.updated(i, v.asInstanceOf[B[Any]])))
           else
             Applicative[G].map(acc)(a => ArrayProductK(a))
 

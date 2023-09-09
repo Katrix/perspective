@@ -201,11 +201,13 @@ object InlineHKDGeneric:
 
   type FieldOfImpl[Name <: String, ElemTop, ElemTypes <: Tuple, Labels <: Tuple] <: ElemTop =
     (ElemTypes, Labels, Labels) match {
-      case (th *: tt, Name *: lt, lh *: _) =>
+      case (th *: _, Name *: lt, lh *: _) =>
         compiletime.ops.any.==[lh, Name] match {
-          case true => th & ElemTop
+          case true  => th & ElemTop
+          case false => ElemTop // We matched a label when they were not == equal. Name is probably a union type
         }
-      case (_ *: tt, _ *: lt, _) => FieldOfImpl[Name, ElemTop, tt, lt]
+      case (_ *: tt, _ *: lt, _)                => FieldOfImpl[Name, ElemTop, tt, lt]
+      case (EmptyTuple, EmptyTuple, EmptyTuple) => ElemTop
     }
 
   transparent inline given derived[A](

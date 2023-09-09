@@ -78,7 +78,7 @@ object ProductK:
         def inner(acc: G[List[B[Any]]]): G[ProductK[B, T]] =
           if (it.hasNext) {
             val obj = it.next()
-            inner(G.map2(f(obj), acc)((v, a) => v :: a))
+            inner(G.map2(acc, f(obj))((a, v) => v :: a))
           } else G.map(acc)(a => ArrayProduct.ofArrayUnsafe(a.reverseIterator.toArray.asInstanceOf[Array[Object]]))
 
         inner(G.pure(List.empty[B[Any]]))
