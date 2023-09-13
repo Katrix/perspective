@@ -349,3 +349,10 @@ object FooInline {
   given decoder: PerspectiveInlineDecoder[FooInline] =
     PerspectiveInlineDecoder.derivedProductDecoder[FooInline]
 }
+
+case class FooExpr(i: Int, s: String, foobar: Long, fooInline: FooInline)
+object FooExpr {
+
+  given encoder: PerspectiveExprEncoder[FooExpr] =
+    PerspectiveExprEncoder.deriveProductEncoder[FooExpr]
+}

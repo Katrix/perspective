@@ -10,18 +10,14 @@ import scala.quoted.*
 import cats.Applicative
 import perspective.*
 
-/**
-  * A type somewhat like [[Mirror.Of]] allowing manipulating a type as if it was
-  * defined as a higher kinded type.
-  * @tparam A
-  *   The type being abstracted over.
-  */
-sealed trait HKDGeneric[A]:
+trait GenHKDGeneric[A]:
+  type Cat[_]
+
   /** A representation of [[A]] supporting higher kinded types. */
   type Gen[_[_]]
 
   /** The index of the [[Gen]] type. */
-  type Index[A]
+  type Index[B]
 
   /** The top type for the inner type of [[Index]] and [[Gen]]. */
   type ElemTop
@@ -52,6 +48,9 @@ sealed trait HKDGeneric[A]:
     * the children of a sum type, or the fields of a product type.
     */
   def names: Gen[Const[Names]]
+
+  /** Given a index, return the name of the index. */
+  def indexToName[X](idx: Index[X]): Names = names.indexK(idx).asInstanceOf[Names]
 
   /** Validates a string as a name if it matches the name of a field. */
   def stringToName(s: String): Option[Names]
@@ -88,6 +87,16 @@ sealed trait HKDGeneric[A]:
   export representable.*
   export traverse.{mapK => _, liftK => _, widen => _, voidK => _, mapConst => _, asK => _, *}
 
+  // Cat generic functions
+
+  /** Convert a value of `Cat[A]` to the higher kinded representation. */
+  def catTo(a: Cat[A]): Gen[Cat]
+
+  /** Convert a value of the higher kinded representation to `Cat[A]`. */
+  def catFrom(gen: Gen[Cat]): Cat[A]
+
+  extension (a: Cat[A]) def productElementCat[X](index: Index[X]): Cat[X]
+
   // Extra ops
 
   def tabulateFoldLeft[B](start: B)(f: B => [X] => Index[X] => B): B
@@ -97,6 +106,14 @@ sealed trait HKDGeneric[A]:
   def tabulateTraverseKOption[B[_]](f: [X] => Index[X] => Option[B[X]]): Option[Gen[B]]
 
   def tabulateTraverseKEither[E, B[_]](f: [X] => Index[X] => Either[E, B[X]]): Either[E, Gen[B]]
+
+/**
+ * A type somewhat like [[Mirror.Of]] allowing manipulating a type as if it was
+ * defined as a higher kinded type.
+ * @tparam A
+ *   The type being abstracted over.
+ */
+sealed trait HKDGeneric[A] extends GenHKDGeneric[A]
 
 object HKDGeneric:
   type Aux[A, Gen0[_[_]]] = HKDGeneric[A] {
@@ -196,20 +213,29 @@ object HKDGeneric:
 end HKDGeneric
 
 /**
+ * A type somewhat like [[Mirror.ProductOf]] allowing manipulating a product
+ * type as if it was defined as a higher kinded type.
+ * @tparam A
+ *   The type being abstracted over.
+ */
+trait GenHKDProductGeneric[A] extends GenHKDGeneric[A]:
+
+  /** Convert a value of [[A]] to the higher kinded representation. */
+  def to(a: Cat[A]): Gen[Cat] = catTo(a)
+
+  /** Convert a value of the higher kinded representation to [[A]]. */
+  def from(gen: Gen[Cat]): Cat[A] = catFrom(gen)
+
+/**
   * A type somewhat like [[Mirror.ProductOf]] allowing manipulating a product
   * type as if it was defined as a higher kinded type.
   * @tparam A
   *   The type being abstracted over.
   */
-trait HKDProductGeneric[A] extends HKDGeneric[A]:
+trait HKDProductGeneric[A] extends GenHKDProductGeneric[A] with HKDGeneric[A]:
+  type Cat[B] = B
 
-  /** Convert a value of [[A]] to the higher kinded representation. */
-  def to(a: A): Gen[Id]
-
-  /** Convert a value of the higher kinded representation to [[A]]. */
-  def from(gen: Gen[Id]): A
-
-  extension (a: A) def productElementId[X](index: Index[X]): X
+  extension (a: A) def productElementId[X](index: Index[X]): X = a.productElementCat(index)
 
 object HKDProductGeneric:
   transparent inline def apply[A](using gen: HKDProductGeneric[A]): HKDProductGeneric.Aux[A, gen.Gen] = gen
@@ -275,9 +301,9 @@ object HKDProductGeneric:
       override def genToTuple[F[_]](gen: Gen[F]): Helpers.TupleMap[TupleRep, F]   = gen.tuple
       override def tupleToGen[F[_]](tuple: Helpers.TupleMap[TupleRep, F]): Gen[F] = ProductK.ofTuple(tuple)
 
-      override def to(a: A): Gen[Id] = ProductK.ofProductUnsafe(a.asInstanceOf[Product])
+      override def catTo(a: A): Gen[Id] = ProductK.ofProductUnsafe(a.asInstanceOf[Product])
 
-      override def from(a: Gen[Id]): A =
+      override def catFrom(a: Gen[Id]): A =
         m.fromProduct(a.product)
 
       override def tabulateFoldLeft[B](start: B)(f: B => [X] => Index[X] => B): B =
@@ -297,7 +323,7 @@ object HKDProductGeneric:
       ): Either[E, ProductK[B, ElemTypes]] = HKDGeneric.tabulateTraverseKEitherImpl(size.value, f)
 
       extension (a: A)
-        def productElementId[X](index: Index[X]): X =
+        def productElementCat[X](index: Index[X]): X =
           a.asInstanceOf[Product].productElement(index.value).asInstanceOf[X]
 
       private val instance: RepresentableKC.Aux[Gen, Index] & TraverseKC[Gen] =
@@ -306,6 +332,10 @@ object HKDProductGeneric:
       override val representable: RepresentableKC.Aux[Gen, Index] = instance
       override val traverse: TraverseKC[Gen]                      = instance
 
+trait GenHKDSumGeneric[A] extends GenHKDGeneric[A]:
+  override type ElemTop <: A
+
+
 /**
   * A type somewhat like [[Mirror.SumOf]] allowing manipulating a sum type as if
   * it was defined as a higher kinded type.
@@ -313,10 +343,9 @@ object HKDProductGeneric:
   *   The type being abstracted over.
   */
 trait HKDSumGeneric[A] extends HKDGeneric[A]:
-  override type ElemTop <: A
+  type Cat[B] = Option[B]
 
-  /** Returns the name of a field given the type of the field. */
-  type NameOf[X <: ElemTop] <: Names
+  override type ElemTop <: A
 
   /**
     * Returns the index of a value. Because of soundness, this method can not be
@@ -334,9 +363,6 @@ trait HKDSumGeneric[A] extends HKDGeneric[A]:
     */
   def indexOfACasting(a: A): HKDSumGeneric.IndexOfACasting[Index, ElemTop]
 
-  /** Given a index, return the name of the index. */
-  def indexToName[X <: ElemTop](idx: Index[X]): NameOf[X]
-
   /**
     * Widen the higher kinded representation to a [[Const]] type of the top
     * type.
@@ -350,7 +376,9 @@ trait HKDSumGeneric[A] extends HKDGeneric[A]:
     * Some in only one field, corresponding to the subtype passed in, and None
     * in all the others.
     */
-  def to(a: A): Gen[Option] =
+  def to(a: A): Gen[Option] = catTo(Some(a))
+
+  override def catTo(a: Option[A]): Gen[Option] =
     val index = indexOf(a.asInstanceOf[ElemTop])
     // This cast is safe as we know A = Z
     representable.tabulateK([Z] => (i: Index[Z]) => if i == index.idx then Some(a.asInstanceOf[Z]) else None)
@@ -359,11 +387,19 @@ trait HKDSumGeneric[A] extends HKDGeneric[A]:
     * Convert a value of the higher kinded representation to [[A]]. Will only
     * return Some if only one of the fields is Some and the rest is None.
     */
-  def from(a: Gen[Option]): Option[A] =
+  def from(a: Gen[Option]): Option[A] = catFrom(a)
+
+  def catFrom(a: Gen[Option]): Option[A] =
     traverse.toListK(widenConst(a)).flatten match
-      case Nil      => None    // No values present
+      case Nil => None // No values present
       case a :: Nil => Some(a) // One value present
-      case _        => None    // More than one value present
+      case _ => None // More than one value present
+
+  extension (ao: Option[A])
+    def productElementCat[X](index: Index[X]): Option[X] = ao.flatMap { a =>
+      val aIdx = indexOfA(a)
+      if index == aIdx.idx then Some(a.asInstanceOf[X]) else None
+    }
 
 object HKDSumGeneric:
   def apply[A](using gen: HKDSumGeneric[A]): HKDSumGeneric.Aux[A, gen.Gen] = gen
@@ -385,14 +421,6 @@ object HKDSumGeneric:
     ) extends IndexOfACasting[Index, ElemTop] {
       type X0 = X1
     }
-  }
-
-  type NameOfImpl[Names, X, ElemTypes, Labels] <: Names = (ElemTypes, ElemTypes, Labels) match {
-    case (X *: tt, th *: _, lh *: lt) =>
-      Helpers.Eq[th, X] match {
-        case true => lh & Names
-      }
-    case (th *: tt, _, lh *: lt) => NameOfImpl[Names, X, tt, lt]
   }
 
   transparent inline given derived[A](using m: Mirror.SumOf[A])(
@@ -423,7 +451,6 @@ object HKDSumGeneric:
     type Names                  = Helpers.TupleUnionLub[m.MirroredElemLabels, String, Nothing]
     type ElemTop                = Helpers.TupleUnionLub[ElemTypes, A, Nothing]
     type FieldOf[Name <: Names] = HKDGeneric.FieldOfImpl[Name, ElemTop, ElemTypes, m.MirroredElemLabels]
-    type NameOf[X <: ElemTop]   = NameOfImpl[Names, X, ElemTypes, m.MirroredElemLabels]
     type TupleRep               = ElemTypes
   } =
     new HKDSumGeneric[A]:
@@ -442,7 +469,6 @@ object HKDSumGeneric:
         Option.when(namesSet(s))(s.asInstanceOf[Names])
 
       override type FieldOf[Name <: Names] = HKDGeneric.FieldOfImpl[Name, ElemTop, ElemTypes, m.MirroredElemLabels]
-      override type NameOf[X <: ElemTop]   = NameOfImpl[Names, X, ElemTypes, m.MirroredElemLabels]
 
       private lazy val nameMap =
         names
@@ -453,7 +479,6 @@ object HKDSumGeneric:
           .toMap
 
       override def nameToIndex[Name <: Names](name: Name): Index[FieldOf[Name]] = nameMap(name)
-      override def indexToName[X <: ElemTop](idx: Index[X]): NameOf[X] = names.indexK(idx).asInstanceOf[NameOf[X]]
 
       override def indexOf[X <: ElemTop](x: X): Index[X] = Finite(size.value, m.ordinal(x))
 
