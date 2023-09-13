@@ -20,8 +20,6 @@ object PerspectiveDecoder:
       decoders: gen.Gen[Decoder]
   ): PerspectiveDecoder[A] = new PerspectiveDecoder[A]:
     override def apply(cursor: HCursor): Either[DecodingFailure, A] =
-      import gen.given
-
       gen.names
         .map2K(decoders)(
           [Z] => (name: gen.Names, decoder: Decoder[Z]) => cursor.get(name)(using decoder)
@@ -34,8 +32,6 @@ object PerspectiveDecoder:
       decoders: gen.Gen[Decoder]
   ): PerspectiveDecoder[A] = new PerspectiveDecoder[A]:
     override def apply(cursor: HCursor): Either[DecodingFailure, A] =
-      import gen.given
-
       for
         typeNameStr <- cursor.get[String]("$type")
         typeName <- gen
@@ -79,8 +75,6 @@ object PerspectiveEncoder:
       encoders: gen.Gen[Encoder]
   ): PerspectiveEncoder[A] = new PerspectiveEncoder[A]:
     override def apply(a: A): Json =
-      import gen.given
-
       val list: List[(String, Json)] =
         gen
           .to(a)
@@ -98,8 +92,6 @@ object PerspectiveEncoder:
       encoders: gen.Gen[Encoder]
   ): PerspectiveEncoder[A] = new PerspectiveEncoder[A]:
     override def apply(a: A): Json =
-      import gen.given
-
       val typeName = (gen.indexToName(gen.indexOfA(a)): String).asJson
 
       val encodings =
@@ -140,7 +132,6 @@ case class Foo(i: Int, s: String, foobar: Long) derives PerspectiveEncoder, Pers
 
 extension [A](a: A)(using gen: HKDProductGeneric[A]) {
   def foo[X <: gen.Names](x: X): gen.FieldOf[X] =
-    import gen.given
     gen.to(a).indexK(gen.nameToIndex(x))
 }
 
@@ -241,8 +232,6 @@ object PerspectiveInlineDecoder:
 
   inline def derivedSumDecoder[A](using gen: InlineHKDSumGeneric[A]): PerspectiveInlineDecoder[A] =
     new PerspectiveInlineDecoder[A]:
-      import gen.given
-
       private val names = gen.names
       private val decoders = summonFrom {
         case decoders: gen.Gen[Decoder] => decoders
@@ -302,8 +291,6 @@ object PerspectiveInlineEncoder:
         Json.obj(list: _*)
 
   inline def derivedSumEncoder[A](using gen: InlineHKDSumGeneric[A]): PerspectiveInlineEncoder[A] =
-    import gen.given
-
     val encoders = summonFrom {
       case encoders: gen.Gen[Encoder] => encoders
       case _                          => gen.tupleToGen(caseEncoders[gen.TupleRep, Helpers.TupleMap[gen.TupleRep, Encoder]](Helpers.TupleBuilder.mkFor))

@@ -79,11 +79,14 @@ sealed trait HKDGeneric[A]:
     tuple.asInstanceOf[Helpers.TupleMap[TupleRep, F]]
   )
 
-  lazy val representable: RepresentableKC.Aux[Gen, Index]
-  lazy val traverse: TraverseKC[Gen]
+  val representable: RepresentableKC.Aux[Gen, Index]
+  val traverse: TraverseKC[Gen]
 
   given RepresentableKC.Aux[Gen, Index] = representable
   given TraverseKC[Gen]                 = traverse
+
+  export representable.*
+  export traverse.{mapK => _, liftK => _, widen => _, voidK => _, mapConst => _, asK => _, *}
 
   // Extra ops
 
@@ -297,11 +300,11 @@ object HKDProductGeneric:
         def productElementId[X](index: Index[X]): X =
           a.asInstanceOf[Product].productElement(index.value).asInstanceOf[X]
 
-      private lazy val instance: RepresentableKC.Aux[Gen, Index] & TraverseKC[Gen] =
+      private val instance: RepresentableKC.Aux[Gen, Index] & TraverseKC[Gen] =
         ProductK.productKInstance[ElemTypes]
 
-      override lazy val representable: RepresentableKC.Aux[Gen, Index] = instance
-      override lazy val traverse: TraverseKC[Gen]                      = instance
+      override val representable: RepresentableKC.Aux[Gen, Index] = instance
+      override val traverse: TraverseKC[Gen]                      = instance
 
 /**
   * A type somewhat like [[Mirror.SumOf]] allowing manipulating a sum type as if
@@ -478,8 +481,8 @@ object HKDSumGeneric:
       override def genToTuple[F[_]](gen: Gen[F]): Helpers.TupleMap[TupleRep, F]   = gen.tuple
       override def tupleToGen[F[_]](tuple: Helpers.TupleMap[TupleRep, F]): Gen[F] = ProductK.ofTuple(tuple)
 
-      private lazy val instance: RepresentableKC.Aux[Gen, Index] & TraverseKC[Gen] =
+      private val instance: RepresentableKC.Aux[Gen, Index] & TraverseKC[Gen] =
         ProductK.productKInstance[m.MirroredElemTypes]
 
-      override lazy val representable: RepresentableKC.Aux[Gen, Index] = instance
-      override lazy val traverse: TraverseKC[Gen]                      = instance
+      override val representable: RepresentableKC.Aux[Gen, Index] = instance
+      override val traverse: TraverseKC[Gen]                      = instance

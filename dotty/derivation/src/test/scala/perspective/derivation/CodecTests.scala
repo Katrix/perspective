@@ -21,8 +21,6 @@ object CodecTests {
         decoders: gen.Gen[Decoder]
     ): PerspectiveDecoder[A] = new PerspectiveDecoder[A]:
       override def apply(cursor: HCursor): Either[DecodingFailure, A] =
-        import gen.given
-
         gen.names
           .map2K(decoders)(
             [Z] => (name: gen.Names, decoder: Decoder[Z]) => cursor.get(name)(using decoder)
@@ -35,8 +33,6 @@ object CodecTests {
         decoders: gen.Gen[Decoder]
     ): PerspectiveDecoder[A] = new PerspectiveDecoder[A]:
       override def apply(cursor: HCursor): Either[DecodingFailure, A] =
-        import gen.given
-
         for
           typeNameStr <- cursor.get[String]("$type")
           typeName <- gen
@@ -80,8 +76,6 @@ object CodecTests {
         encoders: gen.Gen[Encoder]
     ): PerspectiveEncoder[A] = new PerspectiveEncoder[A]:
       override def apply(a: A): Json =
-        import gen.given
-
         val list: List[(String, Json)] =
           gen
             .to(a)
@@ -99,8 +93,6 @@ object CodecTests {
         encoders: gen.Gen[Encoder]
     ): PerspectiveEncoder[A] = new PerspectiveEncoder[A]:
       override def apply(a: A): Json =
-        import gen.given
-
         val typeName = (gen.indexToName(gen.indexOfA(a)): String).asJson
 
         val encodings =
