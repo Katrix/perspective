@@ -7,6 +7,7 @@ import scala.deriving.Mirror
 import scala.quoted.{Expr, Quotes, Type}
 
 import cats.Applicative
+import cats.kernel.{BoundedEnumerable, Order}
 import perspective.*
 
 sealed trait ExprHKDGeneric[A] extends GenHKDGeneric[A]:
@@ -146,11 +147,11 @@ object ExprHKDProductGeneric:
         }
         .map(instances => ProductK.ofProductUnsafe[Compose2[Expr, F], ElemTypes](ArrayProduct(IArray.from(instances))))
 
-    private val instance: RepresentableKC.Aux[Gen, Index] & TraverseKC[Gen] =
+    private val instance: BoundedRepresentableKC.Aux[Gen, Index] & TraverseKC[Gen] =
       ProductK.productKInstance[ElemTypes]
 
-    override val representable: RepresentableKC.Aux[Gen, Index] = instance
-    override val traverse: TraverseKC[Gen]                      = instance
+    override val representable: BoundedRepresentableKC.Aux[Gen, Index] = instance
+    override val traverse: TraverseKC[Gen]                             = instance
 
 trait ExprHKDSumGeneric[A] extends GenHKDSumGeneric[A] with ExprHKDGeneric[A]:
   type Cat[B] = Expr[Option[B]]

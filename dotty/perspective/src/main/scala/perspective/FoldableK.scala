@@ -9,10 +9,12 @@ import cats.syntax.all._
 trait FoldableK[F[_[_], _]]:
   extension [A[_], C](fa: F[A, C])
     /** A higher kinded equivalent of [[Foldable.foldLeft]]. */
-    def foldLeftK[B](b: B)(f: B => A ~>#: B): B
+    def foldLeftK[B](b: B)(f: B => A :~>#: B): B
+
+    def foldRightK[B](b: B)(f: A :~>#: (B => B)): B
 
     /** A higher kinded equivalent of [[Foldable.foldMap]]. */
-    def foldMapK[B](f: A ~>#: B)(using B: Monoid[B]): B =
+    def foldMapK[B](f: A :~>#: B)(using B: Monoid[B]): B =
       foldLeftK(B.empty)(b => [Z] => (az: A[Z]) => b.combine(f(az)))
 
   /** A higher kinded equivalent of [[Foldable.toList]]. */

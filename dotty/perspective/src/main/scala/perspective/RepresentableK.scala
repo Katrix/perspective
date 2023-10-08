@@ -11,10 +11,10 @@ trait RepresentableK[F[_[_], _]] extends MonadK[F] with DistributiveK[F]:
   type RepresentationK[_]
 
   /** A higher kinded equivalent of [[cats.Representable.tabulate]]. */
-  def tabulateK[A[_], C](f: RepresentationK ~>: A): F[A, C]
+  def tabulateK[A[_], C](f: RepresentationK :~>: A): F[A, C]
 
   /** Helper function that calls [[tabulateK]] with [[Const]]. */
-  def tabulateConst[A, C](f: RepresentationK ~>#: A): F[Const[A], C] =
+  def tabulateConst[A, C](f: RepresentationK :~>#: A): F[Const[A], C] =
     tabulateK(f)
 
   /** Access the indices or the representation of this type. */
@@ -28,13 +28,13 @@ trait RepresentableK[F[_[_], _]] extends MonadK[F] with DistributiveK[F]:
     /** A higher kinded equivalent of [[cats.Representable.index]]. */
     def indexK[Z](i: RepresentationK[Z]): A[Z]
 
-    override def mapK[B[_]](f: A ~>: B): F[B, C] =
+    override def mapK[B[_]](f: A :~>: B): F[B, C] =
       tabulateK([Z] => (r: RepresentationK[Z]) => f(fa.indexK(r)))
 
     override def map2K[B[_], Z[_]](fb: F[B, C])(f: [X] => (A[X], B[X]) => Z[X]): F[Z, C] =
       tabulateK([Z] => (r: RepresentationK[Z]) => f(fa.indexK(r), fb.indexK(r)))
 
-    override def flatMapK[B[_]](f: A ~>: F[B, *]): F[B, C] =
+    override def flatMapK[B[_]](f: A :~>: F[B, *]): F[B, C] =
       tabulateK([Z] => (r: RepresentationK[Z]) => f(fa.indexK(r)).indexK(r))
 
   extension [G[_]: Functor, A[_], C](gfa: G[F[A, C]])

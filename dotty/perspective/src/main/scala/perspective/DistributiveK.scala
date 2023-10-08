@@ -9,11 +9,11 @@ import cats.syntax.all._
 trait DistributiveK[F[_[_], _]] extends FunctorK[F]:
   extension [G[_]: Functor, A[_], C](gfa: G[F[A, C]])
     /** A higher kinded equivalent of [[Distributive.distribute]]. */
-    def distributeK[B[_]](f: Compose2[G, A] ~>: B): F[B, C] =
+    def distributeK[B[_]](f: Compose2[G, A] :~>: B): F[B, C] =
       gfa.cosequenceK.mapK(f)
 
     /** Helper function that calls [[distributeK]] with [[Const]]. */
-    inline def distributeConst[B](f: Compose2[G, A] ~>#: B): F[Const[B], C] =
+    inline def distributeConst[B](f: Compose2[G, A] :~>#: B): F[Const[B], C] =
       distributeK[Const[B]](f)
 
     /** A higher kinded equivalent of [[Distributive.cosequence]]. */

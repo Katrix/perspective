@@ -8,6 +8,7 @@ import scala.deriving.*
 import scala.quoted.*
 
 import cats.Applicative
+import cats.kernel.{BoundedEnumerable, Order}
 import perspective.*
 
 trait GenHKDGeneric[A]:
@@ -23,13 +24,13 @@ trait GenHKDGeneric[A]:
   type ElemTop
 
   /** A wrapper for [[Index]] where we want wildcards of it. */
-  class IdxWrapper[X](val idx: Index[X])
+  case class IdxWrapper[X](idx: Index[X])
   given [X]: Conversion[IdxWrapper[X], Index[X]] = _.idx
-  given [X]: Conversion[Index[X], IdxWrapper[X]] = new IdxWrapper(_)
+  given [X]: Conversion[Index[X], IdxWrapper[X]] = IdxWrapper(_)
 
   /** Upcast an index to its bound. */
   inline def upcastIndex[X](idx: Index[X]): IdxWrapper[_ <: ElemTop] =
-    new IdxWrapper(idx).asInstanceOf[IdxWrapper[_ <: ElemTop]]
+    IdxWrapper(idx).asInstanceOf[IdxWrapper[_ <: ElemTop]]
 
   /** The name of the [[A]] type. */
   type TypeName <: String
@@ -78,14 +79,14 @@ trait GenHKDGeneric[A]:
     tuple.asInstanceOf[Helpers.TupleMap[TupleRep, F]]
   )
 
-  val representable: RepresentableKC.Aux[Gen, Index]
+  val representable: BoundedRepresentableKC.Aux[Gen, Index]
   val traverse: TraverseKC[Gen]
 
-  given RepresentableKC.Aux[Gen, Index] = representable
-  given TraverseKC[Gen]                 = traverse
+  given BoundedRepresentableKC.Aux[Gen, Index] = representable
+  given TraverseKC[Gen]                        = traverse
 
   export representable.*
-  export traverse.{mapK => _, liftK => _, widen => _, voidK => _, mapConst => _, asK => _, *}
+  export traverse.{asK => _, liftK => _, mapConst => _, mapK => _, voidK => _, widen => _, *}
 
   // Cat generic functions
 
@@ -108,11 +109,11 @@ trait GenHKDGeneric[A]:
   def tabulateTraverseKEither[E, B[_]](f: [X] => Index[X] => Either[E, B[X]]): Either[E, Gen[B]]
 
 /**
- * A type somewhat like [[Mirror.Of]] allowing manipulating a type as if it was
- * defined as a higher kinded type.
- * @tparam A
- *   The type being abstracted over.
- */
+  * A type somewhat like [[Mirror.Of]] allowing manipulating a type as if it was
+  * defined as a higher kinded type.
+  * @tparam A
+  *   The type being abstracted over.
+  */
 sealed trait HKDGeneric[A] extends GenHKDGeneric[A]
 
 object HKDGeneric:
@@ -213,11 +214,11 @@ object HKDGeneric:
 end HKDGeneric
 
 /**
- * A type somewhat like [[Mirror.ProductOf]] allowing manipulating a product
- * type as if it was defined as a higher kinded type.
- * @tparam A
- *   The type being abstracted over.
- */
+  * A type somewhat like [[Mirror.ProductOf]] allowing manipulating a product
+  * type as if it was defined as a higher kinded type.
+  * @tparam A
+  *   The type being abstracted over.
+  */
 trait GenHKDProductGeneric[A] extends GenHKDGeneric[A]:
 
   /** Convert a value of [[A]] to the higher kinded representation. */
@@ -326,15 +327,14 @@ object HKDProductGeneric:
         def productElementCat[X](index: Index[X]): X =
           a.asInstanceOf[Product].productElement(index.value).asInstanceOf[X]
 
-      private val instance: RepresentableKC.Aux[Gen, Index] & TraverseKC[Gen] =
+      private val instance: BoundedRepresentableKC.Aux[Gen, Index] & TraverseKC[Gen] =
         ProductK.productKInstance[ElemTypes]
 
-      override val representable: RepresentableKC.Aux[Gen, Index] = instance
+      override val representable: BoundedRepresentableKC.Aux[Gen, Index] = instance
       override val traverse: TraverseKC[Gen]                      = instance
 
 trait GenHKDSumGeneric[A] extends GenHKDGeneric[A]:
   override type ElemTop <: A
-
 
 /**
   * A type somewhat like [[Mirror.SumOf]] allowing manipulating a sum type as if
@@ -391,9 +391,9 @@ trait HKDSumGeneric[A] extends HKDGeneric[A]:
 
   def catFrom(a: Gen[Option]): Option[A] =
     traverse.toListK(widenConst(a)).flatten match
-      case Nil => None // No values present
+      case Nil      => None    // No values present
       case a :: Nil => Some(a) // One value present
-      case _ => None // More than one value present
+      case _        => None    // More than one value present
 
   extension (ao: Option[A])
     def productElementCat[X](index: Index[X]): Option[X] = ao.flatMap { a =>
@@ -506,8 +506,8 @@ object HKDSumGeneric:
       override def genToTuple[F[_]](gen: Gen[F]): Helpers.TupleMap[TupleRep, F]   = gen.tuple
       override def tupleToGen[F[_]](tuple: Helpers.TupleMap[TupleRep, F]): Gen[F] = ProductK.ofTuple(tuple)
 
-      private val instance: RepresentableKC.Aux[Gen, Index] & TraverseKC[Gen] =
+      private val instance: BoundedRepresentableKC.Aux[Gen, Index] & TraverseKC[Gen] =
         ProductK.productKInstance[m.MirroredElemTypes]
 
-      override val representable: RepresentableKC.Aux[Gen, Index] = instance
+      override val representable: BoundedRepresentableKC.Aux[Gen, Index] = instance
       override val traverse: TraverseKC[Gen]                      = instance

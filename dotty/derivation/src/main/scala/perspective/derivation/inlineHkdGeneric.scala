@@ -98,9 +98,9 @@ sealed trait InlineHKDGeneric[A]:
 
   // Functor
   extension [A[_]](fa: Gen[A])
-    inline def mapK[B[_]](inline f: A ~>: B): Gen[B]
+    inline def mapK[B[_]](inline f: A :~>: B): Gen[B]
 
-    inline def mapConst[B](inline f: A ~>#: B): Gen[Const[B]] =
+    inline def mapConst[B](inline f: A :~>#: B): Gen[Const[B]] =
       mapK(f)
 
     inline def voidK: Gen[Const[Unit]] = asK(ValueK.const(()))
@@ -110,7 +110,7 @@ sealed trait InlineHKDGeneric[A]:
 
     inline def widen[B[D] >: A[D]]: Gen[B] = fa.asInstanceOf[Gen[B]]
 
-  extension [A[_], B[_]](f: A ~>: B) inline def liftK: Gen[A] #~>#: Gen[B] = [C] => (fa: Gen[A]) => fa.mapK(f)
+  extension [A[_], B[_]](f: A :~>: B) inline def liftK: Gen[A] :#~>#: Gen[B] = [C] => (fa: Gen[A]) => fa.mapK(f)
 
   // Apply
   extension [A[_], B[_]](ff: Gen[[D] =>> A[D] => B[D]])
@@ -133,19 +133,19 @@ sealed trait InlineHKDGeneric[A]:
 
   // Foldable
   extension [A[_]](fa: Gen[A])
-    inline def foldLeftK[B](inline b: B)(inline f: B => A ~>#: B): B
+    inline def foldLeftK[B](inline b: B)(inline f: B => A :~>#: B): B
 
-    inline def foldMapK[B](inline f: A ~>#: B)(using B: Monoid[B]): B
+    inline def foldMapK[B](inline f: A :~>#: B)(using B: Monoid[B]): B
 
   extension [A](fa: Gen[Const[A]]) inline def toListK: List[A]
 
   // Traverse
   extension [A[_]](fa: Gen[A])
     inline def traverseK[G[_], B[_]](
-        inline f: A ~>: Compose2[G, B]
+        inline f: A :~>: Compose2[G, B]
     )(using inline G: Applicative[G], classTag: ClassTag[B[ElemTop]]): G[Gen[B]]
 
-    inline def traverseIdK[G[_]](inline f: A ~>: G)(using inline G: Applicative[G]): G[Gen[Id]] =
+    inline def traverseIdK[G[_]](inline f: A :~>: G)(using inline G: Applicative[G]): G[Gen[Id]] =
       traverseK(f)
 
     inline def sequenceIdK(using inline G: Applicative[A]): A[Gen[Id]] =
@@ -155,10 +155,10 @@ sealed trait InlineHKDGeneric[A]:
 
   // Distributive
   extension [G[_]: Functor, A[_]](gfa: G[Gen[A]])
-    inline def distributeK[B[_]](inline f: Compose2[G, A] ~>: B): Gen[B] =
+    inline def distributeK[B[_]](inline f: Compose2[G, A] :~>: B): Gen[B] =
       gfa.cosequenceK.mapK(f)
 
-    inline def distributeConst[B](inline f: Compose2[G, A] ~>#: B): Gen[Const[B]] =
+    inline def distributeConst[B](inline f: Compose2[G, A] :~>#: B): Gen[Const[B]] =
       distributeK[Const[B]](f)
 
     inline def cosequenceK: Gen[Compose2[G, A]]
@@ -170,7 +170,7 @@ sealed trait InlineHKDGeneric[A]:
   // Monad
   extension [A[_]](ffa: Gen[Const[Gen[A]]]) inline def flattenK: Gen[A] = ffa.flatMapK(FunctionK.identity)
 
-  extension [A[_]](fa: Gen[A]) inline def flatMapK[B[_]](inline f: A ~>#: Gen[B]): Gen[B]
+  extension [A[_]](fa: Gen[A]) inline def flatMapK[B[_]](inline f: A :~>#: Gen[B]): Gen[B]
 
   // Representable
   inline def tabulateK[B[_]](inline f: (i: Index) => B[i.X], inline unrolling: Boolean = false)(
@@ -449,11 +449,11 @@ object InlineHKDGeneric:
     default.asInstanceOf[A]
 
   private def traverseKImpl[ElemTop: Type, F <: Tuple: Type, A[_]: Type, G[_]: Type, B[_]: Type](
-      fa: Expr[IArray[A[ElemTop]]],
-      f: Expr[A ~>: Compose2[G, B]],
-      G: Expr[Applicative[G]],
-      sizeExpr: Expr[Int],
-      classTagExpr: Expr[ClassTag[B[ElemTop]]]
+                                                                                                  fa: Expr[IArray[A[ElemTop]]],
+                                                                                                  f: Expr[A :~>: Compose2[G, B]],
+                                                                                                  G: Expr[Applicative[G]],
+                                                                                                  sizeExpr: Expr[Int],
+                                                                                                  classTagExpr: Expr[ClassTag[B[ElemTop]]]
   )(using q: Quotes): Expr[G[IArray[B[ElemTop]]]] =
     import q.reflect.*
 
@@ -707,7 +707,7 @@ object InlineHKDGeneric:
       res.find(_._1 == name).get._2.asInstanceOf[IndexAux[this.FieldOf[Name]]]
 
     extension [A[_]](fa: Gen[A])
-      override inline def foldLeftK[B](inline b: B)(inline f: B => A ~>#: B): B =
+      override inline def foldLeftK[B](inline b: B)(inline f: B => A :~>#: B): B =
         var i: Int = 0
         var res: B = b
         while (i < size) {
@@ -718,7 +718,7 @@ object InlineHKDGeneric:
         res
       end foldLeftK
 
-      override inline def foldMapK[B](inline f: A ~>#: B)(using B: Monoid[B]): B =
+      override inline def foldMapK[B](inline f: A :~>#: B)(using B: Monoid[B]): B =
         foldLeftK(B.empty)(b => [Z] => (az: A[Z]) => b.combine(f(az)))
 
     extension [A](fa: Gen[Const[A]])
@@ -729,7 +729,7 @@ object InlineHKDGeneric:
 
       // Traverse
 
-      override inline def traverseK[G[_], B[_]](inline f: A ~>: Compose2[G, B])(
+      override inline def traverseK[G[_], B[_]](inline f: A :~>: Compose2[G, B])(
           using inline G: Applicative[G],
           classTag: ClassTag[B[ElemTop]]
       ): G[Gen[B]] =
@@ -765,7 +765,7 @@ object InlineHKDGeneric:
     // Monad
 
     extension [A[_]](fa: Gen[A])
-      override inline def flatMapK[B[_]](inline f: A ~>: Const[Gen[B]]): Gen[B] =
+      override inline def flatMapK[B[_]](inline f: A :~>: Const[Gen[B]]): Gen[B] =
         tabulateK(r => f(fa.indexK(r)).indexK(r))
 
     // Distributive
@@ -788,7 +788,7 @@ object InlineHKDGeneric:
 
     // Functor
     extension [A[_]](fa: Gen[A])
-      override inline def mapK[B[_]](inline f: A ~>: B): Gen[B] =
+      override inline def mapK[B[_]](inline f: A :~>: B): Gen[B] =
         tabulateK(r => f(fa.indexK(r)))
 
   end InlineHKDGenericTypeclassOps

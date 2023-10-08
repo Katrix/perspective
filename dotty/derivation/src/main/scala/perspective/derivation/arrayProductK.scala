@@ -1,9 +1,10 @@
 package perspective.derivation
 
+import cats.kernel.{BoundedEnumerable, Order}
+
 import scala.annotation.tailrec
 import scala.compiletime.*
 import scala.deriving.*
-
 import cats.syntax.all.*
 import cats.{Applicative, Functor, Monoid}
 import perspective.*
@@ -31,20 +32,26 @@ object ArrayProductK {
 
   given arrayProductKInstance[T <: Tuple](
       using size: ValueOf[Tuple.Size[T]]
-  ): RepresentableKC[ArrayProductKPar[T]] with TraverseKC[ArrayProductKPar[T]] with
+  ): BoundedRepresentableKC[ArrayProductKPar[T]] with TraverseKC[ArrayProductKPar[T]] with
     type RepresentationK[_] = Finite[Tuple.Size[T]]
 
     override def indicesK[C]: ArrayProductK[RepresentationK, T] =
       iArrayOf(size.value)(i => i.asInstanceOf[Object]).asInstanceOf[ArrayProductK[RepresentationK, T]]
 
     extension [A[_], C](fa: ArrayProductK[A, T])
-      override def foldLeftK[B](b: B)(f: B => A ~>#: B): B =
+      override def foldLeftK[B](b: B)(f: B => A :~>#: B): B =
         fa.foldLeft(b) { (acc, v) =>
           val withAcc = f(acc)
           withAcc(v.asInstanceOf[A[Any]])
         }
 
-      override def traverseK[G[_]: Applicative, B[_]](f: A ~>: Compose2[G, B]): G[ArrayProductK[B, T]] =
+      override def foldRightK[B](b: B)(f: A :~>#: (B => B)): B =
+        fa.foldRight(b) { (v, acc) =>
+          val withV = f(v.asInstanceOf[A[Any]])
+          withV(acc)
+        }
+
+      override def traverseK[G[_]: Applicative, B[_]](f: A :~>: Compose2[G, B]): G[ArrayProductK[B, T]] =
         val it = fa.iterator.asInstanceOf[Iterator[A[Any]]]
         val G = summon[Applicative[G]]
 
@@ -60,13 +67,26 @@ object ArrayProductK {
       override def indexK[Z](i: RepresentationK[Z]): A[Z] =
         fa(i.value).asInstanceOf[A[Z]]
 
-    def tabulateK[A[_], C](f: RepresentationK ~>: A): ArrayProductK[A, T] =
+    def tabulateK[A[_], C](f: RepresentationK :~>: A): ArrayProductK[A, T] =
       // If the given is used, we already know that size > 0
       given (Finite.NotZero[Tuple.Size[T]] =:= true) =
         <:<.refl[Boolean].asInstanceOf[Finite.NotZero[Tuple.Size[T]] =:= true]
 
       val arr = iArrayOf(size.value)(i => f(i.asInstanceOf[Finite[Tuple.Size[T]]]).asInstanceOf[Object])
       arr.asInstanceOf[ArrayProductK[A, T]]
+
+    override val boundedRepresentableK: BoundedEnumerable[ReprWrapper[_]] = new BoundedEnumerable[ReprWrapper[_]]:
+      private val instance = Finite.boundedEnumerable[Tuple.Size[T]]
+
+      override def order: Order[ReprWrapper[_]] = (x: ReprWrapper[_], y: ReprWrapper[_]) => instance.order.compare(x.repr, y.repr)
+
+      override def maxBound: ReprWrapper[_] = ReprWrapper(instance.maxBound)
+
+      override def partialPrevious(a: ReprWrapper[_]): Option[ReprWrapper[_]] = instance.partialPrevious(a.repr).map(ReprWrapper.apply)
+
+      override def partialNext(a: ReprWrapper[_]): Option[ReprWrapper[_]] = instance.partialNext(a.repr).map(ReprWrapper.apply)
+
+      override def minBound: ReprWrapper[_] = ReprWrapper(instance.minBound)
   end arrayProductKInstance
 
   inline given gatherImplicits[F[_], T <: Tuple]: ArrayProductK[F, T] =
