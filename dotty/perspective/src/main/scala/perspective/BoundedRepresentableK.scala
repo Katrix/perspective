@@ -13,9 +13,9 @@ object BoundedRepresentableK:
   }
 
 /**
- * A version of [[BoundedRepresentableK]] without a normal type as well as a higher
- * kinded type.
- */
+  * A version of [[BoundedRepresentableK]] without a normal type as well as a
+  * higher kinded type.
+  */
 type BoundedRepresentableKC[F[_[_]]] = BoundedRepresentableK[IgnoreC[F]]
 object BoundedRepresentableKC:
   type Aux[F[_[_]], RepresentationK0[_]] = BoundedRepresentableKC[F] {

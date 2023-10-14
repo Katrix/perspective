@@ -1,6 +1,7 @@
 package perspective.examples
 
 import java.time.{Instant, OffsetDateTime}
+
 import io.circe._
 
 object TestBig {

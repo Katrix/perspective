@@ -66,11 +66,8 @@ sealed trait InlineHKDGeneric[A]:
   /** Validates a string as a name if it matches the name of a field. */
   inline def stringToName(s: String): Option[Names]
 
-  /** Returns the type of a field given its name. */
-  type FieldOf[Name <: Names] <: ElemTop
-
   /** Returns the index of the field a name corresponds to. */
-  inline def nameToIndex[Name <: Names](name: Name): IndexAux[FieldOf[Name]]
+  inline def nameToIndex(name: Names): Index
 
   /** A tuple representation of [[A]]. */
   type TupleRep <: Tuple
@@ -199,27 +196,21 @@ object InlineHKDGeneric:
     type Gen[B[_]] = Gen0[B]
   }
 
-  type FieldOfImpl[Name <: String, ElemTop, ElemTypes <: Tuple, Labels <: Tuple] <: ElemTop =
-    (ElemTypes, Labels, Labels) match {
-      case (th *: _, Name *: lt, lh *: _) =>
-        compiletime.ops.any.==[lh, Name] match {
-          case true  => th & ElemTop
-          case false => ElemTop // We matched a label when they were not == equal. Name is probably a union type
-        }
-      case (_ *: tt, _ *: lt, _)                => FieldOfImpl[Name, ElemTop, tt, lt]
-      case (EmptyTuple, EmptyTuple, EmptyTuple) => ElemTop
-    }
-
   transparent inline given derived[A](
-      using m0: Mirror.Of[A]
+      using m0: Mirror.Of[A],
+      typeLength: TypeLength[m0.MirroredElemTypes]
   ): InlineHKDGeneric[A] =
     inline m0 match
-      case m: Mirror.ProductOf[A] =>
+      case m: Mirror.ProductOf[A] { type MirroredElemTypes = m0.MirroredElemTypes } =>
         InlineHKDProductGeneric
-          .derived[A](using m, summonInline[ClassTag[Helpers.TupleUnion[m.MirroredElemTypes, Nothing]]])
-      case m: Mirror.SumOf[A] =>
+          .derived[A](using m, typeLength, summonInline[ClassTag[Helpers.TupleUnion[m.MirroredElemTypes, Nothing]]])
+      case m: Mirror.SumOf[A] { type MirroredElemTypes = m0.MirroredElemTypes } =>
         InlineHKDSumGeneric
-          .derived[A](using m, summonInline[ClassTag[Helpers.TupleUnionLub[m.MirroredElemTypes, A, Nothing]]])
+          .derived[A](
+            using m,
+            typeLength,
+            summonInline[ClassTag[Helpers.TupleUnionLub[m.MirroredElemTypes, A, Nothing]]]
+          )
   end derived
 
   extension [A](arr: IArray[A])
@@ -262,18 +253,24 @@ object InlineHKDGeneric:
         } catch {
           case e: Exception =>
             // Tried to convert partially applied type to Expr. Ignoring it
-            tree
+            super.transformTerm(tree)(owner)
         }
 
       def transformExact[A](a: Expr[A], idxExpr: Expr[Int]): Term = {
+        val ownerSym = idxExpr.asTerm.symbol.owner
+
         def findConstantIdx(tpe: TypeRepr): Option[Int] = tpe match {
           case AndType(a, b)                => findConstantIdx(a).orElse(findConstantIdx(b))
           case ConstantType(IntConstant(i)) => Some(i)
           case Refinement(a, _, _)          => findConstantIdx(a)
-          case t                            => None
+          case TermRef(_, _)                => findConstantIdx(ownerSym.typeRef.memberType(tpe.termSymbol))
+
+          case t =>
+            None
         }
 
-        val idx = findConstantIdx(idxExpr.asTerm.tpe.widenTermRefByName).getOrElse(idxExpr.valueOrAbort)
+        val idx = findConstantIdx(idxExpr.asTerm.tpe.widenTermRefByName)
+          .getOrElse(idxExpr.valueOrAbort)
 
         val field = Helpers.valuesOfConstantTuple(TypeRepr.of[Fields], Nil) match {
           case Some(seq) => seq(idx).asExprOf[String].valueOrAbort
@@ -313,7 +310,7 @@ object InlineHKDGeneric:
           val tpe = scrutinee.tpe.widenTermRefByName
 
           cases.foreach {
-            case CaseDef(_, Some(_), _)                     => report.errorAndAbort("Cases in match can not have guards")
+            case CaseDef(_, Some(_), _) => report.errorAndAbort("Cases in match can not have guards")
             case CaseDef(Bind(_, Typed(Ident(_), _)), _, _) =>
             case CaseDef(Bind(_, Ident(_)), _, _)           =>
             case caseDef => report.errorAndAbort("Invalid case in match inside lateInlineMatch", caseDef.pos)
@@ -449,11 +446,11 @@ object InlineHKDGeneric:
     default.asInstanceOf[A]
 
   private def traverseKImpl[ElemTop: Type, F <: Tuple: Type, A[_]: Type, G[_]: Type, B[_]: Type](
-                                                                                                  fa: Expr[IArray[A[ElemTop]]],
-                                                                                                  f: Expr[A :~>: Compose2[G, B]],
-                                                                                                  G: Expr[Applicative[G]],
-                                                                                                  sizeExpr: Expr[Int],
-                                                                                                  classTagExpr: Expr[ClassTag[B[ElemTop]]]
+      fa: Expr[IArray[A[ElemTop]]],
+      f: Expr[A :~>: Compose2[G, B]],
+      G: Expr[Applicative[G]],
+      sizeExpr: Expr[Int],
+      classTagExpr: Expr[ClassTag[B[ElemTop]]]
   )(using q: Quotes): Expr[G[IArray[B[ElemTop]]]] =
     import q.reflect.*
 
@@ -696,7 +693,7 @@ object InlineHKDGeneric:
     override type Gen[F[_]] = IArray[F[ElemTop]]
     override type Index     = Int { type X <: ElemTop }
 
-    override inline def nameToIndex[Name <: this.Names](name: Name): IndexAux[this.FieldOf[Name]] =
+    override inline def nameToIndex(name: this.Names): Index =
       // TODO: Macro match
       val n = names
       val res = tabulateFoldLeft(Nil: List[(this.Names, Index)]) { (acc, idx) =>
@@ -704,7 +701,7 @@ object InlineHKDGeneric:
         (name, idx) :: acc
       }
 
-      res.find(_._1 == name).get._2.asInstanceOf[IndexAux[this.FieldOf[Name]]]
+      res.find(_._1 == name).get._2
 
     extension [A[_]](fa: Gen[A])
       override inline def foldLeftK[B](inline b: B)(inline f: B => A :~>#: B): B =
@@ -844,39 +841,29 @@ object InlineHKDProductGeneric:
 
   transparent inline given derived[A](
       using m: Mirror.ProductOf[A],
+      typeLength: TypeLength[m.MirroredElemTypes],
       idClassTag: ClassTag[Helpers.TupleUnion[m.MirroredElemTypes, Nothing]]
-  ): DerivedImpl[A, m.MirroredElemTypes, m.MirroredElemLabels, m.MirroredLabel, Helpers.TupleUnion[
-    m.MirroredElemTypes,
-    Nothing
-  ], Helpers.TupleUnionLub[
-    m.MirroredElemLabels,
-    String,
-    Nothing
-  ], Tuple.Size[m.MirroredElemTypes]] =
-    // Computing all of these now to simplify things, and to hope that the compiler only does this once
-    type Names   = Helpers.TupleUnionLub[m.MirroredElemLabels, String, Nothing]
-    type ElemTop = Helpers.TupleUnion[m.MirroredElemTypes, Nothing]
-    type Size    = Tuple.Size[m.MirroredElemTypes]
-    new DerivedImpl[A, m.MirroredElemTypes, m.MirroredElemLabels, m.MirroredLabel, ElemTop, Names, Size](using m)
+  ): DerivedImpl[A, m.MirroredElemTypes, m.MirroredElemLabels, m.MirroredLabel, typeLength.Length] =
+    new DerivedImpl[A, m.MirroredElemTypes, m.MirroredElemLabels, m.MirroredLabel, typeLength.Length](
+      using m
+    )
 
   class DerivedImpl[
       A,
       ElemTypes <: Tuple,
       ElemLabels <: Tuple,
       TypeName0 <: String,
-      ElemTop0,
-      Names0 <: String,
       Size0 <: Int
   ](
       using val m: Mirror.ProductOf[A] {
         type MirroredElemTypes = ElemTypes; type MirroredElemLabels = ElemLabels; type MirroredLabel = TypeName0
       },
-      val idClassTag: ClassTag[ElemTop0]
+      val idClassTag: ClassTag[Any]
   ) extends InlineHKDProductGeneric[A]
       with InlineHKDGeneric.InlineHKDGenericTypeclassOps[A, ElemLabels]:
     override type Gen[F[_]] = IArray[F[ElemTop]]
     // override opaque type Index = Int { type X <: ElemTop }
-    override type ElemTop = ElemTop0
+    override type ElemTop = Any
 
     override type TypeName = TypeName0
     override inline def typeName: TypeName = constValue[TypeName0]
@@ -885,14 +872,12 @@ object InlineHKDProductGeneric:
 
     override inline def size: Size0 = constValue[Size0]
 
-    override type Names = Names0
+    opaque type Names <: String = String
     override inline def names: Gen[Const[Names]] =
       Helpers.constValueTupleToIArray[ElemLabels, String].asInstanceOf[Gen[Const[Names]]]
 
     override inline def stringToName(s: String): Option[Names] =
       InlineHKDGeneric.stringToName[ElemLabels](s).asInstanceOf[Option[Names]] // In theory harmless cast
-
-    override type FieldOf[Name <: Names] = InlineHKDGeneric.FieldOfImpl[Name, ElemTop, ElemTypes, ElemLabels]
 
     override type TupleRep = ElemTypes
 
@@ -948,9 +933,6 @@ trait InlineHKDSumGeneric[A] extends InlineHKDGeneric[A]:
 
   override type ElemTop <: A
 
-  /** Returns the name of a field given the type of the field. */
-  type NameOf[X <: ElemTop] <: Names
-
   /**
     * Returns the index of a value. Because of soundness, this method can not be
     * used if X = A. In that case, use [[indexOfA]] instead.
@@ -966,9 +948,6 @@ trait InlineHKDSumGeneric[A] extends InlineHKDGeneric[A]:
     * of A.
     */
   inline def indexOfACasting(a: A): InlineHKDSumGeneric.IndexOfACasting[Index, ElemTop]
-
-  /** Given a index, return the name of the index. */
-  inline def indexToName(idx: Index): NameOf[idx.X]
 
   /**
     * Widen the higher kinded representation to a [[Const]] type of the top
@@ -1018,19 +997,12 @@ object InlineHKDSumGeneric:
     type Gen[B[_]] = Gen0[B]
   }
 
-  type NameOfImpl[Names, X, ElemTypes, Labels] <: Names = (ElemTypes, ElemTypes, Labels) match {
-    case (X *: tt, th *: _, lh *: lt) =>
-      Helpers.Eq[th, X] match {
-        case true => lh & Names
-      }
-    case (th *: tt, _, lh *: lt) => NameOfImpl[Names, X, tt, lt]
-  }
-
   transparent inline given derived[A](
       using m: Mirror.SumOf[A],
+      typeLength: TypeLength[m.MirroredElemTypes],
       idClassTag: ClassTag[Helpers.TupleUnionLub[m.MirroredElemTypes, A, Nothing]]
-  ): DerivedImpl[A, m.MirroredElemTypes, m.MirroredElemLabels, m.MirroredLabel, Tuple.Size[m.MirroredElemTypes]] =
-    new DerivedImpl[A, m.MirroredElemTypes, m.MirroredElemLabels, m.MirroredLabel, Tuple.Size[m.MirroredElemTypes]](
+  ): DerivedImpl[A, m.MirroredElemTypes, m.MirroredElemLabels, m.MirroredLabel, typeLength.Length] =
+    new DerivedImpl[A, m.MirroredElemTypes, m.MirroredElemLabels, m.MirroredLabel, typeLength.Length](
       using m,
       idClassTag
     )
@@ -1055,15 +1027,13 @@ object InlineHKDSumGeneric:
 
     override inline def size: Size0 = constValue[Size0]
 
-    override type Names = InlineHKDGeneric.Names[ElemLabels]
+    opaque type Names <: String = String
 
     override inline def names: Gen[Const[Names]] =
       Helpers.constValueTupleToIArray[ElemLabels, String].asInstanceOf[Gen[Const[Names]]]
 
     override inline def stringToName(s: String): Option[Names] =
       InlineHKDGeneric.stringToName[ElemLabels](s)
-
-    override type FieldOf[Name <: Names] = InlineHKDGeneric.FieldOfImpl[Name, ElemTop, ElemTypes, ElemLabels]
 
     override type TupleRep = ElemTypes
 
@@ -1095,9 +1065,6 @@ object InlineHKDSumGeneric:
     inline def indexOfACasting(a: A): InlineHKDSumGeneric.IndexOfACasting[Index, ElemTop] =
       val idx = indexOfA(a)
       new InlineHKDSumGeneric.IndexOfACasting.IndexOfACastingImpl[Index, ElemTop, idx.X](idx, a.asInstanceOf[idx.X])
-
-    inline def indexToName(idx: Index): NameOf[idx.X] =
-      names(idx).asInstanceOf[NameOf[idx.X]]
 
     override inline def summonInstances[F[_]]: Gen[F] =
       Helpers.summonAllToIArray[ElemTypes, F].asInstanceOf[Gen[F]]

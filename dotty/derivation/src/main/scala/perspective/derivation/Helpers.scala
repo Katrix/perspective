@@ -6,6 +6,12 @@ import scala.quoted.*
 
 object Helpers {
 
+  inline def unsafeIArrayToArray[A](arr: IArray[A]): Array[A] = arr.asInstanceOf[Array[A]]
+
+  inline def unsafeArrayToIArray[A](arr: Array[A]): IArray[A] = arr.asInstanceOf[IArray[A]]
+
+  inline def boxAny(any: Any): AnyRef = any.asInstanceOf[AnyRef]
+
   /** A type returning if two types are equal as under =:=. */
   type Eq[A, B] <: Boolean = A =:= B match {
     case B =:= A => true
@@ -68,7 +74,7 @@ object Helpers {
 
     override def result: T =
       if i != size then throw new IllegalStateException("Added the wrong amount of values to the tuple builder")
-      else Tuple.fromArray(values).asInstanceOf[T]
+      else (Tuple.fromArray(values): Tuple).asInstanceOf[T]
   }
 
   /** Show a dealiased version of a type. */
@@ -102,6 +108,9 @@ object Helpers {
   inline def constValueTupleToIArray[T <: Tuple, Lub]: IArray[Lub] =
     ${ constValueTupleToIArrayImpl[T, Lub] }
 
+  inline def constValueTupleLength[T <: Tuple]: Int =
+    ${ constValueTupleLengthImpl[T] }
+
   /** A optimized value of [[summonAll]]. */
   inline def summonAllOptimized[T <: Tuple]: T =
     ${ summonAllOptimizedImpl[T] }
@@ -112,9 +121,7 @@ object Helpers {
   inline def summonAllToIArray[T <: Tuple, F[_]]: IArray[TupleUnionMap[T, F, Nothing]] =
     ${ summonAllToIArrayImpl[T, F, TupleUnionMap[T, F, Nothing]] }
 
-  /**
-   * A version of [[summonAllToIArray]] which returns an IArray[Object].
-   */
+  /** A version of [[summonAllToIArray]] which returns an IArray[Object]. */
   inline def summonAllToObjectIArray[T <: Tuple, F[_]]: IArray[Object] =
     ${ summonAllToIArrayImpl[T, F, Object] }
 
@@ -141,7 +148,7 @@ object Helpers {
       valuesOfConstantTuple(TypeRepr.of[T], Nil)
         .getOrElse(report.errorAndAbort(s"${Type.show[T]} is not a constant tuple type"))
 
-    if values.isEmpty then ifEmpty else f(Expr.ofSeq(values.asInstanceOf[List[Expr[Lub]]]))
+    if values.isEmpty then ifEmpty else f(Expr.ofSeq((values: List[Expr[Any]]).asInstanceOf[List[Expr[Lub]]]))
   }
 
   private def constValueTupleToListImpl[T <: Tuple: Type, Lub: Type](using q: Quotes): Expr[List[Lub]] = {
@@ -160,6 +167,11 @@ object Helpers {
       '{ IArray.empty[Lub](using summonInline[scala.reflect.ClassTag[Lub]]) },
       args => '{ IArray($args: _*)(using summonInline[scala.reflect.ClassTag[Lub]]) }
     )
+  }
+
+  private def constValueTupleLengthImpl[T <: Tuple: Type](using q: Quotes): Expr[Int] = {
+    import q.reflect.*
+    Expr(typesOfTuple(TypeRepr.of[T], Nil).length)
   }
 
   private def summonAllOptimizedImpl[T <: Tuple: Type](using q: Quotes): Expr[T] = {

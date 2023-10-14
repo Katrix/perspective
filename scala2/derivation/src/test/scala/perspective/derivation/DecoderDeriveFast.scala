@@ -16,12 +16,14 @@ object DecoderDeriveFast {
       import gen.implicits._
 
       gen
-        .tabulateTraverseKEither[DecodingFailure, Id](Lambda[gen.Index ~>: Compose2[Decoder.Result, perspective.Id, *]] { idx =>
-          val name    = names.indexKC(idx)
-          val decoder = decoders.indexKC(idx)
+        .tabulateTraverseKEither[DecodingFailure, Id](
+          Lambda[gen.Index ~>: Compose2[Decoder.Result, perspective.Id, *]] { idx =>
+            val name    = names.indexKC(idx)
+            val decoder = decoders.indexKC(idx)
 
-          cursor.get(name)(decoder)
-        })
+            cursor.get(name)(decoder)
+          }
+        )
         .map(gen.from)
     }
   }

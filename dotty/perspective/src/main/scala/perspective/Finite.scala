@@ -37,6 +37,8 @@ object Finite:
   inline def apply[N <: Int](size: N, value: Int)(using NotZero[N] =:= true): Finite[N] =
     if value < size then value else Math.floorMod(value, size)
 
+  inline def unsafeApply[N <: Int](value: Int): Finite[N] = value
+
   given boundedEnumerable[N <: Int](using size: ValueOf[N]): kernel.BoundedEnumerable[Finite[N]] with {
     override def order: Order[Finite[N]] = (x: Finite[N], y: Finite[N]) => Integer.compare(x, y)
 

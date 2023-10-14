@@ -17,7 +17,7 @@ object PerspectiveExprEncoder:
     val gen   = ExprHKDProductGeneric.derived[A]
     val types = gen.types
     val names = gen.names.asInstanceOf[gen.Gen[Const[String]]]
-    //TODO: Make a function that errors if instances are not found
+    // TODO: Make a function that errors if instances are not found
     val instances = gen.summonInstancesOpt[Encoder].getOrElse(report.errorAndAbort("Missing implicit instances"))
 
     val res = '{

@@ -35,15 +35,23 @@ object ExprHKDProductGeneric:
             }
           } =>
         import q.reflect.*
-        val labels = Type.valueOfTuple[labels].get.toIArray.map(_.asInstanceOf[String])
-        val label  = Type.valueOfConstant[label].get
+        val labels  = Type.valueOfTuple[labels].get.toIArray.map(e => (e: Any).asInstanceOf[String])
+        val label   = Type.valueOfConstant[label].get
+        val lengthV = labels.length
 
         derivedImpl[A, elemTypes, label, labels](
           label,
           labels,
           labels.toSet,
           IArray.from(Helpers.typesOfTuple(TypeRepr.of[elemTypes], Nil).map(_.asType))
-        )(using q, aType, new ValueOf[Tuple.Size[elemTypes]](labels.length.asInstanceOf[Tuple.Size[elemTypes]]))
+        )(
+          using q,
+          aType,
+          new TypeLength[elemTypes] {
+            type Length = lengthV.type
+            override def length: Length = lengthV
+          }
+        )
 
   def derivedImpl[A, ElemTypes <: Tuple, Label <: String, Labels <: Tuple](
       label: Label,
@@ -53,18 +61,15 @@ object ExprHKDProductGeneric:
   )(
       using q: Quotes,
       aType: Type[A],
-      size: ValueOf[Tuple.Size[ElemTypes]]
+      typeLength: TypeLength[ElemTypes]
   ): ExprHKDProductGeneric[A] {
-    type Gen[F[_]]              = ProductK[F, ElemTypes]
-    type Index[_]               = Finite[Tuple.Size[ElemTypes]]
-    type TypeName               = Label
-    type Names                  = Helpers.TupleUnionLub[Labels, String, Nothing]
-    type ElemTop                = Helpers.TupleUnion[ElemTypes, Nothing]
-    type FieldOf[Name <: Names] = HKDGeneric.FieldOfImpl[Name, ElemTop, ElemTypes, Labels]
-    type TupleRep               = ElemTypes
+    type Gen[F[_]] = ProductK[F, ElemTypes]
+    type Index[_]  = Finite[typeLength.Length]
+    type TypeName  = Label
+    type TupleRep  = ElemTypes
   } = new ExprHKDProductGeneric[A]:
     override type Gen[F[_]] = ProductK[F, ElemTypes]
-    override type Index[_]  = Finite[Tuple.Size[ElemTypes]]
+    override type Index[_]  = Finite[typeLength.Length]
     override type ElemTop   = Helpers.TupleUnion[ElemTypes, Nothing]
 
     override def types: Gen[Type] = ProductK.ofProductUnsafe[Type, ElemTypes](ArrayProduct(typesArr))
@@ -73,23 +78,19 @@ object ExprHKDProductGeneric:
 
     override def typeName: TypeName = label
 
-    override type Names = Helpers.TupleUnionLub[Labels, String, Nothing]
+    opaque type Names <: String = String
 
     override def names: Gen[Const[Names]] =
       ProductK.ofProductUnsafe[Const[Names], ElemTypes](ArrayProduct(namesArr))
 
-    override def stringToName(s: String): Option[Names] =
-      Option.when(namesSet(s))(s.asInstanceOf[Names])
-
-    override type FieldOf[Name <: Names] = HKDGeneric.FieldOfImpl[Name, ElemTop, ElemTypes, Labels]
+    override def stringToName(s: String): Option[Names] = Option.when(namesSet(s))(s)
 
     private lazy val nameMap =
-      names
-        .map2Const(representable.indicesK)([Z] => (name: Names, idx: Index[Z]) => (name, upcastIndex(idx)))
-        .toListK
-        .toMap
+      namesArr.zipWithIndex.toMap
 
-    override def nameToIndex[Name <: Names](name: Name): Index[FieldOf[Name]] = nameMap(name)
+    override def nameToIndex(name: Names): IdxWrapper[_ <: ElemTop] = IdxWrapper(
+      Finite.unsafeApply(nameMap(name))
+    )
 
     override type TupleRep = ElemTypes
 
@@ -101,7 +102,7 @@ object ExprHKDProductGeneric:
 
     override def catFrom(a: Gen[Cat]): Cat[A] =
       import q.reflect.*
-      val exprs  = a.product.productIterator.toList.asInstanceOf[List[Expr[_]]]
+      val exprs  = (a.product.productIterator: Iterator[Any]).asInstanceOf[Iterator[Cat[_]]].toList
       val aClass = TypeRepr.of[A].classSymbol.getOrElse(report.errorAndAbort(s"Can't find class of ${Type.show[A]}"))
       Option.when(aClass.companionModule.exists)(aClass.companionModule).map { companionSymbol =>
         companionSymbol.methodMember("apply").filter { applySymbol =>
@@ -118,25 +119,25 @@ object ExprHKDProductGeneric:
       ???
 
     override def tabulateFoldLeft[B](start: B)(f: B => [X] => Index[X] => B): B =
-      HKDGeneric.tabulateFoldLeftImpl(size.value, start, f)
+      HKDGeneric.tabulateFoldLeftImpl(typeLength.length, start, f)
 
-    override def tabulateTraverseK[G[_], B[_]](f: [X] => Finite[Tuple.Size[ElemTypes]] => G[B[X]])(
+    override def tabulateTraverseK[G[_], B[_]](f: [X] => Finite[typeLength.Length] => G[B[X]])(
         using Applicative[G]
     ): G[Gen[B]] =
-      HKDGeneric.tabulateTraverseKImpl(size.value, f)
+      HKDGeneric.tabulateTraverseKImpl(typeLength.length, f)
 
     override def tabulateTraverseKOption[B[_]](
-        f: [X] => Finite[Tuple.Size[ElemTypes]] => Option[B[X]]
-    ): Option[ProductK[B, ElemTypes]] = HKDGeneric.tabulateTraverseKOptionImpl(size.value, f)
+        f: [X] => Finite[typeLength.Length] => Option[B[X]]
+    ): Option[ProductK[B, ElemTypes]] = HKDGeneric.tabulateTraverseKOptionImpl(typeLength.length, f)
 
     override def tabulateTraverseKEither[E, B[_]](
-        f: [X] => Finite[Tuple.Size[ElemTypes]] => Either[E, B[X]]
-    ): Either[E, ProductK[B, ElemTypes]] = HKDGeneric.tabulateTraverseKEitherImpl(size.value, f)
+        f: [X] => Finite[typeLength.Length] => Either[E, B[X]]
+    ): Either[E, ProductK[B, ElemTypes]] = HKDGeneric.tabulateTraverseKEitherImpl(typeLength.length, f)
 
     extension (a: Cat[A])
       def productElementCat[X](index: Index[X]): Cat[X] =
         import q.reflect.*
-        given Type[X] = typesArr(index.value).asInstanceOf[Type[X]]
+        given Type[X] = (typesArr(index.value): Type[_]).asInstanceOf[Type[X]]
         Select.unique(a.asTerm, namesArr(index.value)).asExprOf[X]
 
     override def summonInstancesOpt[F[_]: Type]: Option[Gen[Compose2[Expr, F]]] =

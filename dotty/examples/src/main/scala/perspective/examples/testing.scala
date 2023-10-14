@@ -3,14 +3,14 @@ package perspective.examples
 import scala.language.implicitConversions
 
 import scala.compiletime.{erasedValue, summonFrom, summonInline}
-import scala.deriving._
+import scala.deriving.*
 
 import cats.Id
-import cats.instances.either._
-import io.circe._
-import io.circe.syntax._
-import perspective._
-import perspective.derivation._
+import cats.instances.either.*
+import io.circe.*
+import io.circe.syntax.*
+import perspective.*
+import perspective.derivation.*
 
 trait PerspectiveDecoder[A] extends Decoder[A]
 object PerspectiveDecoder:
@@ -37,9 +37,8 @@ object PerspectiveDecoder:
         typeName <- gen
           .stringToName(typeNameStr)
           .toRight(DecodingFailure(s"$typeNameStr is not a valid ${gen.typeName}", cursor.history))
-        index       = gen.nameToIndex(typeName)
-        decoder     = decoders.indexK(index)
-        valueCursor = cursor.downField("$value")
+        index   = gen.nameToIndex(typeName)
+        decoder = decoders.indexK(index)
         res <- decoder(cursor.downField("$value").success.getOrElse(cursor))
       yield res
 
@@ -130,10 +129,21 @@ object PerspectiveEncoder:
 
 case class Foo(i: Int, s: String, foobar: Long) derives PerspectiveEncoder, PerspectiveDecoder
 
-extension [A](a: A)(using gen: HKDProductGeneric[A]) {
-  def foo[X <: gen.Names](x: X): gen.FieldOf[X] =
-    gen.to(a).indexK(gen.nameToIndex(x))
-}
+extension [A](a: A)(
+    using gen: HKDProductGeneric[A],
+    types: HKDExtraTypes[A],
+    ev: gen.Index[types.Special] =:= types.Index[types.Special]
+)
+  def foo[X <: types.Names](x: X): types.FieldOf[X] =
+    // TODO: Should be able to just say types.withIdx[gen.Index]
+    val typesWithIdx = types.asInstanceOf[
+      types.type & {
+        type Index[B]               = gen.Index[B]
+        type Names                  = types.Names
+        type FieldOf[Name <: Names] = types.FieldOf[Name]
+      }
+    ]
+    a.productElementId(typesWithIdx.nameToIndex(x))
 
 case class Cat(name: String)
 val res = Cat("Garfield").foo("name")
@@ -293,7 +303,8 @@ object PerspectiveInlineEncoder:
   inline def derivedSumEncoder[A](using gen: InlineHKDSumGeneric[A]): PerspectiveInlineEncoder[A] =
     val encoders = summonFrom {
       case encoders: gen.Gen[Encoder] => encoders
-      case _                          => gen.tupleToGen(caseEncoders[gen.TupleRep, Helpers.TupleMap[gen.TupleRep, Encoder]](Helpers.TupleBuilder.mkFor))
+      case _ =>
+        gen.tupleToGen(caseEncoders[gen.TupleRep, Helpers.TupleMap[gen.TupleRep, Encoder]](Helpers.TupleBuilder.mkFor))
     }
     val names = gen.names
 
@@ -315,7 +326,7 @@ object PerspectiveInlineEncoder:
     inline erasedValue[T] match
       case _: (h *: t) =>
         builder += summonFrom {
-          case d: Encoder[`h`] => d
+          case d: Encoder[`h`]             => d
           case given InlineHKDGeneric[`h`] => derived[h]
         }
         caseEncoders[t, R](builder)

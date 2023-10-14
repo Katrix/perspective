@@ -2,7 +2,7 @@ import cats.{Applicative, Functor}
 
 package object perspective extends LowPriorityPackage1 {
 
-  type Id[A] = A
+  type Id[A]       = A
   type Const[A, B] = A
 
   type IgnoreC[F[_[_]]] = {

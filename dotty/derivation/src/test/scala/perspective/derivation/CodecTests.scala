@@ -122,7 +122,7 @@ object CodecTests {
       case gen: HKDSumGeneric.Aux[A, gen.Gen] =>
         summonFrom {
           case encoders: gen.Gen[Encoder] => derivedSumEncoder(using gen, encoders)
-          case _                          =>
+          case _ =>
             val encoders = gen.tupleToGen(
               caseEncoders[gen.TupleRep, Helpers.TupleMap[gen.TupleRep, Encoder]](Helpers.TupleBuilder.mkFor)
             )

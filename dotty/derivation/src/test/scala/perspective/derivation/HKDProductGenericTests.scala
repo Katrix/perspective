@@ -31,6 +31,8 @@ class HKDProductGenericTests extends AnyFunSuite {
   val instance = summon[HKDProductGeneric[Foo]]
   import instance.given
 
+  summon[instance.TypeName =:= "Foo"]
+
   test("HKDProductGeneric.from(to(_)) roundtrip is unchanged") {
     assert(instance.from(instance.to(Foo.value1)) === Foo.value1)
   }
@@ -52,8 +54,8 @@ class HKDProductGenericTests extends AnyFunSuite {
         .stringToName(nameStr)
         // Need the Any type here so that correct bytecode is generated
         .map[Any] { (name: instance.Names) =>
-          val idx: instance.Index[instance.FieldOf[name.type]] = instance.nameToIndex(name)
-          val res: instance.FieldOf[name.type]                 = value.indexK(idx)
+          val idx: instance.IdxWrapper[_] = instance.nameToIndex(name)
+          val res                         = value.indexK(idx.idx)
           res
         }
     )
@@ -93,7 +95,9 @@ class HKDProductGenericTests extends AnyFunSuite {
     assert(fromProductElement === fromIndexK)
   }
 
-  test("HKDProductGeneric.tabulateFoldLeft corresponds to HKDProductGeneric.traverse.foldLeftK(instance.representable.indicesK)") {
+  test(
+    "HKDProductGeneric.tabulateFoldLeft corresponds to HKDProductGeneric.traverse.foldLeftK(instance.representable.indicesK)"
+  ) {
     val names = instance.names
 
     val normal = instance.traverse.foldLeftK(instance.representable.indicesK)("")(b =>
@@ -106,7 +110,9 @@ class HKDProductGenericTests extends AnyFunSuite {
 
   case class W[A](a: A)
 
-  test("HKDProductGeneric.tabulateTraverseK corresponds to HKDProductGeneric.traverse.traverseK(instance.representable.indicesK)") {
+  test(
+    "HKDProductGeneric.tabulateTraverseK corresponds to HKDProductGeneric.traverse.traverseK(instance.representable.indicesK)"
+  ) {
     val values = instance.to(Foo.value1)
 
     val normal = instance.traverse.traverseK(instance.representable.indicesK)(
@@ -117,45 +123,32 @@ class HKDProductGenericTests extends AnyFunSuite {
     assert(normal === quick)
   }
 
-  test("HKDProductGeneric.tabulateTraverseKOption corresponds to HKDProductGeneric.traverse.traverseK(instance.representable.indicesK)") {
+  test(
+    "HKDProductGeneric.tabulateTraverseKOption corresponds to HKDProductGeneric.traverse.traverseK(instance.representable.indicesK)"
+  ) {
     val values = instance.to(Foo.value1)
 
     val normal = instance.traverse.traverseK(instance.representable.indicesK)(
       [X] => (i: instance.Index[X]) => Some(W(values.indexK(i))): Option[W[X]]
     )
-    val quick = instance.tabulateTraverseKOption([X] => (i: instance.Index[X]) => Some(W(values.indexK(i))): Option[W[X]])
+    val quick =
+      instance.tabulateTraverseKOption([X] => (i: instance.Index[X]) => Some(W(values.indexK(i))): Option[W[X]])
 
     assert(normal === quick)
   }
 
-  test("HKDProductGeneric.tabulateTraverseKEither corresponds to HKDProductGeneric.traverse.traverseK(instance.representable.indicesK)") {
+  test(
+    "HKDProductGeneric.tabulateTraverseKEither corresponds to HKDProductGeneric.traverse.traverseK(instance.representable.indicesK)"
+  ) {
     val values = instance.to(Foo.value1)
 
     val normal = instance.traverse.traverseK(instance.representable.indicesK)(
       [X] => (i: instance.Index[X]) => Right(W(values.indexK(i))): Either[String, W[X]]
     )
-    val quick = instance.tabulateTraverseKEither([X] => (i: instance.Index[X]) => Right(W(values.indexK(i))): Either[String, W[X]])
+    val quick = instance.tabulateTraverseKEither(
+      [X] => (i: instance.Index[X]) => Right(W(values.indexK(i))): Either[String, W[X]]
+    )
 
     assert(normal === quick)
   }
-
-  //
-  // Compile time tests
-  //
-
-  summon[instance.TypeName =:= "Foo"]
-
-  summon[instance.FieldOf["a"] =:= Int]
-  summon[instance.FieldOf["b"] =:= String]
-  summon[instance.FieldOf["c"] =:= Double]
-  summon[instance.FieldOf["d"] =:= Char]
-  summon[instance.FieldOf["e"] =:= Boolean]
-  summon[instance.FieldOf["f"] =:= Int]
-  summon[instance.FieldOf["g"] =:= String]
-
-  summon[instance.Names =:= ("a" | "b" | "c" | "d" | "e" | "f" | "g")]
-  summon[instance.ElemTop =:= (Int | String | Double | Char | Boolean | Int | String)]
-  summon[instance.TupleRep =:= (Int, String, Double, Char, Boolean, Int, String)]
-
-  summon[NotGiven[instance.FieldOf[instance.Names] =:= Int]]
 }

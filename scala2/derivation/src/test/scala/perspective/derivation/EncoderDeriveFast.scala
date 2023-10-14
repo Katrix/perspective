@@ -20,8 +20,8 @@ object EncoderDeriveFast {
       val list = gen.tabulateFoldLeft(Nil: List[(String, Json)])(acc =>
         Lambda[gen.Index ~>: Const[List[(String, Json)], *]] { idx =>
           val encoder = encoders.indexKC(idx)
-          val name = names.indexKC(idx)
-          val value = gen.productElementId(a, idx)
+          val name    = names.indexKC(idx)
+          val value   = gen.productElementId(a, idx)
 
           (name, encoder(value)) :: acc
         }

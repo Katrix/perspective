@@ -19,7 +19,7 @@ case class Finite[N <: Int with Singleton] private (value: Int) {
 object Finite {
   def apply[N <: Int with Singleton: NotZero](size: N, value: Int): Finite[N] =
     new Finite[N](Math.floorMod(value, size))
-  
+
   def applyUnsage[N <: Int with Singleton](value: Int): Finite[N] = Finite(value)
 }
 

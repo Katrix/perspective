@@ -49,8 +49,12 @@ class HKDSumGenericTests extends AnyFunSuite {
   val instance = summon[HKDSumGeneric[Foo]]
   import instance.given
 
+  summon[instance.TypeName =:= "Foo"]
+
   test("HKDSumGeneric.from(to(_)) roundtrip is unchanged") {
     Foo.values.foreach { value =>
+      val to   = instance.to(value)
+      val from = instance.from(to)
       assert(instance.from(instance.to(value)) === Some(value))
     }
   }
@@ -72,8 +76,8 @@ class HKDSumGenericTests extends AnyFunSuite {
           .stringToName(nameStr)
           // Need the Any type here so that correct bytecode is generated
           .map[Option[Any]] { (name: instance.Names) =>
-            val idx: instance.Index[instance.FieldOf[name.type]] = instance.nameToIndex(name)
-            val res: Option[instance.FieldOf[name.type]]         = value.indexK(idx)
+            val idx: instance.IdxWrapper[_] = instance.nameToIndex(name)
+            val res: Option[_]              = value.indexK(idx.idx)
             res
           }
       )
@@ -103,7 +107,9 @@ class HKDSumGenericTests extends AnyFunSuite {
     assert(instanceTcs === tupleTcs)
   }
 
-  test("HKDSumGeneric.tabulateFoldLeft corresponds to HKDSumGeneric.traverse.foldLeftK(instance.representable.indicesK)") {
+  test(
+    "HKDSumGeneric.tabulateFoldLeft corresponds to HKDSumGeneric.traverse.foldLeftK(instance.representable.indicesK)"
+  ) {
     val names = instance.names
 
     val normal = instance.traverse.foldLeftK(instance.representable.indicesK)("")(b =>
@@ -114,7 +120,9 @@ class HKDSumGenericTests extends AnyFunSuite {
     assert(normal === quick)
   }
 
-  test("HKDSumGeneric.tabulateTraverseK corresponds to HKDSumGeneric.traverse.traverseK(instance.representable.indicesK)") {
+  test(
+    "HKDSumGeneric.tabulateTraverseK corresponds to HKDSumGeneric.traverse.traverseK(instance.representable.indicesK)"
+  ) {
     Foo.values.foreach { value =>
       val values = instance.to(value)
 
@@ -127,49 +135,36 @@ class HKDSumGenericTests extends AnyFunSuite {
     }
   }
 
-  test("HKDSumGeneric.tabulateTraverseKOption corresponds to HKDSumGeneric.traverse.traverseK(instance.representable.indicesK)") {
+  test(
+    "HKDSumGeneric.tabulateTraverseKOption corresponds to HKDSumGeneric.traverse.traverseK(instance.representable.indicesK)"
+  ) {
     Foo.values.foreach { value =>
       val values = instance.to(value)
 
       val normal = instance.traverse.traverseK(instance.representable.indicesK)(
         [X] => (i: instance.Index[X]) => Some(values.indexK(i)): Option[Option[X]]
       )
-      val quick = instance.tabulateTraverseKOption([X] => (i: instance.Index[X]) => Some(values.indexK(i)): Option[Option[X]])
+      val quick =
+        instance.tabulateTraverseKOption([X] => (i: instance.Index[X]) => Some(values.indexK(i)): Option[Option[X]])
 
       assert(normal === quick)
     }
   }
 
-  test("HKDSumGeneric.tabulateTraverseKEither corresponds to HKDSumGeneric.traverse.traverseK(instance.representable.indicesK)") {
+  test(
+    "HKDSumGeneric.tabulateTraverseKEither corresponds to HKDSumGeneric.traverse.traverseK(instance.representable.indicesK)"
+  ) {
     Foo.values.foreach { value =>
       val values = instance.to(value)
 
       val normal = instance.traverse.traverseK(instance.representable.indicesK)(
         [X] => (i: instance.Index[X]) => Right(values.indexK(i)): Either[String, Option[X]]
       )
-      val quick = instance.tabulateTraverseKEither([X] => (i: instance.Index[X]) => Right(values.indexK(i)): Either[String, Option[X]])
+      val quick = instance.tabulateTraverseKEither(
+        [X] => (i: instance.Index[X]) => Right(values.indexK(i)): Either[String, Option[X]]
+      )
 
       assert(normal === quick)
     }
   }
-
-  //
-  // Compile time tests
-  //
-
-  summon[instance.TypeName =:= "Foo"]
-
-  summon[instance.FieldOf["A"] =:= Foo.A]
-  summon[instance.FieldOf["B"] =:= Foo.B]
-  summon[instance.FieldOf["C"] =:= Foo.C]
-  summon[instance.FieldOf["D"] =:= Foo.D]
-  summon[instance.FieldOf["E"] =:= Foo.E]
-  summon[instance.FieldOf["F"] =:= Foo.F]
-  summon[instance.FieldOf["G"] =:= Foo.G]
-
-  summon[instance.Names =:= ("A" | "B" | "C" | "D" | "E" | "F" | "G")]
-  summon[instance.ElemTop =:= (Foo.A | Foo.B | Foo.C | Foo.D | Foo.E | Foo.F | Foo.G)]
-  summon[instance.TupleRep =:= (Foo.A, Foo.B, Foo.C, Foo.D, Foo.E, Foo.F, Foo.G)]
-
-  summon[NotGiven[instance.FieldOf[instance.Names] =:= Foo.A]]
 }

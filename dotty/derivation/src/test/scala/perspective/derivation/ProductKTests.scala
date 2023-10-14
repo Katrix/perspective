@@ -80,7 +80,9 @@ class ProductKTests extends AnyFunSuite {
   test("ProductK.traverseK order corresponds to List.traverse order") {
     assert(
       tcInstancesK
-        .traverseK[[X] =>> State[Int, X], Tuple2K[Const[Int], Const[TC[Any]]]]([X] => (tc: TC[X]) => State((acc: Int) => (acc + 1, (acc, tc.asInstanceOf[TC[Any]]))))
+        .traverseK[[X] =>> State[Int, X], Tuple2K[Const[Int], Const[TC[Any]]]](
+          [X] => (tc: TC[X]) => State((acc: Int) => (acc + 1, (acc, tc.asInstanceOf[TC[Any]])))
+        )
         .runA(1)
         .value
         .toListK ===

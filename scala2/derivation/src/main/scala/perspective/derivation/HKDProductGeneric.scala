@@ -29,8 +29,9 @@ trait HKDProductGeneric[A] {
 
   val implicits: ProductImplicits[A, Gen, Index] = new ProductImplicits[A, Gen, Index](this)
 }
-private[derivation] class ProductImplicits[A, Gen[_[_]], Index0[_]](protected val gen: HKDProductGeneric.Aux[A, Gen] { type Index[A] = Index0[A] })
-    extends ProductImplicitsLowPriority[A, Gen] {
+private[derivation] class ProductImplicits[A, Gen[_[_]], Index0[_]](protected val gen: HKDProductGeneric.Aux[A, Gen] {
+  type Index[A] = Index0[A]
+}) extends ProductImplicitsLowPriority[A, Gen] {
 
   implicit def representable: RepresentableKC.Aux[Gen, Index0] = gen.representable
 }

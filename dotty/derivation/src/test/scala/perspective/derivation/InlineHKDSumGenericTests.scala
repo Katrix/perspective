@@ -1,8 +1,6 @@
 package perspective.derivation
 
 import scala.compiletime.constValue
-import scala.deriving.Mirror
-import scala.util.NotGiven
 
 import cats.Functor
 import cats.syntax.all.*
@@ -50,6 +48,8 @@ class InlineHKDSumGenericTests extends AnyFunSuite {
   // noinspection TypeAnnotation
   val instance = InlineHKDSumGeneric.derived[Foo]
 
+  summon[instance.TypeName =:= "Foo"]
+
   test("InlineHKDSumGeneric.from(to(_)) roundtrip is unchanged") {
     Foo.values.foreach { value =>
       assert(instance.from(instance.to(value)) === Some(value))
@@ -72,8 +72,8 @@ class InlineHKDSumGenericTests extends AnyFunSuite {
           .stringToName(nameStr)
           // Need the Any type here so that correct bytecode is generated
           .map[Option[Any]] { (name: instance.Names) =>
-            val idx: instance.IndexAux[instance.FieldOf[name.type]] = instance.nameToIndex(name)
-            val res: Option[instance.FieldOf[name.type]]            = value.indexK(idx)
+            val idx: instance.Index = instance.nameToIndex(name)
+            val res: Option[idx.X]  = value.indexK(idx)
             res
           }
       )
@@ -104,27 +104,6 @@ class InlineHKDSumGenericTests extends AnyFunSuite {
     )
     assert(instanceTcs === tupleTcs)
   }
-
-  //
-  // Compile time tests
-  //
-
-  summon[instance.TypeName =:= "Foo"]
-
-  summon[instance.FieldOf["A"] =:= Foo.A]
-  summon[instance.FieldOf["B"] =:= Foo.B]
-  summon[instance.FieldOf["C"] =:= Foo.C]
-  summon[instance.FieldOf["D"] =:= Foo.D]
-  summon[instance.FieldOf["E"] =:= Foo.E]
-  summon[instance.FieldOf["F"] =:= Foo.F]
-  summon[instance.FieldOf["G"] =:= Foo.G]
-
-  // TODO
-  // summon[instance.Names =:= ("A" | "B" | "C" | "D" | "E" | "F" | "G")]
-  summon[instance.ElemTop =:= (Foo.A | Foo.B | Foo.C | Foo.D | Foo.E | Foo.F | Foo.G)]
-  summon[instance.TupleRep =:= (Foo.A, Foo.B, Foo.C, Foo.D, Foo.E, Foo.F, Foo.G)]
-
-  summon[NotGiven[instance.FieldOf[instance.Names] =:= Foo.A]]
 
   // noinspection TypeAnnotation
   val nonInlineInstance = summon[HKDSumGeneric[Foo]]
