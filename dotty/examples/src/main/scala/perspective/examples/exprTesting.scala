@@ -14,46 +14,49 @@ object PerspectiveExprEncoder:
 
   def deriveProductEncoderImpl[A: Type](using q: Quotes): Expr[PerspectiveExprEncoder[A]] =
     import q.reflect.*
-    val gen   = ExprHKDProductGeneric.derived[A]
+    given gen: ExprHKDProductGeneric[A] = ExprHKDProductGeneric.derived[A]
+
     val types = gen.types
     val names = gen.names.asInstanceOf[gen.Gen[Const[String]]]
     // TODO: Make a function that errors if instances are not found
     val instances = gen.summonInstancesOpt[Encoder].getOrElse(report.errorAndAbort("Missing implicit instances"))
 
-    val res = '{
-      new PerspectiveExprEncoder[A] {
+    '{
+      new PerspectiveExprEncoder[A]:
         override def apply(a: A): Json = Json.obj(${
           val repr = gen.to('a)
-          val res = gen.tabulateConst(
+          val res = gen.tabulateConst {
             [X] =>
               (idx: gen.Index[X]) =>
-                TypeRepr.of(using gen.indexK(types)(idx)) match {
+                val name  = names.indexK(idx)
+                val value = repr.indexK(idx)
+
+                given Type[X] = types.indexK(idx)
+
+                val encoded = TypeRepr.of[X] match {
                   case t if t <:< TypeRepr.of[Byte] =>
-                    (gen.indexK(names)(idx), '{ Json.fromInt(${ gen.indexK(repr)(idx).asExprOf[Byte] }.toInt) })
+                    '{ Json.fromInt(${ value.asExprOf[Byte] }.toInt) }
                   case t if t <:< TypeRepr.of[Char] =>
-                    (gen.indexK(names)(idx), '{ Json.fromString(${ gen.indexK(repr)(idx).asExprOf[Char] }.toString) })
+                    '{ Json.fromString(${ value.asExprOf[Char] }.toString) }
                   case t if t <:< TypeRepr.of[Short] =>
-                    (gen.indexK(names)(idx), '{ Json.fromInt(${ gen.indexK(repr)(idx).asExprOf[Short] }.toInt) })
+                    '{ Json.fromInt(${ value.asExprOf[Short] }.toInt) }
                   case t if t <:< TypeRepr.of[Int] =>
-                    (gen.indexK(names)(idx), '{ Json.fromInt(${ gen.indexK(repr)(idx).asExprOf[Int] }) })
+                    '{ Json.fromInt(${ value.asExprOf[Int] }) }
                   case t if t <:< TypeRepr.of[Long] =>
-                    (gen.indexK(names)(idx), '{ Json.fromLong(${ gen.indexK(repr)(idx).asExprOf[Long] }) })
+                    '{ Json.fromLong(${ value.asExprOf[Long] }) }
                   case t if t <:< TypeRepr.of[Float] =>
-                    (gen.indexK(names)(idx), '{ Json.fromFloatOrString(${ gen.indexK(repr)(idx).asExprOf[Float] }) })
+                    '{ Json.fromFloatOrString(${ value.asExprOf[Float] }) }
                   case t if t <:< TypeRepr.of[Double] =>
-                    (gen.indexK(names)(idx), '{ Json.fromDoubleOrString(${ gen.indexK(repr)(idx).asExprOf[Double] }) })
+                    '{ Json.fromDoubleOrString(${ value.asExprOf[Double] }) }
                   case t if t <:< TypeRepr.of[Boolean] =>
-                    (gen.indexK(names)(idx), '{ Json.fromBoolean(${ gen.indexK(repr)(idx).asExprOf[Boolean] }) })
+                    '{ Json.fromBoolean(${ value.asExprOf[Boolean] }) }
                   case t if t <:< TypeRepr.of[String] =>
-                    (gen.indexK(names)(idx), '{ Json.fromString(${ gen.indexK(repr)(idx).asExprOf[String] }) })
+                    '{ Json.fromString(${ value.asExprOf[String] }) }
                   case _ =>
-                    given Type[X] = gen.indexK(types)(idx)
-                    (gen.indexK(names)(idx), '{ ${ gen.indexK(instances)(idx) }.apply(${ gen.indexK(repr)(idx) }) })
-              }
-          )
-          val l = gen.toListK(res).map(t => '{ (${ Expr(t._1) }, ${ t._2 }) })
-          Expr.ofSeq(l)
+                    '{ ${ instances.indexK(idx) }.apply(${ value }) }
+                }
+                '{ (${ Expr(name) }, ${ encoded }) }
+          }
+          Expr.ofSeq(res.toListK)
         }: _*)
-      }
     }
-    res
