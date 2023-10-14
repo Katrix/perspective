@@ -1,7 +1,7 @@
 package perspective.derivation
 
 import scala.annotation.unused
-import scala.compiletime.constValueTuple
+import scala.compiletime.constValue
 import scala.deriving.Mirror
 import scala.quoted.*
 
@@ -19,8 +19,12 @@ object TypeLength:
   }
 
   inline given fromMirror[A](using m: Mirror.Of[A]): TypeLength.Aux[A, Tuple.Size[m.MirroredElemLabels]] =
-    val v = constValueTuple[m.MirroredElemLabels].size
+    val v = constValue[Tuple.Size[m.MirroredElemLabels]]
     new TypeLengthImpl[A, Tuple.Size[m.MirroredElemLabels]](v)
+
+  inline given fromTuple[T <: Tuple]: TypeLength.Aux[T, Tuple.Size[T]] =
+    val v = constValue[Tuple.Size[T]]
+    new TypeLengthImpl[T, Tuple.Size[T]](v)
 
   given valueOf[A](using typeLength: TypeLength[A]): ValueOf[typeLength.Length] =
     ValueOf[typeLength.Length](typeLength.length)
