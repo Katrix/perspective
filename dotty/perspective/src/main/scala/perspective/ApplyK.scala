@@ -19,6 +19,9 @@ trait ApplyK[F[_[_], _]] extends FunctorK[F]:
     def tupledK[B[_]](fb: F[B, C]): F[Tuple2K[A, B], C] =
       fa.map2K(fb)([Z] => (a: A[Z], b: B[Z]) => (a, b))
 
+object ApplyK:
+  given idInstanceC[A]: ApplyKC[IdFC[A]] = instances.idInstanceC[A]
+
 /**
   * A version of [[ApplyK]] without a normal type as well as a higher kinded
   * type.

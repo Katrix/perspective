@@ -11,6 +11,8 @@ trait ApplicativeK[F[_[_], _]] extends ApplyK[F]:
   extension [A[_], C](fa: F[A, C])
     override def mapK[B[_]](f: A :~>: B): F[B, C] =
       this.pure[[Z] =>> A[Z] => B[Z]]([Z] => () => f[Z])[C].ap(fa)
+object ApplicativeK:
+  given idInstanceC[A]: ApplicativeKC[IdFC[A]] = instances.idInstanceC[A]
 
 /**
   * A version of [[ApplicativeK]] without a normal type as well as a higher

@@ -8,5 +8,7 @@ trait MonadK[F[_[_], _]] extends ApplicativeK[F]:
   extension [A[_], C](fa: F[A, C]) def flatMapK[B[_]](f: A :~>: F[B, *]): F[B, C]
 
   // TODO: Implement mapK and map2K in terms of flatMapK
+object MonadK:
+    given idInstanceC[A]: MonadKC[IdFC[A]] = instances.idInstanceC[A]
 
 type MonadKC[F[_[_]]] = MonadK[IgnoreC[F]]

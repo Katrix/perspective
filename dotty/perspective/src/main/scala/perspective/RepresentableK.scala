@@ -46,6 +46,8 @@ object RepresentableK:
     type RepresentationK[A] = RepresentationK0[A]
   }
 
+  given idInstanceC[A]: RepresentableKC[IdFC[A]] = instances.idInstanceC[A]
+
 /**
   * A version of [[RepresentableK]] without a normal type as well as a higher
   * kinded type.

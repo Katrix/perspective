@@ -27,6 +27,9 @@ trait FunctorK[F[_[_], _]]:
   /** A higher kinded equivalent of [[cats.Functor.lift]]. */
   extension [A[_], B[_]](f: A :~>: B) def liftK: F[A, *] :~>: F[B, *] = [C] => (fa: F[A, C]) => fa.mapK(f)
 
+object FunctorK:
+  given idInstanceC[A]: FunctorKC[IdFC[A]] = instances.idInstanceC[A]
+
 /**
   * A version of [[FunctorK]] without a normal type as well as a higher kinded
   * type.

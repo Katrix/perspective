@@ -23,6 +23,9 @@ trait DistributiveK[F[_[_], _]] extends FunctorK[F]:
     def collectK[B[_], C](f: A => F[B, C]): F[Compose2[G, B], C] =
       ga.map(f).cosequenceK
 
+object DistributiveK:
+  given idInstanceC[A]: DistributiveKC[IdFC[A]] = perspective.instances.idInstanceC[A]
+
 /**
   * A version of [[DistributiveK]] without a normal type as well as a higher
   * kinded type.

@@ -21,5 +21,8 @@ trait FoldableK[F[_[_], _]]:
   extension [A, C](fa: F[Const[A], C])
     def toListK: List[A] =
       fa.foldMapK(FunctionK.liftConst(List(_: A)))
+      
+object FoldableK:
+  given idInstanceC[A]: FoldableKC[IdFC[A]] = perspective.instances.idInstanceC[A]
 
 type FoldableKC[F[_[_]]] = FoldableK[IgnoreC[F]]

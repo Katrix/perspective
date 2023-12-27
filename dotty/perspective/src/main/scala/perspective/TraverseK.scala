@@ -29,6 +29,9 @@ trait TraverseK[F[_[_], _]] extends FunctorK[F], FoldableK[F]:
     def sequenceK: G[F[A, C]] =
       fga.traverseK(FunctionK.identity[Compose2[G, A]])
 
+object TraverseK:
+  given idInstanceC[A]: TraverseKC[IdFC[A]] = perspective.instances.idInstanceC[A]
+
 /**
   * A version of [[TraverseK]] without a normal type as well as a higher kinded
   * type.
