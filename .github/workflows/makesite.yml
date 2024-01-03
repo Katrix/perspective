@@ -21,3 +21,5 @@ jobs:
           ruby-version: '3.1' # Not needed with a .ruby-version file
       - run: gem install jekyll -v 4
       - run: sbt docs/publishMicrosite
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
