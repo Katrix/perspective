@@ -1,5 +1,3 @@
-{% assign versions = site.data.versions %}
-
 # perspective: Higher kinded data in Scala
 perspective aims to provide many of the tools you need to program with Higher Kinded Data (HKD) in Scala.
 Everything from deriving the categorical typeclasses themselves to deriving
@@ -14,10 +12,10 @@ If you want a good primer for working with HKD, check out this [talk](https://ww
 Add perspective to your project by adding these statements to your `build.sbt` file.
 ```scala
 // For Typeclasses
-libraryDependencies += "net.katsstuff" %% "perspective" % "{{versions.perspective}}"
+libraryDependencies += "net.katsstuff" %% "perspective" % "{{projectVersion}}"
 
 // For Derivation
-libraryDependencies += "net.katsstuff" %% "perspective-derivation" % "{{versions.perspective}}"
+libraryDependencies += "net.katsstuff" %% "perspective-derivation" % "{{projectVersion}}"
 ```
 
 # More information
