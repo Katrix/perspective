@@ -1,4 +1,4 @@
-name: Release
+name: Make site
 on:
   push:
     branches: ["main"]
