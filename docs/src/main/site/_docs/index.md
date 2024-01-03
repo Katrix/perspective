@@ -1,8 +1,3 @@
----
-layout: home
-title: "perspective"
----
-
 {% assign versions = site.data.versions %}
 
 # perspective: Higher kinded data in Scala
@@ -19,10 +14,10 @@ If you want a good primer for working with HKD, check out this [talk](https://ww
 Add perspective to your project by adding these statements to your `build.sbt` file.
 ```scala
 // For Typeclasses
-libraryDependencies += "net.katsstuff" %% "perspective" % "{{versions.dataprism}}"
+libraryDependencies += "net.katsstuff" %% "perspective" % "{{versions.perspective}}"
 
 // For Derivation
-libraryDependencies += "net.katsstuff" %% "perspective-derivation" % "{{versions.dataprism}}"
+libraryDependencies += "net.katsstuff" %% "perspective-derivation" % "{{versions.perspective}}"
 ```
 
 # More information

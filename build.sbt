@@ -184,10 +184,22 @@ lazy val docs = project
     mdocIn := sourceDirectory.value / "main" / "mdoc",
     // ScalaUnidoc / unidoc / fork := true,
     ScalaUnidoc / unidoc / scalacOptions ++= Seq(
-      "-doc-source-url",
-      "https://github.com/Katrix/perspective/tree/master€{FILE_PATH}.scala",
+      // "-doc-source-url",
+      // "https://github.com/Katrix/perspective/tree/master€{FILE_PATH}.scala",
       "-sourcepath",
-      (LocalRootProject / baseDirectory).value.getAbsolutePath
+      (LocalRootProject / baseDirectory).value.getAbsolutePath,
+      "-siteroot",
+      "docs/src/main/site",
+      "-project",
+      "perspective",
+      "-project-version",
+      version.value,
+      "-social-links:github::https://github.com/Katrix/perspective",
+      "-source-links:github://Katrix/perspective",
+      "-revision",
+      "main",
+      "-Yapi-subdirectory",
+      "api"
     )
   )
 

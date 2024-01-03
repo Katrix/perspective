@@ -20,14 +20,16 @@ jobs:
         with:
           ruby-version: '3.1' # Not needed with a .ruby-version file
       - run: gem install jekyll -v 4
-      - run: sbt docs/makeMicrosite
+      - run: sbt docs/clean;docs/unidoc
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Deploy-Info-Prod
+      - run: cp ./docs/src/main/site/_docs/CNAME ./docs/target/scala-3.3.1/unidoc/CNAME
+
+      - name: Push site
         uses: s0/git-publish-subdir-action@v2.6.0
         env:
           REPO: self
           BRANCH: gh-pages
-          FOLDER: docs/target/site
+          FOLDER: docs/target/scala-3.3.1/unidoc
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
