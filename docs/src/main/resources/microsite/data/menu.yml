@@ -1,0 +1,6 @@
+options:
+  - title: HKDGeneric
+    url: docs/hkdgeneric.html
+
+  - title: InlineHKDGeneric
+    url: docs/inlinehkdgeneric.html
