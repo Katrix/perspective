@@ -155,34 +155,14 @@ lazy val dottyPerspectiveExamples = project
 lazy val docsMappingsAPIDir = settingKey[String]("Name of subdirectory in site target directory for api docs")
 
 lazy val docs = project
-  .enablePlugins(MicrositesPlugin, ScalaUnidocPlugin, GhpagesPlugin)
+  .enablePlugins(ScalaUnidocPlugin)
   .settings(
     commonDottySettings,
-    micrositeName                          := "perspective",
-    micrositeAuthor                        := "Katrix",
-    micrositeDescription                   := "Higher kinded data in Scala",
-    micrositeDocumentationUrl              := "/api/perspective",
-    micrositeDocumentationLabelDescription := "ScalaDoc",
-    micrositeHomepage                      := "https://perspective.katsstuff.net",
-    micrositeGithubOwner                   := "Katrix",
-    micrositeGithubRepo                    := "perspective",
-    micrositeGitHostingUrl                 := "https://github.com",
-    micrositeGitterChannel                 := false,
-    micrositeShareOnSocial                 := false,
-    micrositeTheme                         := "pattern",
-    ghpagesCleanSite / excludeFilter       := "CNAME",
-    micrositePushSiteWith                  := GitHub4s,
-    micrositeGithubToken                   := sys.env.get("GITHUB_TOKEN"),
-    autoAPIMappings                        := true,
+    autoAPIMappings := true,
     ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(
       dottyPerspectiveJVM,
       dottyPerspectiveDerivationJVM
     ),
-    docsMappingsAPIDir := "api",
-    addMappingsToSiteDir(ScalaUnidoc / packageDoc / mappings, docsMappingsAPIDir),
-    // mdoc / fork := true,
-    mdocIn := sourceDirectory.value / "main" / "mdoc",
-    // ScalaUnidoc / unidoc / fork := true,
     ScalaUnidoc / unidoc / scalacOptions ++= Seq(
       // "-doc-source-url",
       // "https://github.com/Katrix/perspective/tree/master€{FILE_PATH}.scala",
