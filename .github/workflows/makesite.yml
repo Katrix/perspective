@@ -20,6 +20,14 @@ jobs:
         with:
           ruby-version: '3.1' # Not needed with a .ruby-version file
       - run: gem install jekyll -v 4
-      - run: sbt docs/publishMicrosite
+      - run: sbt docs/makeMicrosite
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy-Info-Prod
+        uses: s0/git-publish-subdir-action@v2.6.0
+        env:
+          REPO: self
+          BRANCH: gh-pages
+          FOLDER: docs/target/site
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
