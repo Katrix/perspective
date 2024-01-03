@@ -1,7 +1,7 @@
 logLevel                         := Level.Warn
 addSbtPlugin("org.scala-js"       % "sbt-scalajs"              % "1.15.0")
 addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "1.1.0")
-addSbtPlugin("com.47deg"          % "sbt-microsites"           % "1.4.3")
+addSbtPlugin("com.47deg"          % "sbt-microsites"           % "1.4.4")
 
 val circeVersion = "0.14.1"
 
