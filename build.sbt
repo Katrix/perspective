@@ -157,6 +157,7 @@ lazy val docsMappingsAPIDir = settingKey[String]("Name of subdirectory in site t
 lazy val docs = project
   .enablePlugins(MicrositesPlugin, ScalaUnidocPlugin, GhpagesPlugin)
   .settings(
+    commonDottySettings,
     micrositeName                          := "perspective",
     micrositeAuthor                        := "Katrix",
     micrositeDescription                   := "Higher kinded data in Scala",
