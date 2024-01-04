@@ -18,7 +18,7 @@ jobs:
 
       - run: 'sbt "docs/clean;docs/unidoc"'
 
-      - run: cp ./docs/src/main/site/_docs/CNAME ./docs/target/scala-3.3.1/unidoc/CNAME
+      - run: cp ./docs/_docs/CNAME ./docs/target/scala-3.3.1/unidoc/CNAME
 
       - name: Push site
         uses: s0/git-publish-subdir-action@v2.6.0

@@ -164,12 +164,10 @@ lazy val docs = project
       dottyPerspectiveDerivationJVM
     ),
     ScalaUnidoc / unidoc / scalacOptions ++= Seq(
-      // "-doc-source-url",
-      // "https://github.com/Katrix/perspective/tree/master€{FILE_PATH}.scala",
       "-sourcepath",
       (LocalRootProject / baseDirectory).value.getAbsolutePath,
       "-siteroot",
-      "docs/src/main/site",
+      "docs",
       "-project",
       "perspective",
       "-project-version",
