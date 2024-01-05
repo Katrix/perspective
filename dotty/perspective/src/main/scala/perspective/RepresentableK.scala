@@ -2,8 +2,8 @@ package perspective
 
 import scala.language.implicitConversions
 
-import cats.Functor
-import cats.syntax.all._
+import cats.syntax.all.*
+import cats.{Functor, Representable}
 
 /** A higher kinded [[cats.Representable]]. */
 trait RepresentableK[F[_[_], _]] extends MonadK[F] with DistributiveK[F]:
@@ -57,3 +57,21 @@ object RepresentableKC:
   type Aux[F[_[_]], RepresentationK0[_]] = RepresentableKC[F] {
     type RepresentationK[A] = RepresentationK0[A]
   }
+
+  given idInstanceC[A]: RepresentableKC.Aux[IdFC[A], [Z] =>> Finite[1]] = perspective.instances.idInstanceC[A]
+
+  given composeCats[F[_], G[_[_]], R1, R2[_]](
+      using F: Representable.Aux[F, R1],
+      G: RepresentableKC.Aux[G, R2]
+  ): RepresentableKC.Aux[[H[_]] =>> F[G[H]], [X] =>> (R1, R2[X])] = new RepresentableKC[[H[_]] =>> F[G[H]]] {
+    override type RepresentationK[A] = (R1, R2[A])
+
+    extension [A[_], C](fa: F[G[A]])
+      override def indexK[Z](i: (R1, R2[Z])): A[Z] =
+        F.index(fa)(i._1).indexK(i._2)
+
+    override def tabulateK[A[_], C](f: RepresentationK :~>: A): F[G[A]] =
+      F.tabulate(r1 => G.tabulateK([X] => (r2: R2[X]) => f((r1, r2))))
+  }
+
+  given composeId[F[_], R1, X](using F: Representable.Aux[F, R1]): RepresentableKC[[H[_]] =>> F[H[X]]] = composeCats[F, IdFC[X], R1, [Z] =>> Finite[1]]

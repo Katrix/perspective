@@ -1,5 +1,8 @@
 package perspective
 
+import cats.Apply
+import cats.syntax.all.*
+
 /** A higher kinded [[cats.Apply]] typeclass. */
 trait ApplyK[F[_[_], _]] extends FunctorK[F]:
   /** A higher kinded equivalent of [[cats.Apply.ap]]. */
@@ -21,6 +24,15 @@ trait ApplyK[F[_[_], _]] extends FunctorK[F]:
 
 object ApplyK:
   given idInstanceC[A]: ApplyKC[IdFC[A]] = instances.idInstanceC[A]
+
+  given composeCats[F[_], G[_[_]]](using F: Apply[F], G: ApplyKC[G]): ApplyKC[[H[_]] =>> F[G[H]]] with
+    extension [A[_], C](fa: F[G[A]])
+      override def map2K[B[_], Z[_]](fb: F[G[B]])(f: [Y] => (A[Y], B[Y]) => Z[Y]): F[G[Z]] =
+        fa.map2(fb)((a, b) => a.map2K(b)(f))
+
+      override def mapK[B[_]](f: A :~>: B): F[G[B]] = fa.map(_.mapK(f))
+
+  given composeId[F[_], X](using F: Apply[F]): ApplyKC[[H[_]] =>> F[H[X]]] = composeCats[F, IdFC[X]]
 
 /**
   * A version of [[ApplyK]] without a normal type as well as a higher kinded

@@ -82,7 +82,7 @@ trait GenHKDGeneric[A]:
   given TraverseKC[Gen]                        = traverse
 
   export representable.*
-  export traverse.{asK => _, liftK => _, mapConst => _, mapK => _, voidK => _, widen => _, *}
+  export traverse.{asK => _, liftK => _, mapConst => _, mapK => _, voidK => _, widen => _, imapK => _, *}
 
   // Cat generic functions
 

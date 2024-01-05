@@ -26,6 +26,16 @@ trait DistributiveK[F[_[_], _]] extends FunctorK[F]:
 object DistributiveK:
   given idInstanceC[A]: DistributiveKC[IdFC[A]] = perspective.instances.idInstanceC[A]
 
+  given composeCats[F[_], G[_[_]]](using F: Distributive[F], G: DistributiveKC[G]): DistributiveKC[[H[_]] =>> F[G[H]]] with
+    extension [A[_], C](fa: F[G[A]])
+      override def mapK[B[_]](f: A :~>: B): F[G[B]] = fa.map(_.mapK(f))
+
+    extension [H[_] : Functor, A[_], C](gfa: H[F[G[A]]])
+      override def cosequenceK: F[G[Compose2[H, A]]] =
+        F.cosequence(gfa).map(v => G.cosequenceK(v))
+
+  given composeId[F[_], X](using F: Distributive[F]): DistributiveKC[[H[_]] =>> F[H[X]]] = composeCats[F, IdFC[X]]
+
 /**
   * A version of [[DistributiveK]] without a normal type as well as a higher
   * kinded type.
