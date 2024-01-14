@@ -60,7 +60,7 @@ object RepresentableKC:
 
   given idInstanceC[A]: RepresentableKC.Aux[IdFC[A], [Z] =>> Finite[1]] = perspective.instances.idInstanceC[A]
 
-  given composeCats[F[_], G[_[_]], R1, R2[_]](
+  given composeCatsOutside[F[_], G[_[_]], R1, R2[_]](
       using F: Representable.Aux[F, R1],
       G: RepresentableKC.Aux[G, R2]
   ): RepresentableKC.Aux[[H[_]] =>> F[G[H]], [X] =>> (R1, R2[X])] = new RepresentableKC[[H[_]] =>> F[G[H]]] {
@@ -74,4 +74,20 @@ object RepresentableKC:
       F.tabulate(r1 => G.tabulateK([X] => (r2: R2[X]) => f((r1, r2))))
   }
 
-  given composeId[F[_], R1, X](using F: Representable.Aux[F, R1]): RepresentableKC[[H[_]] =>> F[H[X]]] = composeCats[F, IdFC[X], R1, [Z] =>> Finite[1]]
+  given composeId[F[_], R1, X](using F: Representable.Aux[F, R1]): RepresentableKC[[H[_]] =>> F[H[X]]] =
+    composeCatsOutside[F, IdFC[X], R1, [Z] =>> Finite[1]]
+
+  given composeCatsInside[F[_[_]], G[_], R1[_], R2](
+      using F: RepresentableKC.Aux[F, R1],
+      G: Representable.Aux[G, R2]
+  ): RepresentableKC.Aux[[H[_]] =>> F[Compose2[G, H]], [X] =>> (R1[X], R2)] =
+    new RepresentableKC[[H[_]] =>> F[Compose2[G, H]]] {
+      override type RepresentationK[A] = (R1[A], R2)
+
+      extension [A[_], C](fga: F[Compose2[G, A]])
+        override def indexK[Z](i: RepresentationK[Z]): A[Z] =
+          F.indexK(fga)(i._1).index.apply(i._2)
+
+      override def tabulateK[A[_], C](f: RepresentationK :~>: A): F[Compose2[G, A]] =
+        F.tabulateK([Z] => (r1: R1[Z]) => G.tabulate(r2 => f((r1, r2))))
+    }

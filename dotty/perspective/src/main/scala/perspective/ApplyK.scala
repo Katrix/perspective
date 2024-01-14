@@ -25,14 +25,22 @@ trait ApplyK[F[_[_], _]] extends FunctorK[F]:
 object ApplyK:
   given idInstanceC[A]: ApplyKC[IdFC[A]] = instances.idInstanceC[A]
 
-  given composeCats[F[_], G[_[_]]](using F: Apply[F], G: ApplyKC[G]): ApplyKC[[H[_]] =>> F[G[H]]] with
+  given composeCatsOutside[F[_], G[_[_]]](using F: Apply[F], G: ApplyKC[G]): ApplyKC[[H[_]] =>> F[G[H]]] with
     extension [A[_], C](fa: F[G[A]])
       override def map2K[B[_], Z[_]](fb: F[G[B]])(f: [Y] => (A[Y], B[Y]) => Z[Y]): F[G[Z]] =
         fa.map2(fb)((a, b) => a.map2K(b)(f))
 
       override def mapK[B[_]](f: A :~>: B): F[G[B]] = fa.map(_.mapK(f))
 
-  given composeId[F[_], X](using F: Apply[F]): ApplyKC[[H[_]] =>> F[H[X]]] = composeCats[F, IdFC[X]]
+  given composeId[F[_], X](using F: Apply[F]): ApplyKC[[H[_]] =>> F[H[X]]] = composeCatsOutside[F, IdFC[X]]
+
+  given composeCatsInside[F[_[_]], G[_]](using F: ApplyKC[F], G: Apply[G]): ApplyKC[[H[_]] =>> F[Compose2[G, H]]] with {
+    extension [A[_], C](fga: F[Compose2[G, A]])
+      override def mapK[B[_]](f: A :~>: B): F[Compose2[G, B]] = F.mapK(fga)([X] => (ga: G[A[X]]) => ga.map(a => f(a)))
+
+      override def map2K[B[_], Z[_]](fgb: F[Compose2[G, B]])(f: [X] => (A[X], B[X]) => Z[X]): F[Compose2[G, Z]] =
+        F.map2K(fga)(fgb)([X] => (ga: G[A[X]], gb: G[B[X]]) => G.map2(ga, gb)((a, b) => f(a, b)))
+  }
 
 /**
   * A version of [[ApplyK]] without a normal type as well as a higher kinded

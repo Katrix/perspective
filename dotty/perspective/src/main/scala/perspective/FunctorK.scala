@@ -35,11 +35,16 @@ trait FunctorK[F[_[_], _]] extends InvariantK[F]:
 object FunctorK:
   given idInstanceC[A]: FunctorKC[IdFC[A]] = instances.idInstanceC[A]
 
-  given composeCats[F[_], G[_[_]]](using F: Functor[F], G: FunctorKC[G]): FunctorKC[[H[_]] =>> F[G[H]]] with
+  given composeCatsOutside[F[_], G[_[_]]](using F: Functor[F], G: FunctorKC[G]): FunctorKC[[H[_]] =>> F[G[H]]] with
     extension [A[_], C](fa: F[G[A]])
       override def mapK[B[_]](f: A :~>: B): F[G[B]] = fa.map(_.mapK(f))
 
-  given composeId[F[_], X](using F: Functor[F]): FunctorKC[[H[_]] =>> F[H[X]]] = composeCats[F, IdFC[X]]
+  given composeId[F[_], X](using F: Functor[F]): FunctorKC[[H[_]] =>> F[H[X]]] = composeCatsOutside[F, IdFC[X]]
+
+  given composeCatsInside[F[_[_]], G[_]](using F: FunctorKC[F], G: Functor[G]): FunctorKC[[H[_]] =>> F[Compose2[G, H]]] with {
+    extension [A[_], C](fga: F[Compose2[G, A]])
+      override def mapK[B[_]](f: A :~>: B): F[Compose2[G, B]] = F.mapK(fga)([X] => (ga: G[A[X]]) => ga.map(a => f(a)))
+  }
 
 /**
   * A version of [[FunctorK]] without a normal type as well as a higher kinded

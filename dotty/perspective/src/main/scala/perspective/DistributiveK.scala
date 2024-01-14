@@ -26,15 +26,32 @@ trait DistributiveK[F[_[_], _]] extends FunctorK[F]:
 object DistributiveK:
   given idInstanceC[A]: DistributiveKC[IdFC[A]] = perspective.instances.idInstanceC[A]
 
-  given composeCats[F[_], G[_[_]]](using F: Distributive[F], G: DistributiveKC[G]): DistributiveKC[[H[_]] =>> F[G[H]]] with
-    extension [A[_], C](fa: F[G[A]])
-      override def mapK[B[_]](f: A :~>: B): F[G[B]] = fa.map(_.mapK(f))
+  given composeCatsOutside[F[_], G[_[_]]](
+      using F: Distributive[F],
+      G: DistributiveKC[G]
+  ): DistributiveKC[[H[_]] =>> F[G[H]]] with
+    extension [A[_], C](fa: F[G[A]]) override def mapK[B[_]](f: A :~>: B): F[G[B]] = fa.map(_.mapK(f))
 
-    extension [H[_] : Functor, A[_], C](gfa: H[F[G[A]]])
+    extension [H[_]: Functor, A[_], C](gfa: H[F[G[A]]])
       override def cosequenceK: F[G[Compose2[H, A]]] =
         F.cosequence(gfa).map(v => G.cosequenceK(v))
 
-  given composeId[F[_], X](using F: Distributive[F]): DistributiveKC[[H[_]] =>> F[H[X]]] = composeCats[F, IdFC[X]]
+  given composeId[F[_], X](using F: Distributive[F]): DistributiveKC[[H[_]] =>> F[H[X]]] =
+    composeCatsOutside[F, IdFC[X]]
+
+  given composeCatsInside[F[_[_]], G[_]](
+      using F: DistributiveKC[F],
+      G: Distributive[G]
+  ): DistributiveKC[[H[_]] =>> F[Compose2[G, H]]] with {
+    extension [A[_], C](fga: F[Compose2[G, A]])
+      override def mapK[B[_]](f: A :~>: B): F[Compose2[G, B]] = F.mapK(fga)([X] => (ga: G[A[X]]) => ga.map(a => f(a)))
+
+    extension [H[_]: Functor, A[_], C](hfga: H[F[Compose2[G, A]]])
+      override def cosequenceK: F[Compose3[G, H, A]] =
+        val fhga: F[Compose3[H, G, A]] = F.cosequenceK(hfga)
+        F.mapK(fhga)([X] => (hga: H[G[A[X]]]) => G.cosequence[H, A[X]](hga))
+
+  }
 
 /**
   * A version of [[DistributiveK]] without a normal type as well as a higher

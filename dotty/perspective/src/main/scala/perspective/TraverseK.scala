@@ -32,7 +32,7 @@ trait TraverseK[F[_[_], _]] extends FunctorK[F], FoldableK[F]:
 object TraverseK:
   given idInstanceC[A]: TraverseKC[IdFC[A]] = perspective.instances.idInstanceC[A]
 
-  given composeCats[F[_], G[_[_]]](using F: Traverse[F], G: TraverseKC[G]): TraverseKC[[H[_]] =>> F[G[H]]] with {
+  given composeCatsOutside[F[_], G[_[_]]](using F: Traverse[F], G: TraverseKC[G]): TraverseKC[[H[_]] =>> F[G[H]]] with {
     extension [A[_], C](fa: F[G[A]])
       override def mapK[B[_]](f: A :~>: B): F[G[B]] = fa.map(_.mapK(f))
 
@@ -46,7 +46,26 @@ object TraverseK:
         fa.traverse(_.traverseK(f))
   }
 
-  given composeId[F[_], X](using F: Traverse[F]): TraverseKC[[H[_]] =>> F[H[X]]] = composeCats[F, IdFC[X]]
+  given composeId[F[_], X](using F: Traverse[F]): TraverseKC[[H[_]] =>> F[H[X]]] = composeCatsOutside[F, IdFC[X]]
+
+  given composeCatsInside[F[_[_]], G[_]](
+      using F: TraverseKC[F],
+      G: Traverse[G]
+  ): TraverseKC[[H[_]] =>> F[Compose2[G, H]]] with {
+    extension [A[_], C](fga: F[Compose2[G, A]])
+      override def foldLeftK[B](b: B)(f: B => A :~>#: B): B =
+        F.foldLeftK(fga)(b)(bacc => [Z] => (ga: G[A[Z]]) => ga.foldLeft(bacc)((bacc2, a) => f(bacc2)(a)))
+
+      override def foldRightK[B](b: B)(f: A :~>#: (B => B)): B =
+        F.foldRightK(fga)(b)(
+          [Z] =>
+            (ga: G[A[Z]]) =>
+              (bacc: B) => ga.foldRight(Eval.now(bacc))((a, bacc2) => bacc2.map(bacc3 => f(a)(bacc3))).value
+        )
+
+      def traverseK[H[_]: Applicative, B[_]](f: A :~>: Compose2[H, B]): H[F[Compose2[G, B]]] =
+        F.traverseK(fga)[H, Compose2[G, B]]([Z] => (ga: G[A[Z]]) => G.traverse[H, A[Z], B[Z]](ga)(a => f(a)))
+  }
 
 /**
   * A version of [[TraverseK]] without a normal type as well as a higher kinded

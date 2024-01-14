@@ -25,7 +25,7 @@ trait FoldableK[F[_[_], _]]:
 object FoldableK:
   given idInstanceC[A]: FoldableKC[IdFC[A]] = perspective.instances.idInstanceC[A]
 
-  given composeCats[F[_], G[_[_]]](using F: Foldable[F], G: FoldableKC[G]): FoldableKC[[H[_]] =>> F[G[H]]] with {
+  given composeCatsOutside[F[_], G[_[_]]](using F: Foldable[F], G: FoldableKC[G]): FoldableKC[[H[_]] =>> F[G[H]]] with {
     extension [A[_], C](fa: F[G[A]])
       override def foldLeftK[B](b: B)(f: B => A :~>#: B): B =
         fa.foldLeft(b)((bacc, a) => a.foldLeftK(bacc)(f))
@@ -34,6 +34,22 @@ object FoldableK:
         fa.foldRight(Eval.now(b))((a, bacce) => Eval.now(a.foldRightK(bacce.value)(f))).value
   }
 
-  given composeId[F[_], X](using F: Foldable[F]): FoldableKC[[H[_]] =>> F[H[X]]] = composeCats[F, IdFC[X]]
+  given composeId[F[_], X](using F: Foldable[F]): FoldableKC[[H[_]] =>> F[H[X]]] = composeCatsOutside[F, IdFC[X]]
+
+  given composeCatsInside[F[_[_]], G[_]](
+      using F: FoldableKC[F],
+      G: Foldable[G]
+  ): FoldableKC[[H[_]] =>> F[Compose2[G, H]]] with {
+    extension [A[_], C](fga: F[Compose2[G, A]])
+      override def foldLeftK[B](b: B)(f: B => A :~>#: B): B =
+        F.foldLeftK(fga)(b)(bacc => [Z] => (ga: G[A[Z]]) => ga.foldLeft(bacc)((bacc2, a) => f(bacc2)(a)))
+
+      override def foldRightK[B](b: B)(f: A :~>#: (B => B)): B =
+        F.foldRightK(fga)(b)(
+          [Z] =>
+            (ga: G[A[Z]]) =>
+              (bacc: B) => ga.foldRight(Eval.now(bacc))((a, bacc2) => bacc2.map(bacc3 => f(a)(bacc3))).value
+        )
+  }
 
 type FoldableKC[F[_[_]]] = FoldableK[IgnoreC[F]]
