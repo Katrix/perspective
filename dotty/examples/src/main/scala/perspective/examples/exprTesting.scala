@@ -3,9 +3,10 @@ package perspective.examples
 import scala.deriving.Mirror
 import scala.quoted.*
 
+import cats.Monad
 import io.circe.*
-import perspective._
-import perspective.derivation.ExprHKDProductGeneric
+import perspective.*
+import perspective.derivation.{ExprHKDProductGeneric, HKDProductGeneric}
 
 trait PerspectiveExprEncoder[A] extends Encoder[A]
 object PerspectiveExprEncoder:
@@ -19,7 +20,7 @@ object PerspectiveExprEncoder:
     val types = gen.types
     val names = gen.names.asInstanceOf[gen.Gen[Const[String]]]
     // TODO: Make a function that errors if instances are not found
-    val instances = gen.summonInstancesOpt[Encoder].getOrElse(report.errorAndAbort("Missing implicit instances"))
+    val instances = gen.summonInstances[Encoder]
 
     '{
       new PerspectiveExprEncoder[A]:
@@ -59,4 +60,33 @@ object PerspectiveExprEncoder:
           }
           Expr.ofSeq(res.toListK)
         }: _*)
+    }
+
+trait PerspectiveExprDecoder[A] extends Decoder[A]
+object PerspectiveExprDecoder:
+  inline def deriveProductDecoder[A]: PerspectiveExprDecoder[A] =
+    ${ deriveProductDecoderImpl[A] }
+
+  def deriveProductDecoderImpl[A: Type](using q: Quotes): Expr[PerspectiveExprDecoder[A]] =
+    import q.reflect.*
+    given gen: ExprHKDProductGeneric[A] = ExprHKDProductGeneric.derived[A]
+
+    val types     = gen.types
+    val names     = gen.names.asInstanceOf[gen.Gen[Const[String]]]
+    val instances = gen.summonInstances[Decoder]
+
+    '{
+      new PerspectiveExprDecoder[A]:
+        override def apply(c: HCursor): Decoder.Result[A] =
+          ${
+            gen.tabulateMatchExprEither[DecodingFailure, Id, A](using q)(
+              [X] =>
+                (idx: gen.Index[X]) =>
+                  given Type[X] = types.indexK(idx)
+
+                  '{ c.get[X](${ Expr(names.indexK(idx)) })(${ instances.indexK(idx) }) }
+              ,
+              genV => gen.from(genV)
+            )
+          }
     }

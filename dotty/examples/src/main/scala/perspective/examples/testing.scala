@@ -364,6 +364,12 @@ object FooInline {
 case class FooExpr(i: Int, s: String, foobar: Long, fooInline: FooInline)
 object FooExpr {
 
-  given encoder: PerspectiveExprEncoder[FooExpr] =
-    PerspectiveExprEncoder.deriveProductEncoder[FooExpr]
+  //given encoder: PerspectiveExprEncoder[FooExpr] =
+  //  PerspectiveExprEncoder.deriveProductEncoder[FooExpr]
+}
+
+case class FooTpe[A](i: Int, a: A)
+object FooTpe {
+  given encoder[B: Encoder]: PerspectiveExprEncoder[FooTpe[B]] = PerspectiveExprEncoder.deriveProductEncoder[FooTpe[B]]
+  given decoder[B: Decoder]: PerspectiveExprDecoder[FooTpe[B]] = PerspectiveExprDecoder.deriveProductDecoder[FooTpe[B]]
 }
