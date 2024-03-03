@@ -1,5 +1,5 @@
 ---
-title: HKDGeneric 
+title: ExprHKDGeneric 
 ---
 
 # {{page.title}}

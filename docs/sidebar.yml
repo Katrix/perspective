@@ -1,13 +1,13 @@
 index: index.md
 subsection:
-  - title: Typeclasses
-    page: typeclasses.md
+  - page: guide/01_typeclasses.md
+    directory: Guide
 
-  - title: HKDGeneric
-    page: hkdgeneric.md
+  - page: guide/02_hkdgeneric.md
+    directory: Guide
 
-  - title: InlineHKDGeneric
-    page: inlinehkdgeneric.md
+  - page: guide/03_inlinehkdgeneric.md
+    directory: Guide
 
-  - title: ExprHKDGeneric
-    page: exprhkdgeneric.md
+  - page: guide/04_exprhkdgeneric.md
+    directory: Guide

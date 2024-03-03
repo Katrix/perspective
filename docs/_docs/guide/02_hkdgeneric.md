@@ -9,7 +9,7 @@ data type `Gen`. These functions are `def to(a: A): Gen[Id]` and `def from(gen: 
 type `Gen` can be manipulated and changed in the same way as a `List` can be changed. Functions
 providing these operations are exposed on higher kinded versions of typical typeclasses like
 `Functor`, `Applicative`, `Traverse` and so on. More details on these operations and typeclases can
-be found in [typeclasses](typeclasses.md). Of particular note is `Representable`
+be found in [typeclasses](01_typeclasses.md). Of particular note is `Representable`
 
 ## "Fused" `RepresentableK` operations
 
