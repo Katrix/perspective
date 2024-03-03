@@ -1,0 +1,13 @@
+index: index.md
+subsection:
+  - title: Typeclasses
+    page: typeclasses.md
+
+  - title: HKDGeneric
+    page: hkdgeneric.md
+
+  - title: InlineHKDGeneric
+    page: inlinehkdgeneric.md
+
+  - title: ExprHKDGeneric
+    page: exprhkdgeneric.md

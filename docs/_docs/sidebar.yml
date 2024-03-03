@@ -1,7 +1,0 @@
-index: index.md
-subsection:
-  - title: HKDGeneric
-    page: hkdgeneric.md
-
-  - title: InlineHKDGeneric
-    page: inlinehkdgeneric.md

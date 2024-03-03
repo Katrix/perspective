@@ -18,12 +18,12 @@ jobs:
 
       - run: 'sbt "docs/clean;docs/unidoc"'
 
-      - run: cp ./docs/_docs/CNAME ./docs/target/scala-3.3.1/unidoc/CNAME
+      - run: cp ./docs/_docs/CNAME ./docs/target/scala-3.3.3/unidoc/CNAME
 
       - name: Push site
         uses: s0/git-publish-subdir-action@v2.6.0
         env:
           REPO: self
           BRANCH: gh-pages
-          FOLDER: docs/target/scala-3.3.1/unidoc
+          FOLDER: docs/target/scala-3.3.3/unidoc
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

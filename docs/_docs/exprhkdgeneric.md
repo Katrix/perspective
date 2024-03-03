@@ -1,14 +1,57 @@
-package perspective.examples
+---
+title: HKDGeneric 
+---
 
-import scala.deriving.Mirror
-import scala.quoted.*
+# {{page.title}}
 
-import cats.Monad
-import io.circe.*
-import perspective.*
-import perspective.derivation.{ExprHKDProductGeneric, HKDProductGeneric}
+`ExprHKDGeneric` is a version of `HKDGeneric` for use in macros. Its `to` and `from` functions have
+types `def to(a: Expr[A]): Gen[Expr]` and `def from(gen: Gen[Expr]): Expr[A]`. `ExprHKDGeneric` also
+has functions `def types: Gen[Type]` and `def genType: Type[Gen]`.
 
+## Traverse
+
+Traverse is problematic for macros, and a true traverse function is incompatible with `Expr`.
+perspective provides a lot of traverse like functions to try to fill this gap. Sadly, none of these
+are truly traverse. In some cases a fold function can be used instead, to get the results of the traverse.
+
+```scala 3 sc:nocompile
+def tabulateTraverseKExprId[B[_] : Type](f: Index :~>: Compose2[Expr, B]): Expr[Gen[B]]
+
+def tabulateTraverseKExpr[B[_] : Type, D[_] : Type](
+  f: Index :~>: Compose3[Expr, B, D],
+  BAppExpr: Expr[Applicative[B]]
+): Expr[B[Gen[D]]]
+
+// Below only for product types
+def tabulateFlatMappableExpr[B[_] : Type, D[_] : Type, R: Type](using q: Quotes)(
+  f: Index :~>: Compose3[Expr, B, D],
+  transform: Quotes ?=> Gen[Compose2[Expr, D]] => Expr[R],
+  extractFlatMap: Quotes ?=> [X] => (Expr[B[D[X]]], Index[X], Quotes ?=> Expr[D[X]] => Expr[B[R]]) => Expr[B[R]],
+  extractMap: Quotes ?=> [X] => (Expr[B[D[X]]], Index[X], Quotes ?=> Expr[D[X]] => Expr[R]) => Expr[B[R]]
+): Expr[B[R]]
+
+def tabulateFlatMapExpr[B[_] : Type, D[_] : Type, R: Type](using q: Quotes)(
+  f: Index :~>: Compose3[Expr, B, D],
+  transform: Quotes ?=> Gen[Compose2[Expr, D]] => Expr[R],
+  BFlatMapExpr: Expr[Monad[B]]
+): Expr[B[R]]
+
+def tabulateMatchExprOption[D[_] : Type, R: Type](using q: Quotes)(
+  f: Index :~>: Compose3[Expr, Option, D],
+  transform: Quotes ?=> Gen[Compose2[Expr, D]] => Expr[R]
+): Expr[Option[R]]
+
+def tabulateMatchExprEither[E: Type, D[_] : Type, R: Type](using q: Quotes)(
+  f: Index :~>: Compose3[Expr, [X] =>> Either[E, X], D],
+  transform: Quotes ?=> Gen[Compose2[Expr, D]] => Expr[R]
+): Expr[Either[E, R]]
+```
+
+## Example
+
+```scala 3 sc:nocompile
 trait PerspectiveExprEncoder[A] extends Encoder[A]
+
 object PerspectiveExprEncoder:
   inline def deriveProductEncoder[A]: PerspectiveExprEncoder[A] =
     ${ deriveProductEncoderImpl[A] }
@@ -28,7 +71,7 @@ object PerspectiveExprEncoder:
           val res = gen.tabulateConst {
             [X] =>
               (idx: gen.Index[X]) =>
-                val name  = names.indexK(idx)
+                val name = names.indexK(idx)
                 val value = repr.indexK(idx)
 
                 given Type[X] = types.indexK(idx)
@@ -57,11 +100,12 @@ object PerspectiveExprEncoder:
                 }
                 '{ (${ Expr(name) }, ${ encoded }) }
           }
-          Expr.ofSeq(res.toListK)
+            Expr . ofSeq(res.toListK)
         }: _*)
     }
 
 trait PerspectiveExprDecoder[A] extends Decoder[A]
+
 object PerspectiveExprDecoder:
   inline def deriveProductDecoder[A]: PerspectiveExprDecoder[A] =
     ${ deriveProductDecoderImpl[A] }
@@ -70,8 +114,8 @@ object PerspectiveExprDecoder:
     import q.reflect.*
     given gen: ExprHKDProductGeneric[A] = ExprHKDProductGeneric.derived[A]
 
-    val types     = gen.types
-    val names     = gen.names.asInstanceOf[gen.Gen[Const[String]]]
+    val types = gen.types
+    val names = gen.names.asInstanceOf[gen.Gen[Const[String]]]
     val instances = gen.summonInstances[Decoder]
 
     '{
@@ -89,3 +133,4 @@ object PerspectiveExprDecoder:
             )
           }
     }
+```
