@@ -299,7 +299,7 @@ pages = [{"l":"api/index.html#","e":false,"i":"","n":"perspective","t":"perspect
 {"l":"api/perspective/ValueK$.html#const-c4c","e":false,"i":"","n":"const","t":"const[A](a: A): ValueK[Const[A]]","d":"perspective.ValueK","k":"def","x":""},
 {"l":"api/perspective/ValueK$.html#contra-c4c","e":false,"i":"","n":"contra","t":"contra[A[_]](contravariant: A[Any]): ValueK[A]","d":"perspective.ValueK","k":"def","x":""},
 {"l":"index.html#","e":false,"i":"","n":"perspective","t":"perspective","d":"","k":"static","x":""},
-{"l":"typeclasses.html#","e":false,"i":"","n":"Typeclasses ","t":"Typeclasses ","d":"","k":"static","x":""},
-{"l":"hkdgeneric.html#","e":false,"i":"","n":"HKDGeneric ","t":"HKDGeneric ","d":"","k":"static","x":""},
-{"l":"inlinehkdgeneric.html#","e":false,"i":"","n":"InlineHKDGeneric ","t":"InlineHKDGeneric ","d":"","k":"static","x":""},
-{"l":"exprhkdgeneric.html#","e":false,"i":"","n":"HKDGeneric ","t":"HKDGeneric ","d":"","k":"static","x":""}];
+{"l":"01_typeclasses.html#","e":false,"i":"","n":"Typeclasses ","t":"Typeclasses ","d":"","k":"static","x":""},
+{"l":"02_hkdgeneric.html#","e":false,"i":"","n":"HKDGeneric ","t":"HKDGeneric ","d":"","k":"static","x":""},
+{"l":"03_inlinehkdgeneric.html#","e":false,"i":"","n":"InlineHKDGeneric ","t":"InlineHKDGeneric ","d":"","k":"static","x":""},
+{"l":"04_exprhkdgeneric.html#","e":false,"i":"","n":"ExprHKDGeneric ","t":"ExprHKDGeneric ","d":"","k":"static","x":""}];
