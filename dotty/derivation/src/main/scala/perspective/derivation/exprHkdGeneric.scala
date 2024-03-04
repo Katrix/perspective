@@ -212,7 +212,7 @@ object ExprHKDProductGeneric:
     private lazy val nameMap = namesArr.zipWithIndex.toMap
 
     override def nameToIndex(name: Names): IdxWrapper[_ <: ElemTop] =
-      IdxWrapper(Finite.unsafeApply(nameMap(name)))
+      HKDGeneric.IdxWrapper(Finite.unsafeApply(nameMap(name)))
 
     override type TupleRep = ElemTypes
 
@@ -494,7 +494,6 @@ object ExprHKDProductGeneric:
 
 trait ExprHKDSumGeneric[A] extends GenHKDSumGeneric[A] with ExprHKDGeneric[A]:
   type Cat[B] = Expr[Option[B]]
-  type ElemTop <: A
 
   /**
     * Returns the index of a value. Because of soundness, this method can not be
@@ -555,7 +554,6 @@ object ExprHKDSumGeneric:
     }
   }
 
-  /*
   transparent inline given derived[A](using q: Quotes, aType: Type[A]): ExprHKDSumGeneric[A] =
     Expr.summon[Mirror.SumOf[A]] match
       case Some('{
@@ -621,9 +619,11 @@ object ExprHKDSumGeneric:
     type Index[_]  = Finite[typeLength.Length]
     type TypeName  = Label
     type TupleRep  = ElemTypes
+    type ElemTop   = A & Helpers.TupleUnion[TupleRep, Nothing]
   } = new ExprHKDSumGeneric[A]:
     override type Gen[F[_]] = ProductK[F, ElemTypes]
     override type Index[_]  = Finite[typeLength.Length]
+    override type ElemTop = A & Helpers.TupleUnion[TupleRep, Nothing]
 
     override def genType: Type[Gen] = Type.of[Gen]
 
@@ -643,7 +643,7 @@ object ExprHKDSumGeneric:
     private lazy val nameMap = namesArr.zipWithIndex.toMap
 
     override def nameToIndex(name: Names): IdxWrapper[_ <: ElemTop] =
-      IdxWrapper(Finite.unsafeApply(nameMap(name)))
+      HKDGeneric.IdxWrapper(Finite.unsafeApply(nameMap(name)))
 
     override type TupleRep = ElemTypes
 
@@ -686,21 +686,15 @@ object ExprHKDSumGeneric:
       '{ $ret._2 }
 
 
-    /*
     override def indexOf[X <: ElemTop: Type](x: Expr[X]): Expr[Index[X]] =
       '{ Finite.unsafeApply($m.ordinal($x)) }
 
     override def indexOfA(a: Expr[A]): Expr[IdxWrapper[_ <: ElemTop]] =
-      given Type[IdxWrapper] = Type.of[IdxWrapper]
-      given Type[ElemTop] = Type.of[ElemTop]
-      '{ new IdxWrapper(${ indexOf(a.asInstanceOf[Expr[ElemTop]]) }) }
+      '{ new HKDGeneric.IdxWrapper[Index, ElemTop](Finite.unsafeApply($m.ordinal($a))) }
 
     override def indexOfACasting(a: Expr[A]): IndexOfACasting[Index, ElemTop] =
-      given Type[IdxWrapper] = Type.of[IdxWrapper]
-      given Type[ElemTop] = Type.of[ElemTop]
-      val idx = indexOfA(a)
-      new IndexOfACasting.IndexOfACastingImpl[Index, ElemTop, ElemTop]('{ $idx.idx }, a.asInstanceOf[Expr[ElemTop]])
-     */
+      val idx = '{ Finite.unsafeApply[typeLength.Length]($m.ordinal($a)) }
+      new IndexOfACasting.IndexOfACastingImpl[Index, ElemTop, ElemTop](idx, a.asInstanceOf[Expr[ElemTop]])
 
     extension [B[_]: Type](gen: Gen[B])
       override def traverseKExprId[D[_]: Type](f: B :~>: Compose2[Expr, D]): Expr[Gen[D]] =
@@ -750,4 +744,3 @@ object ExprHKDSumGeneric:
 
     override val representable: BoundedRepresentableKC.Aux[Gen, Index] = instance
     override val traverse: TraverseKC[Gen]                             = instance
-*/

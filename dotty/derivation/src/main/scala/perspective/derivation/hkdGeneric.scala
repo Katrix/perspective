@@ -23,13 +23,13 @@ trait GenHKDGeneric[A]:
   type ElemTop
 
   /** A wrapper for [[Index]] where we want wildcards of it. */
-  case class IdxWrapper[X](idx: Index[X])
+  type IdxWrapper[X] = HKDGeneric.IdxWrapper[Index, X]
   given [X]: Conversion[IdxWrapper[X], Index[X]] = _.idx
-  given [X]: Conversion[Index[X], IdxWrapper[X]] = IdxWrapper(_)
+  given [X]: Conversion[Index[X], IdxWrapper[X]] = HKDGeneric.IdxWrapper(_)
 
   /** Upcast an index to its bound. */
   inline def upcastIndex[X](idx: Index[X]): IdxWrapper[_ <: ElemTop] =
-    IdxWrapper(idx).asInstanceOf[IdxWrapper[_ <: ElemTop]]
+    HKDGeneric.IdxWrapper(idx).asInstanceOf[IdxWrapper[_ <: ElemTop]]
 
   /** The name of the [[A]] type. */
   type TypeName <: String
@@ -116,6 +116,8 @@ object HKDGeneric:
   type Aux[A, Gen0[_[_]]] = HKDGeneric[A] {
     type Gen[B[_]] = Gen0[B]
   }
+
+  case class IdxWrapper[Index[_], X](idx: Index[X])
 
   transparent inline given derived[A](using m: Mirror.Of[A], typeLength: TypeLength[A])(
       using Finite.NotZero[typeLength.Length] =:= true
@@ -270,7 +272,7 @@ object HKDProductGeneric:
 
       private lazy val nameMap = namesArr.zipWithIndex.toMap
 
-      override def nameToIndex(name: Names): IdxWrapper[_ <: ElemTop] = IdxWrapper(Finite.unsafeApply(nameMap(name)))
+      override def nameToIndex(name: Names): IdxWrapper[_ <: ElemTop] = HKDGeneric.IdxWrapper(Finite.unsafeApply(nameMap(name)))
 
       override type TupleRep = ElemTypes
       override def genToTuple[F[_]](gen: Gen[F]): Helpers.TupleMap[TupleRep, F]   = gen.tuple
@@ -316,10 +318,8 @@ trait GenHKDSumGeneric[A] extends GenHKDGeneric[A]:
   * @tparam A
   *   The type being abstracted over.
   */
-trait HKDSumGeneric[A] extends HKDGeneric[A]:
+trait HKDSumGeneric[A] extends HKDGeneric[A] with GenHKDSumGeneric[A]:
   type Cat[B] = Option[B]
-
-  override type ElemTop <: A
 
   /**
     * Returns the index of a value. Because of soundness, this method can not be
@@ -358,7 +358,7 @@ trait HKDSumGeneric[A] extends HKDGeneric[A]:
     ) { a =>
       val index = indexOf((a: A).asInstanceOf[ElemTop])
       // This cast is safe as we know A = Z
-      representable.tabulateK([Z] => (i: Index[Z]) => if i == index.idx then Some((a: A).asInstanceOf[Z]) else None)
+      representable.tabulateK([Z] => (i: Index[Z]) => if i == index then Some((a: A).asInstanceOf[Z]) else None)
     }
 
   /**
@@ -426,10 +426,12 @@ object HKDSumGeneric:
     type Gen[F[_]] = ProductK[F, TupleRep]
     type Index[_]  = Finite[typeLength.Length]
     type TypeName  = Label
+    type ElemTop   = A & Helpers.TupleUnion[TupleRep, Nothing]
   } =
     new HKDSumGeneric[A]:
       type Gen[F[_]] = ProductK[F, TupleRep]
       type Index[_]  = Finite[typeLength.Length]
+      type ElemTop = A & Helpers.TupleUnion[TupleRep, Nothing]
 
       override type TypeName = Label
       override def typeName: TypeName = label
@@ -441,7 +443,7 @@ object HKDSumGeneric:
 
       private lazy val nameMap = namesArr.zipWithIndex.toMap
 
-      override def nameToIndex(name: Names): IdxWrapper[_ <: ElemTop] = IdxWrapper(Finite.unsafeApply(nameMap(name)))
+      override def nameToIndex(name: Names): IdxWrapper[_ <: ElemTop] = HKDGeneric.IdxWrapper(Finite.unsafeApply(nameMap(name)))
 
       override def indexOf[X <: ElemTop](x: X): Index[X] = Finite(typeLength.length, m.ordinal(x))
 
