@@ -23,4 +23,10 @@ object ContravariantK:
         F.mapK(fga)([X] => (ga: G[A[X]]) => G.contramap[A[X], B[X]](ga)(b => f(b)))
   }
 
+  given composeCatsInsideRight[F[_[_]], G[_]](using F: ContravariantKC[F]): ContravariantKC[[H[_]] =>> F[Compose2[H, G]]] with {
+    extension [A[_], C](fga: F[Compose2[A, G]])
+      override def contramapK[B[_]](f: B :~>: A): F[Compose2[B, G]] =
+        F.contramapK(fga)([X] => (ga: B[G[X]]) => f(ga))
+  }
+
 type ContravariantKC[F[_[_]]] = ContravariantK[IgnoreC[F]]

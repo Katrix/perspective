@@ -53,6 +53,17 @@ object DistributiveK:
 
   }
 
+  given composeCatsInsideRight[F[_[_]], G[_]](
+    using F: DistributiveKC[F],
+  ): DistributiveKC[[H[_]] =>> F[Compose2[H, G]]] with {
+    extension [A[_], C](fag: F[Compose2[A, G]])
+      override def mapK[B[_]](f: A :~>: B): F[Compose2[B, G]] = F.mapK(fag)([X] => (ag: A[G[X]]) => f(ag))
+
+    extension [H[_] : Functor, A[_], C](hfag: H[F[Compose2[A, G]]])
+      override def cosequenceK: F[Compose3[H, A, G]] = F.cosequenceK(hfag)
+
+  }
+
 /**
   * A version of [[DistributiveK]] without a normal type as well as a higher
   * kinded type.

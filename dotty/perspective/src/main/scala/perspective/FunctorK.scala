@@ -46,6 +46,11 @@ object FunctorK:
       override def mapK[B[_]](f: A :~>: B): F[Compose2[G, B]] = F.mapK(fga)([X] => (ga: G[A[X]]) => ga.map(a => f(a)))
   }
 
+  given composeCatsInsideRight[F[_[_]], G[_]](using F: FunctorKC[F]): FunctorKC[[H[_]] =>> F[Compose2[H, G]]] with {
+    extension [A[_], C](fag: F[Compose2[A, G]])
+      override def mapK[B[_]](f: A :~>: B): F[Compose2[B, G]] = F.mapK(fag)([X] => (ag: A[G[X]]) => f(ag))
+  }
+
 /**
   * A version of [[FunctorK]] without a normal type as well as a higher kinded
   * type.

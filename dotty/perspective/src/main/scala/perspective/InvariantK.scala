@@ -30,4 +30,14 @@ object InvariantK:
         F.imapK(fga)(f2)(g2)
   }
 
+  given composeCatsInsideRight[F[_[_]], G[_]](
+    using F: InvariantKC[F],
+  ): InvariantKC[[H[_]] =>> F[Compose2[H, G]]] with {
+    extension [A[_], C](fag: F[Compose2[A, G]])
+      override def imapK[B[_]](f: A :~>: B)(g: B :~>: A): F[Compose2[B, G]] =
+        val f2: Compose2[A, G] :~>: Compose2[B, G] = [X] => (ag: A[G[X]]) => f(ag)
+        val g2: Compose2[B, G] :~>: Compose2[A, G] = [X] => (bg: B[G[X]]) => g(bg)
+        F.imapK(fag)(f2)(g2)
+  }
+
 type InvariantKC[F[_[_]]] = InvariantK[IgnoreC[F]]

@@ -52,4 +52,15 @@ object FoldableK:
         )
   }
 
+  given composeCatsInsideRight[F[_[_]], G[_]](
+      using F: FoldableKC[F]
+  ): FoldableKC[[H[_]] =>> F[Compose2[H, G]]] with {
+    extension [A[_], C](fag: F[Compose2[A, G]])
+      override def foldLeftK[B](b: B)(f: B => A :~>#: B): B =
+        F.foldLeftK(fag)(b)(bacc => [Z] => (ag: A[G[Z]]) => f(bacc)(ag))
+
+      override def foldRightK[B](b: B)(f: A :~>#: (B => B)): B =
+        F.foldRightK(fag)(b)([Z] => (ag: A[G[Z]]) => (bacc: B) => f(ag)(bacc))
+  }
+
 type FoldableKC[F[_[_]]] = FoldableK[IgnoreC[F]]

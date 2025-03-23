@@ -45,6 +45,18 @@ object ApplicativeK:
     extension [A[_]](a: ValueK[A]) override def pure[C]: F[Compose2[G, A]] = F.pure([X] => () => G.pure(a[X]()))
   }
 
+  given composeCatsInsideRight[F[_[_]], G[_]](
+    using F: ApplicativeKC[F],
+  ): ApplicativeKC[[H[_]] =>> F[Compose2[H, G]]] with {
+    extension [A[_], C](fag: F[Compose2[A, G]])
+      override def mapK[B[_]](f: A :~>: B): F[Compose2[B, G]] = F.mapK(fag)([X] => (ag: A[G[X]]) => f(ag))
+
+      override def map2K[B[_], Z[_]](fgb: F[Compose2[B, G]])(f: [X] => (A[X], B[X]) => Z[X]): F[Compose2[Z, G]] =
+        F.map2K(fag)(fgb)([X] => (ag: A[G[X]], bg: B[G[X]]) => f(ag, bg))
+
+    extension [A[_]](a: ValueK[A]) override def pure[C]: F[Compose2[A, G]] = F.pure([X] => () => a[G[X]]())
+  }
+
 /**
   * A version of [[ApplicativeK]] without a normal type as well as a higher
   * kinded type.

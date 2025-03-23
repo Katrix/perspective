@@ -67,6 +67,20 @@ object TraverseK:
         F.traverseK(fga)[H, Compose2[G, B]]([Z] => (ga: G[A[Z]]) => G.traverse[H, A[Z], B[Z]](ga)(a => f(a)))
   }
 
+  given composeCatsInsideRight[F[_[_]], G[_]](
+      using F: TraverseKC[F]
+  ): TraverseKC[[H[_]] =>> F[Compose2[H, G]]] with {
+    extension [A[_], C](fag: F[Compose2[A, G]])
+      override def foldLeftK[B](b: B)(f: B => A :~>#: B): B =
+        F.foldLeftK(fag)(b)(bacc => [Z] => (ag: A[G[Z]]) => f(bacc)(ag))
+
+      override def foldRightK[B](b: B)(f: A :~>#: (B => B)): B =
+        F.foldRightK(fag)(b)([Z] => (ag: A[G[Z]]) => (bacc: B) => f(ag)(bacc))
+
+      def traverseK[H[_]: Applicative, B[_]](f: A :~>: Compose2[H, B]): H[F[Compose2[B, G]]] =
+        F.traverseK(fag)[H, Compose2[B, G]]([Z] => (ag: A[G[Z]]) => f(ag))
+  }
+
 /**
   * A version of [[TraverseK]] without a normal type as well as a higher kinded
   * type.

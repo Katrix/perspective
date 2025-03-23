@@ -42,6 +42,14 @@ object ApplyK:
         F.map2K(fga)(fgb)([X] => (ga: G[A[X]], gb: G[B[X]]) => G.map2(ga, gb)((a, b) => f(a, b)))
   }
 
+  given composeCatsInsideRight[F[_[_]], G[_]](using F: ApplyKC[F]): ApplyKC[[H[_]] =>> F[Compose2[H, G]]] with {
+    extension [A[_], C](fag: F[Compose2[A, G]])
+      override def mapK[B[_]](f: A :~>: B): F[Compose2[B, G]] = F.mapK(fag)([X] => (ag: A[G[X]]) => f(ag))
+
+      override def map2K[B[_], Z[_]](fbg: F[Compose2[B, G]])(f: [X] => (A[X], B[X]) => Z[X]): F[Compose2[Z, G]] =
+        F.map2K(fag)(fbg)([X] => (ag: A[G[X]], bg: B[G[X]]) => f(ag, bg))
+  }
+
 /**
   * A version of [[ApplyK]] without a normal type as well as a higher kinded
   * type.
